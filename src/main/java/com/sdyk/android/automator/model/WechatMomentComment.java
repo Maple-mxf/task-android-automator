@@ -9,7 +9,7 @@ import one.rewind.db.DaoManager;
 
 import java.util.Date;
 
-@DBName(value = "android_auto")
+@DBName(value = "wechat")
 @DatabaseTable(tableName = "wechat_moment_comments")
 public class WechatMomentComment extends Model {
 

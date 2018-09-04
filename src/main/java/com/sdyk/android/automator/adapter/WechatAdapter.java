@@ -4,17 +4,18 @@ import com.sdyk.android.automator.AndroidDevice;
 import com.sdyk.android.automator.model.WechatMsg;
 import com.sdyk.android.automator.model.WechatFriend;
 import com.sdyk.android.automator.model.WechatMoment;
+import com.sdyk.android.automator.model.WechatPublicAccount;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
+import one.rewind.txt.NumberFormatUtil;
 import one.rewind.util.FileUtil;
-import org.openqa.selenium.By;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.Point;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 微信的自动化操作
@@ -751,7 +752,209 @@ public class WechatAdapter extends Adapter {
 		}
 	}
 
-	public void addPublicAccount(String name){
+	public void addPublicAccount(String name) throws Exception {
+		// 点搜索
+		WebElement searchButton = driver
+				.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
+		searchButton.click();
+
+		Thread.sleep(1000);
+
+		// 点 公众号
+		WebElement publicAccountLink = driver
+				.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]"));
+		publicAccountLink.click();
+
+		Thread.sleep(4000);
+
+		// 查询 特定 公众号
+		/*WebElement searchInput = device.driver
+				.findElement(By.xpath("//android.widget.EditText[contains(@text,'搜索公众号')]"));
+
+		searchInput.sendKeys("华尔街见闻", Keys.ENTER);*/
+
+		driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
+
+		// 搜索
+		new TouchAction(driver).tap(PointOption.point(720, 150)).perform();
+		// Thread.sleep(100);
+		new TouchAction(driver).tap(PointOption.point(1350, 2250)).perform();
+
+		Thread.sleep(4000);
+
+		// 选中第一个结果
+		new TouchAction(driver).tap(PointOption.point(720, 600)).perform();
+
+		Thread.sleep(2000);
+
+		// 点击订阅
+		try {
+			driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
+					.click();
+
+			Thread.sleep(2000);
+			driver.navigate().back();
+
+		} catch (Exception e) {
+			logger.info("Already add public account: {}", name);
+		}
+
+		WechatPublicAccount wpa = new WechatPublicAccount();
+
+		// 点击左上角三个点
+		driver.findElementByClassName("android.widget.ImageButton").click();
+		Thread.sleep(1000);
+
+		// 点更多资料
+		try {
+			driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多资料')]")).click();
+		} catch (Exception e) {
+			driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多资料')]")).click();
+		}
+
+		Thread.sleep(1000);
+
+		// 对更多资料内容进行处理
+		List<WebElement> els = driver.findElementsByClassName("android.widget.TextView");
+
+		els = els.stream().filter(el -> {
+			return !el.getText().equals("更多资料") && el.getLocation().x != 0;
+		}).collect(Collectors.toList());
+
+		List<String> info = new ArrayList<>();
+
+		for(int i=0; i<els.size()-1; i=i+2) {
+			info.add(els.get(i).getText() + "" + els.get(i+1).getText());
+		}
+
+		for(String info_item: info) {
+			if(info_item.contains("微信号")) {
+				wpa.wechat_id = info_item.replaceAll("微信号", "");
+			}
+			if(info_item.contains("帐号主体")) {
+				wpa.subject = info_item.replaceAll("帐号主体", "");
+			}
+			if(info_item.contains("商标保护")) {
+				wpa.trademark = info_item.replaceAll("商标保护", "");
+			}
+			if(info_item.contains("客服电话")) {
+				wpa.phone = info_item.replaceAll("客服电话", "");
+			}
+		}
+
+		// 点击返回
+		driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+
+		Thread.sleep(1000);
+
+		// 对公众号首页信息进行处理
+		els = driver.findElementsByClassName("android.widget.TextView");
+
+		for(WebElement we : els) {
+			System.err.println(els.indexOf(we) + " --> " + we.getText());
+		}
+
+		wpa.name = els.get(0).getText();
+		wpa.content = els.get(1).getText();
+		System.err.println();
+		wpa.essay_count = NumberFormatUtil.parseInt(
+				els.get(2).getText().replaceAll("篇原创文章.*?", ""));
+
+		try {
+			wpa.insert();
+		} catch (Exception e) {
+			logger.error("Error insert record.", e);
+		}
+
+		Thread.sleep(1000);
+
+		driver.navigate().back();
+		Thread.sleep(500);
+		driver.navigate().back();
+		Thread.sleep(500);
+		driver.navigate().back();
+		Thread.sleep(500);
+	}
+
+	public void getIntoPublicAccountEssayList(String name) throws InterruptedException {
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+
+		Thread.sleep(1000);
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+
+		Thread.sleep(1000);
+
+		driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
+
+		Thread.sleep(1000);
+
+		// 搜索
+		driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
+
+		new TouchAction(driver).tap(PointOption.point(720, 150)).perform();
+		new TouchAction(driver).tap(PointOption.point(1350, 2250)).perform();
+
+		Thread.sleep(2000);
+
+		// 进入公众号
+		new TouchAction(driver).tap(PointOption.point(720, 360)).perform();
+
+		Thread.sleep(1000);
+
+		driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+
+		Thread.sleep(1000);
+
+		new TouchAction(driver).press(PointOption.point(720, 1196))
+				.waitAction()
+				.moveTo(PointOption.point(720, 170))
+				.release()
+				.perform();
+
+		Thread.sleep(1000);
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
+
+		Thread.sleep(20000); // TODO 此处时间需要调整
+
+		System.err.println(driver.getContextHandles());
+
+		// TODO 不能正常switch context
+		/*driver.context("WEBVIEW_com.tencent.mm:tools");
+		Thread.sleep(4000);
+		System.err.println(driver.getPageSource());*/
+
+		new TouchAction(driver).tap(PointOption.point(720, 1550)).perform();
+		Thread.sleep(6000);
+		// 点击返回
+		driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+		Thread.sleep(1000);
+
+		new TouchAction(driver).tap(PointOption.point(720, 1920)).perform();
+		Thread.sleep(6000);
+		// 点击返回
+		driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+		Thread.sleep(1000);
+
+		new TouchAction(driver).tap(PointOption.point(720, 2330)).perform();
+		Thread.sleep(6000);
+		// 点击返回
+		driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+		Thread.sleep(1000);
+
+		driver.navigate().back();
+		Thread.sleep(500);
+		driver.navigate().back();
+		Thread.sleep(500);
+		driver.navigate().back();
+		Thread.sleep(500);
+		driver.navigate().back();
+		Thread.sleep(500);
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
+		Thread.sleep(500);
 
 	}
 }

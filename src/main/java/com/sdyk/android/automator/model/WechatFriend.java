@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Date;
 
-@DBName(value = "android_auto")
+@DBName(value = "wechat")
 @DatabaseTable(tableName = "wechat_friends")
 public class WechatFriend extends Model {
 

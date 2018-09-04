@@ -1,5 +1,6 @@
 package com.sdyk.android.automator;
 
+import com.google.common.collect.ImmutableMap;
 import com.sdyk.android.automator.util.AppInfo;
 import com.sdyk.android.automator.util.ShellUtil;
 import io.appium.java_client.TouchAction;
@@ -27,6 +28,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import se.vidstige.jadb.JadbConnection;
 import se.vidstige.jadb.JadbDevice;
 import se.vidstige.jadb.JadbException;
+import se.vidstige.jadb.RemoteFile;
 import se.vidstige.jadb.managers.PackageManager;
 
 import java.io.*;
@@ -54,6 +56,7 @@ public class AndroidDevice {
 	// 配置设定
 	static {
 		LOCAL_IP = NetworkUtil.getLocalIp();
+		logger.info("Local IP: {}", LOCAL_IP);
 	}
 
 	// 代理相关设定
@@ -67,6 +70,8 @@ public class AndroidDevice {
 	AppiumDriverLocalService service;
 	URL serviceUrl;
 	public AndroidDriver driver; // 本地Driver
+	public int height;
+	public int width;
 
 	/**
 	 * @param udid 设备udid
@@ -162,7 +167,7 @@ public class AndroidDevice {
 
 					execShell(d, "settings", "put", "global", "http_proxy", LOCAL_IP + ":" + proxyPort);
 					execShell(d, "settings", "put", "global", "https_proxy", LOCAL_IP + ":" + proxyPort);
-					// execShell(d, "settings", "put", "global", "http_proxy", "10.0.0.51:49999");
+					//d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
 
 					Thread.sleep(2000);
 				}
@@ -292,7 +297,7 @@ public class AndroidDevice {
 		service = new AppiumServiceBuilder()
 				.withCapabilities(serviceCapabilities)
 				.usingPort(appiumPort)
-				.withArgument(GeneralServerFlag.LOG_LEVEL, "util")
+				.withArgument(GeneralServerFlag.LOG_LEVEL, "info")
 				.build();
 
 		service.start();
@@ -312,16 +317,22 @@ public class AndroidDevice {
 
 		capabilities.setCapability(MobileCapabilityType.AUTOMATION_NAME, AutomationName.ANDROID_UIAUTOMATOR2);
 
-		// TODO 下面两行代码如果不添加 是否不能进入小程序？
-		// capabilities.setCapability("chromeOptions", ImmutableMap.of("androidProcess", webViewAndroidProcessName));
-		// webViewAndroidProcessName = "com.tencent.mm:appbrand0"; App中的加载WebView的进程名
 
+		// TODO 下面两行代码如果不添加 是否不能进入小程序？
+		String webViewAndroidProcessName = "com.tencent.mm:tools";
+		// webViewAndroidProcessName = "com.tencent.mm:appbrand0"; App中的加载WebView的进程名
+		capabilities.setCapability("chromeOptions", ImmutableMap.of("androidProcess", webViewAndroidProcessName));
 
 		capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, udid);
 
 		driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
 
 		Thread.sleep(5000);
+
+		// 设置宽高
+		this.width = getWidth();
+		this.height = getHeight();
+
 	}
 
 	/**

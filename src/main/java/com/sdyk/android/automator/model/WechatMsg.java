@@ -16,7 +16,7 @@ import java.util.Date;
  * @author zhouxinhao33@gmail.com
  * @date
  */
-@DBName(value = "android_auto")
+@DBName(value = "wechat")
 @DatabaseTable(tableName = "wechat_msgs")
 public class WechatMsg extends Model {
 

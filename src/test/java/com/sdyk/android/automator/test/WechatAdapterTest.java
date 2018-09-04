@@ -1,26 +1,31 @@
 package com.sdyk.android.automator.test;
 
-import com.sdyk.android.automator.adapter.ContactsAdapter;
+import com.sdyk.android.automator.AndroidDevice;
+import com.sdyk.android.automator.adapter.WechatAdapter;
 import com.sdyk.android.automator.model.WechatEssay;
 import com.sdyk.android.automator.model.WechatEssayComment;
+import com.sdyk.android.automator.model.WechatPublicAccount;
 import com.sdyk.android.automator.util.AppInfo;
-import com.sdyk.android.automator.AndroidDevice;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.json.JSON;
+import one.rewind.util.FileUtil;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Stack;
 
-import static java.awt.SystemColor.info;
-
-public class AndroidDeviceTest {
+public class WechatAdapterTest {
 
 	String udid = "ZX1G323GNB";
 	int appiumPort = 47454;
 	int localProxyPort = 48454;
 	AndroidDevice device;
+	WechatAdapter adapter;
+
+	List<String> publicAccounts;
 
 	/**
 	 * 初始化设备
@@ -30,61 +35,8 @@ public class AndroidDeviceTest {
 	public void setup() throws Exception {
 
 		device = new AndroidDevice(udid, appiumPort);
-		device.removeWifiProxy();
 
-		// 从AppInfo中选择需要启动的程序
-		/*AppInfo appInfo = AppInfo.get(AppInfo.Defaults.Contacts);
-
-		device.initAppiumServiceAndDriver(appInfo);
-
-		Thread.sleep(3000);*/
-	}
-
-	@Test
-	public void voidTest() {
-
-	}
-
-	/**
-	 * 测试安装APK
-	 */
-	@Test
-	public void testInstallApk() {
-
-		System.out.println(device.getHeight());
-		System.out.println(device.getWidth());
-
-		String apkPath = "com.facebook.katana_180.0.0.35.82_free-www.apkhere.com.apk";
-		device.installApk(apkPath);
-		device.listApps();
-
-		// TODO 测试删除APK
-	}
-
-	/**
-	 * 测试通讯录功能
-	 * @throws InterruptedException
-	 */
-	@Test
-	public void testAddContact() throws InterruptedException {
-
-		String name = "name";
-		String number = "123456";
-		String filePath = "newFriend.txt";
-
-		AppInfo info = AppInfo.get(AppInfo.Defaults.Contacts);
-		device.startActivity(info);
-
-		ContactsAdapter ca = new ContactsAdapter(device);
-		ca.clearContacts();
-		ca.addContact(name, number);
-		ca.addContactsFromFile(filePath);
-		ca.deleteOneContact(name);
-	}
-
-	@Test
-	public void testProxyFilters() throws InterruptedException {
-
+		//device.removeWifiProxy();
 		device.startProxy(localProxyPort);
 		device.setupWifiProxy();
 
@@ -144,13 +96,13 @@ public class AndroidDeviceTest {
 
 						WechatEssay we = new WechatEssay().parseContent(content_src).parseStat(stats_src);
 
-						System.err.println(JSON.toPrettyJson(we));
+						System.err.println(we.title);
 
 						we.insert();
 
 						List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments_src);
 
-						System.err.println(JSON.toPrettyJson(comments_));
+						System.err.println(comments_.size());
 
 						comments_.stream().forEach(c -> {
 							try {
@@ -170,8 +122,47 @@ public class AndroidDeviceTest {
 		device.setProxyRequestFilter(requestFilter);
 		device.setProxyResponseFilter(responseFilter);
 
-		Thread.sleep(10000000);
+		// 从AppInfo中选择需要启动的程序
+		AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
 
+		device.initAppiumServiceAndDriver(appInfo);
+
+		adapter = new WechatAdapter(device);
+
+		Thread.sleep(3000);
+	}
+
+	@Test
+	public void loadPublicAccounts() {
+		publicAccounts = Arrays.asList(FileUtil.readFileByLines("data/wechat_public_accounts.txt")
+				.split("\r\n|\n"));
+
+		System.out.println("Total " + publicAccounts.size() + " public accounts.");
+	}
+
+	@Test
+	public void testAddPublicAccounts() throws Exception {
+
+		loadPublicAccounts();
+
+		for(String name : publicAccounts) {
+			//if(name.equals("IPP评论"))
+
+			WechatPublicAccount wpa = WechatPublicAccount.getByName(name);
+			if(wpa == null)
+				adapter.addPublicAccount(name);
+		}
+	}
+
+	@Test
+	public void testGetIntoPublicAccount() throws InterruptedException {
+
+		loadPublicAccounts();
+
+		for(String name : publicAccounts) {
+			adapter.getIntoPublicAccountEssayList(name);
+		}
+
+		Thread.sleep(100000000);
 	}
 }
-

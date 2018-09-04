@@ -16,14 +16,14 @@ public class AppInfo implements JSONable<AppInfo> {
     public static Map<Defaults, AppInfo> apps = new HashMap<>();
 
     public static enum Defaults {
-        WX,
+        WeChat,
         Contacts,
         IndexPage, //主页面，相当于什么也不做，只是初始化AppiumDriver
         DingDing
     }
 
     static {
-        apps.put(WX, new AppInfo("com.tencent.mm", ".ui.LauncherUI"));
+        apps.put(WeChat, new AppInfo("com.tencent.mm", ".ui.LauncherUI"));
         apps.put(Contacts, new AppInfo("com.google.android.contacts", "com.android.contacts.activities.PeopleActivity"));
         apps.put(IndexPage, new AppInfo("com.google.android.googlequicksearchbox", "com.google.android.launcher.GEL"));
         apps.put(DingDing, new AppInfo("com.alibaba.android.rimet", "com.alibaba.android.rimet.biz.SplashActivity"));
