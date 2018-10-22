@@ -49,7 +49,7 @@ public class APIMainServer {
 	public APIMainServer initRoutes() {
 
 		path("/api", () -> {
-			post("/postAccounts", PublicAccountsHandler.postAccounts);
+			post("/accounts", PublicAccountsHandler.postAccounts);
 		});
 
 		return this;

@@ -3,18 +3,14 @@ package one.rewind.android.automator.adapter;
 import com.google.common.collect.Lists;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
-import net.lightbody.bmp.filters.RequestFilter;
-import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.WechatEssay;
-import one.rewind.android.automator.model.WechatEssayComment;
+import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.AndroidUtil;
-import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,7 +18,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 /**
@@ -35,9 +34,7 @@ public class WechatAdapter extends Adapter {
 
 	private boolean isFirstPage = true;
 
-	public static ThreadPoolExecutor executor;
-
-	private LinkedBlockingQueue queue = new LinkedBlockingQueue<>();
+	public static ExecutorService executor = Executors.newFixedThreadPool(10);
 
 	public static AndroidDeviceManager.TaskType taskType = null;
 
@@ -273,17 +270,30 @@ public class WechatAdapter extends Adapter {
 	 *
 	 */
 	public class Start implements Callable<Boolean> {
+
 		@Override
 		public Boolean call() throws Exception {
-			init(AndroidDeviceManager.DEFAULT_LOCAL_PROXY_PORT);
+
+			Random random = new Random();
+
+//			init(random.nextInt(50000));
+
 			assert taskType != null;
 			if (taskType.equals(AndroidDeviceManager.TaskType.SUBSCRIBE)) {
 				for (String var : device.queue) {
+
 					searchPublicAccount(var, true);
+
+					//订阅完成之后再数据库存储记录
+					SubscribeAccount e = new SubscribeAccount();
+
+					e.udid = device.udid;
+					e.media_name = var;
+					e.insert();
 				}
 			} else if (taskType.equals(AndroidDeviceManager.TaskType.CRAWLER)) {
 				for (String var : device.queue) {
-					getIntoPublicAccountEssayList(var);
+					digestion(var);
 				}
 			}
 			return true;
@@ -301,105 +311,7 @@ public class WechatAdapter extends Adapter {
 		}
 	}
 
-	/**
-	 * 初始化APP
-	 */
-	private void init(int localProxyPort) {
-		logger.info("Init....Please wait!");
-		device.removeWifiProxy();
-		device.startProxy(localProxyPort);
-		device.setupWifiProxy();
-		device.state = AndroidDevice.State.INIT;
-		logger.info("Starting....Please wait!");
-		try {
-			RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
-				String url = messageInfo.getOriginalUrl();
-
-				if (url.contains("https://mp.weixin.qq.com/s"))
-					System.out.println(" . " + url);
-				return null;
-			};
-			Stack<String> content_stack = new Stack<>();
-			Stack<String> stats_stack = new Stack<>();
-			Stack<String> comments_stack = new Stack<>();
-			ResponseFilter responseFilter = (response, contents, messageInfo) -> {
-
-				String url = messageInfo.getOriginalUrl();
-
-				if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
-
-					// 正文
-					if (url.contains("https://mp.weixin.qq.com/s")) {
-						System.err.println(" : " + url);
-						content_stack.push(contents.getTextContents());
-					}
-					// 统计信息
-					else if (url.contains("getappmsgext")) {
-						System.err.println(" :: " + url);
-						stats_stack.push(contents.getTextContents());
-					}
-					// 评论信息
-					else if (url.contains("appmsg_comment?action=getcomment")) {
-						System.err.println(" ::: " + url);
-						comments_stack.push(contents.getTextContents());
-					}
-
-					if (content_stack.size() >= 1 && stats_stack.size() >= 1 && comments_stack.size() >= 1) {
-
-						try {
-							System.err.println("Fully received.");
-
-							String content_src = content_stack.pop();
-
-							String stats_src = stats_stack.pop();
-
-							String comments_src = comments_stack.pop();
-
-							WechatEssay we = new WechatEssay().parseContent(content_src).parseStat(stats_src);
-
-							System.err.println(we.title);
-
-							we.insert_time = new Date();
-
-							we.update_time = new Date();
-
-							we.insert();
-
-							List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments_src);
-
-							System.err.println(comments_.size());
-
-							comments_.stream().forEach(c -> {
-								try {
-									c.insert();
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-							});
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			device.setProxyRequestFilter(requestFilter);
-			device.setProxyResponseFilter(responseFilter);
-
-			AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
-
-			device.initAppiumServiceAndDriver(appInfo);
-
-			this.driver = device.driver;
-			this.udid = device.udid;
-
-			Thread.sleep(3000);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		device.state = AndroidDevice.State.RUNNING;
-	}
 
 	/**
 	 * @throws ExecutionException
@@ -501,15 +413,49 @@ public class WechatAdapter extends Adapter {
 	}
 
 
-	static {
-		int length = AndroidUtil.obtainDevices().length;
-		executor = new ThreadPoolExecutor(length + 2, length + 2,
-				10, TimeUnit.SECONDS, new LinkedBlockingQueue());
-	}
-
+	public static List<Future<?>> futures = Lists.newArrayList();
 
 	/**
+	 * 针对于在抓取微信公众号文章时候的异常处理
 	 *
+	 * @param wxAccountName
 	 */
-	public static List<Future<?>> futures = Lists.newArrayList();
+	private void digestion(String wxAccountName) {
+		try {
+			getIntoPublicAccountEssayList(wxAccountName);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+
+			logger.error("====线程中断异常====");
+
+		} catch (AndroidCollapseException e) {
+
+			e.printStackTrace();
+
+			logger.error("=====安卓系统出现崩溃情况！=====");
+
+			try {
+				/**
+				 * 当前设备系统卡死    关闭app之后再次进入微信进行操作
+				 */
+				close();
+
+				Thread.sleep(5000);
+
+				/**
+				 *  重新启动APP
+				 */
+				start();
+			} catch (ExecutionException | InterruptedException e1) {
+				e1.printStackTrace();
+			}
+
+		} catch (InvokingBaiduAPIException e) {
+
+			e.printStackTrace();
+
+			logger.error("=====百度API调用失败！=====");
+		}
+	}
+
 }

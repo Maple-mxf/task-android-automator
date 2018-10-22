@@ -3,6 +3,11 @@ package one.rewind.android.automator.util;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
+import net.lightbody.bmp.filters.RequestFilter;
+import net.lightbody.bmp.filters.ResponseFilter;
+import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.model.WechatEssay;
+import one.rewind.android.automator.model.WechatEssayComment;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
@@ -11,6 +16,9 @@ import org.openqa.selenium.TakesScreenshot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.Date;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Create By 2018/10/15
@@ -117,4 +125,99 @@ public class AndroidUtil {
 		return r.split("device");
 	}
 
+
+	/**
+	 * 初始化APP
+	 */
+	public static void initApp(int localProxyPort, AndroidDevice device) {
+		System.out.println("当前线程名称:  init() " + Thread.currentThread().getName());
+		device.startProxy(localProxyPort);
+		device.setupWifiProxy();
+		device.state = AndroidDevice.State.INIT;
+		System.out.println("Starting....Please wait!");
+		try {
+			RequestFilter requestFilter = (request, contents, messageInfo) -> {
+
+				String url = messageInfo.getOriginalUrl();
+
+				if (url.contains("https://mp.weixin.qq.com/s"))
+					System.out.println(" . " + url);
+				return null;
+			};
+			Stack<String> content_stack = new Stack<>();
+			Stack<String> stats_stack = new Stack<>();
+			Stack<String> comments_stack = new Stack<>();
+			ResponseFilter responseFilter = (response, contents, messageInfo) -> {
+
+				String url = messageInfo.getOriginalUrl();
+
+				if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
+
+					// 正文
+					if (url.contains("https://mp.weixin.qq.com/s")) {
+						System.err.println(" : " + url);
+						content_stack.push(contents.getTextContents());
+					}
+					// 统计信息
+					else if (url.contains("getappmsgext")) {
+						System.err.println(" :: " + url);
+						stats_stack.push(contents.getTextContents());
+					}
+					// 评论信息
+					else if (url.contains("appmsg_comment?action=getcomment")) {
+						System.err.println(" ::: " + url);
+						comments_stack.push(contents.getTextContents());
+					}
+
+					if (content_stack.size() >= 1 && stats_stack.size() >= 1 && comments_stack.size() >= 1) {
+
+						try {
+							System.err.println("Fully received.");
+
+							String content_src = content_stack.pop();
+
+							String stats_src = stats_stack.pop();
+
+							String comments_src = comments_stack.pop();
+
+							WechatEssay we = new WechatEssay().parseContent(content_src).parseStat(stats_src);
+
+							System.err.println(we.title);
+
+							we.insert_time = new Date();
+
+							we.update_time = new Date();
+
+							we.insert();
+
+							List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments_src);
+
+							System.err.println(comments_.size());
+
+							comments_.stream().forEach(c -> {
+								try {
+									c.insert();
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							});
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			};
+			device.setProxyRequestFilter(requestFilter);
+			device.setProxyResponseFilter(responseFilter);
+
+			AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
+
+			device.initAppiumServiceAndDriver(appInfo);
+
+			Thread.sleep(3000);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
