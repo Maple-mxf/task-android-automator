@@ -9,13 +9,13 @@ public abstract class Adapter {
 
 	static final Logger logger = LogManager.getLogger(Adapter.class.getName());
 
-	AndroidDevice androidDevice;
+	AndroidDevice device;
 	AndroidDriver driver;
 	String udid;
 
-	public Adapter(AndroidDevice androidDevice) {
-		this.androidDevice = androidDevice;
-		this.driver = androidDevice.driver;
-		this.udid = androidDevice.udid;
+	public Adapter(AndroidDevice device) {
+		this.device = device;
+		this.driver = device.driver;
+		this.udid = device.udid;
 	}
 }

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@DBName(value = "wechat")
+@DBName(value = "raw")
 @DatabaseTable(tableName = "wechat_essay_comments")
 public class WechatEssayComment extends Model {
 
@@ -30,7 +30,7 @@ public class WechatEssayComment extends Model {
 	@DatabaseField(dataType = DataType.STRING, width = 1024)
 	public String content;
 
-	@DatabaseField(dataType = DataType.STRING, width = 32, unique = true)
+	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String content_id;
 
 	@DatabaseField(dataType = DataType.INTEGER)

@@ -7,7 +7,7 @@ import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
 import one.rewind.db.DaoManager;
 
-@DBName(value = "wechat")
+@DBName(value = "raw")
 @DatabaseTable(tableName = "wechat_public_accounts")
 public class WechatPublicAccount extends Model {
 

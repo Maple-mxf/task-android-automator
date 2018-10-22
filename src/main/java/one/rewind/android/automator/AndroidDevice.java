@@ -1,8 +1,6 @@
 package one.rewind.android.automator;
 
 import com.google.common.collect.ImmutableMap;
-import one.rewind.android.automator.util.AppInfo;
-import one.rewind.android.automator.util.ShellUtil;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
@@ -17,6 +15,8 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import one.rewind.android.automator.util.AppInfo;
+import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +27,11 @@ import se.vidstige.jadb.JadbException;
 import se.vidstige.jadb.managers.PackageManager;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * 设备连接信息
@@ -37,14 +40,26 @@ public class AndroidDevice {
 
 	public static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
 
-	public volatile boolean running = false;
+	/**
+	 * 任务队列
+	 */
+	public Queue<String> queue = new ConcurrentLinkedDeque<>();
 
-	static File nodeJsExecutable = new File("C:\\Program Files\\nodejs\\node.exe");
-	static File appiumMainJsFile = new File("C:\\Users\\lenovo\\AppData\\Local\\Programs\\appium-desktop\\resources\\app");
+	private boolean clickEffect;
+
+	public State state = State.RUNNING;
+
+	public boolean isClickEffect() {
+		return clickEffect;
+	}
+
+	public void setClickEffect(boolean clickEffect) {
+		this.clickEffect = clickEffect;
+	}
 
 	public static String LOCAL_IP;
 
-	public static enum Flag {
+	public enum Flag {
 		Proxy
 	}
 
@@ -69,11 +84,11 @@ public class AndroidDevice {
 	public int width;
 
 	/**
-	 * @param udid 设备udid
+	 * @param udid       设备udid
 	 * @param appiumPort
 	 * @throws Exception
 	 */
-	public AndroidDevice(String udid, int appiumPort) throws Exception {
+	public AndroidDevice(String udid, int appiumPort) {
 		this.udid = udid;
 		this.appiumPort = appiumPort;
 	}
@@ -94,6 +109,7 @@ public class AndroidDevice {
 
 	/**
 	 * 启动MITM代理服务
+	 *
 	 * @param port
 	 */
 	public void startProxy(int port) {
@@ -117,19 +133,21 @@ public class AndroidDevice {
 
 	/**
 	 * 设置代理请求过滤器
+	 *
 	 * @param filter
 	 */
 	public void setProxyRequestFilter(RequestFilter filter) {
-		if(bmProxy == null) return;
+		if (bmProxy == null) return;
 		bmProxy.addFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));
 	}
 
 	/**
 	 * 设置代理返回过滤器
+	 *
 	 * @param filter
 	 */
 	public void setProxyResponseFilter(ResponseFilter filter) {
-		if(bmProxy == null) return;
+		if (bmProxy == null) return;
 		bmProxy.addResponseFilter(filter);
 	}
 
@@ -137,12 +155,12 @@ public class AndroidDevice {
 	 * 停止代理
 	 */
 	public void stopProxy() {
-		if(bmProxy!=null) bmProxy.stop();
+		if (bmProxy != null) bmProxy.stop();
 	}
 
 	/**
 	 * 设置设备Wifi代理
-	 *
+	 * <p>
 	 * 设备需要连接WIFI，设备与本机器在同一网段
 	 */
 	public void setupWifiProxy() {
@@ -196,7 +214,7 @@ public class AndroidDevice {
 					Thread.sleep(2000);
 				}
 			}
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -204,6 +222,7 @@ public class AndroidDevice {
 
 	/**
 	 * 安装APK包
+	 *
 	 * @param mobileSerial
 	 * @param fileName
 	 */
@@ -231,6 +250,7 @@ public class AndroidDevice {
 
 	/**
 	 * 安装APK包
+	 *
 	 * @param apkPath
 	 */
 	public void installApk(String apkPath) {
@@ -240,6 +260,7 @@ public class AndroidDevice {
 
 	/**
 	 * 执行远程设备shell命令
+	 *
 	 * @param d
 	 * @param command
 	 * @param args
@@ -279,7 +300,7 @@ public class AndroidDevice {
 	 *
 	 * @throws Exception
 	 */
-	public void initAppiumServiceAndDriver(AppInfo info) throws Exception {
+	public void initAppiumServiceAndDriver(AppInfo info) throws MalformedURLException, InterruptedException {
 
 		// 定义Service Capabilities
 		DesiredCapabilities serviceCapabilities = new DesiredCapabilities();
@@ -328,14 +349,13 @@ public class AndroidDevice {
 		// 设置宽高
 		this.width = getWidth();
 		this.height = getHeight();
-
 	}
 
 	/**
 	 * 返回已经安装的应用程序 TODO 应该返回列表
 	 */
 	public void listApps() {
-		String commandStr = "adb -s " + udid + " shell pm list packages -3";
+		String commandStr = "adb -s " + udid + " shell pm accounts packages -3";
 		//-3为第三方应用 [-f] [-d] [-e] [-s] [-3] [-i] [-u]
 		ShellUtil.exeCmd(commandStr);
 	}
@@ -353,7 +373,7 @@ public class AndroidDevice {
 	/**
 	 * 打开应用
 	 *
-	 * @param appPackage 包名
+	 * @param appPackage  包名
 	 * @param appActivity 主窗体名
 	 */
 	public void startActivity(String appPackage, String appActivity) {
@@ -379,5 +399,20 @@ public class AndroidDevice {
 		stopProxy();
 		driver.close();
 		service.stop();
+	}
+
+	/**
+	 * 设备状态
+	 */
+	public enum State {
+
+		INIT(0),
+		RUNNING(1),
+		CLOSE(2);
+		private int state;
+
+		State(int state) {
+			this.state = state;
+		}
 	}
 }
