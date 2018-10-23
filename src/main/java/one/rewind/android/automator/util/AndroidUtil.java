@@ -1,14 +1,19 @@
 package one.rewind.android.automator.util;
 
+import com.j256.ormlite.dao.Dao;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.exception.InvokingBaiduAPIException;
+import one.rewind.android.automator.model.TaskFailRecord;
 import one.rewind.android.automator.model.WechatEssay;
 import one.rewind.android.automator.model.WechatEssayComment;
 import org.apache.commons.io.FileUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
@@ -16,9 +21,7 @@ import org.openqa.selenium.TakesScreenshot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
-import java.util.Date;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * Create By 2018/10/15
@@ -26,6 +29,48 @@ import java.util.Stack;
  */
 @SuppressWarnings("JavaDoc")
 public class AndroidUtil {
+
+
+	/**
+	 * @param name
+	 * @throws InterruptedException
+	 */
+	public static void enterEssaysPage(String name, AndroidDriver driver) throws InterruptedException {
+
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+
+		Thread.sleep(1000);
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+
+		Thread.sleep(1000);
+
+		driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
+
+		Thread.sleep(1000);
+
+		// 搜索
+		driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
+
+		AndroidUtil.clickPoint(720, 150, 0, driver);
+
+		AndroidUtil.clickPoint(1350, 2250, 2000, driver);
+
+		// 进入公众号
+		AndroidUtil.clickPoint(720, 360, 1000, driver);
+
+		driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+
+		Thread.sleep(1000);
+
+		AndroidUtil.slideToPoint(720, 1196, 720, 170, driver, 1000);
+
+		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
+
+		Thread.sleep(7000); // TODO 此处时间需要调整
+
+	}
 
 	/**
 	 * 截图
@@ -77,12 +122,15 @@ public class AndroidUtil {
 	 * @param endX
 	 * @param endY
 	 */
-	public static void slideToPoint(int startX, int startY, int endX, int endY, AndroidDriver driver) {
+	public static void slideToPoint(int startX, int startY, int endX, int endY, AndroidDriver driver, int sleepTime) throws InterruptedException {
 		new TouchAction(driver).press(PointOption.point(startX, startY))
 				.waitAction()
 				.moveTo(PointOption.point(endX, endY))
 				.release()
 				.perform();
+		if (sleepTime > 0) {
+			Thread.sleep(sleepTime);
+		}
 	}
 
 	/**
@@ -130,7 +178,6 @@ public class AndroidUtil {
 	 * 初始化APP
 	 */
 	public static void initApp(int localProxyPort, AndroidDevice device) {
-		System.out.println("当前线程名称:  init() " + Thread.currentThread().getName());
 		device.startProxy(localProxyPort);
 		device.setupWifiProxy();
 		device.state = AndroidDevice.State.INIT;
@@ -155,22 +202,25 @@ public class AndroidUtil {
 
 					// 正文
 					if (url.contains("https://mp.weixin.qq.com/s")) {
+						device.setClickEffect(true);
 						System.err.println(" : " + url);
 						content_stack.push(contents.getTextContents());
 					}
 					// 统计信息
 					else if (url.contains("getappmsgext")) {
+						device.setClickEffect(true);
 						System.err.println(" :: " + url);
 						stats_stack.push(contents.getTextContents());
 					}
 					// 评论信息
 					else if (url.contains("appmsg_comment?action=getcomment")) {
+						device.setClickEffect(true);
 						System.err.println(" ::: " + url);
 						comments_stack.push(contents.getTextContents());
 					}
 
 					if (content_stack.size() >= 1 && stats_stack.size() >= 1 && comments_stack.size() >= 1) {
-
+						device.setClickEffect(true);
 						try {
 							System.err.println("Fully received.");
 
@@ -211,13 +261,112 @@ public class AndroidUtil {
 			device.setProxyResponseFilter(responseFilter);
 
 			AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
-
 			device.initAppiumServiceAndDriver(appInfo);
-
 			Thread.sleep(3000);
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static void closeEssay(AndroidDriver driver) throws InterruptedException {
+//		AndroidUtil.clickPoint(69, 167, 1000, driver);
+		driver.navigate().back();
+		Thread.sleep(1000);
+	}
+
+	/**
+	 * 关闭App可能会存在一些无法预料的问题   比如手机出来一层透明层  此时closeApp方法调用可能会不起作用
+	 *
+	 * @param driver
+	 * @throws InvokingBaiduAPIException
+	 * @throws InterruptedException
+	 */
+	public static void closeApp(AndroidDriver driver) throws InvokingBaiduAPIException, InterruptedException {
+		//截图
+		String filePrefix = UUID.randomUUID().toString();
+		String fileName = filePrefix + ".png";
+		String path = System.getProperty("user.dir") + "/screen/";
+		AndroidUtil.screenshot(fileName, path, driver);
+
+		JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(path + fileName);
+
+		JSONArray array = (JSONArray) jsonObject.get("words_result");
+
+		boolean collapse = false;
+
+		for (Object o : array) {
+
+			JSONObject v = (JSONObject) o;
+
+			String words = v.getString("words");
+			if (words.contains("关闭应用")) {
+				collapse = true;
+				break;
+			}
+		}
+
+		if (collapse) {
+			AndroidUtil.clickPoint(521, 1256, 1000, driver);
+		} else {
+			driver.closeApp();
+		}
+
+		/**
+		 * close之后再按一次home键  防止微信没有启动
+		 */
+		for (int i = 0; i < 5; i++) {
+			driver.navigate().back();
+		}
+	}
+
+	public static TaskFailRecord retry(String wxPublicName, Dao<WechatEssay, String> dao2, String udid, Dao<TaskFailRecord, String> dao1) throws Exception {
+
+		long count = dao2.queryBuilder().where().eq("wechat_name", wxPublicName).countOf();
+
+		TaskFailRecord temp = dao1.queryBuilder().where().eq("wxPublicName", wxPublicName).queryForFirst();
+
+		if (temp == null) {
+			TaskFailRecord record = new TaskFailRecord();
+			record.deviceUdid = udid;
+
+			record.wxPublicName = wxPublicName;
+
+			record.finishNum = (int) count;
+
+			int var = (int) count % 6;
+
+			if (var >= 3) {
+				record.slideNumByPage = (int) (count / 6) + 1;
+			} else {
+				record.slideNumByPage = (int) (count / 6);
+			}
+			record.insert();
+
+			return record;
+		} else {
+			temp.finishNum = (int) count;
+
+			int var = (int) count % 6;
+
+			if (var >= 3) {
+				temp.slideNumByPage = (int) (count / 6) + 1;
+			} else {
+				temp.slideNumByPage = (int) (count / 6);
+			}
+
+			temp.update();
+			return temp;
+		}
+	}
+
+	/**
+	 * 激活应用
+	 *
+	 * @param device
+	 */
+	public static void activeWechat(AndroidDevice device) throws InterruptedException {
+		device.startActivity("com.tencent.mm", ".ui.LauncherUI");
+		Thread.sleep(10000);
 	}
 }

@@ -23,7 +23,7 @@ public class SubscribeAccount extends ModelL {
 	public String media_name;
 
 
-	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
+	@DatabaseField(dataType = DataType.STRING, width = 32, index = true)
 	public String media_id;
 
 

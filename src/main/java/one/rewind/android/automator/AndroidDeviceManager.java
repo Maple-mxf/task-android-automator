@@ -10,10 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Create By 2018/10/19
@@ -87,9 +84,21 @@ public class AndroidDeviceManager {
 		 */
 		allotTask(taskType);
 
-		/*taskType = TaskType.CRAWLER;
+		WechatAdapter.executor.shutdown();
+		while (!WechatAdapter.executor.isTerminated()) {
+			WechatAdapter.executor.awaitTermination(5, TimeUnit.SECONDS);
+			System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
 
-		allotTask(taskType);*/
+		}
+
+		System.out.println("=======所有任务'''订阅任务'''执行完毕");
+
+		Thread.sleep(50000);
+
+		WechatAdapter.executor = Executors.newFixedThreadPool(10);
+
+		taskType = TaskType.CRAWLER;
+		allotTask(taskType);
 
 		WechatAdapter.executor.shutdown();
 		while (!WechatAdapter.executor.isTerminated()) {
@@ -97,7 +106,7 @@ public class AndroidDeviceManager {
 			System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
 
 		}
-		logger.info("所有任务执行完毕");
+
 		WechatAdapter.futures.forEach(v -> System.out.println("v:" + v));
 	}
 
@@ -147,12 +156,13 @@ public class AndroidDeviceManager {
 				//初始化设备的任务队列
 				device.queue.clear();
 				int rest = (int) (40 - currentSub); // TODO 测试改动
-				for (int i = 0; i < 2; i++) {
+				for (int i = 0; i < rest; i++) {
 					if (originalAccounts.size() == 0) break;
 					device.queue.add(originalAccounts.take());
 				}
 				//开启任务执行
 				if (device.queue.size() == 0) return;
+
 				device.setClickEffect(false);
 
 				WechatAdapter adapter = new WechatAdapter(device);

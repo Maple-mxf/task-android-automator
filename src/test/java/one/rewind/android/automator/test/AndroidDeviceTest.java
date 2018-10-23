@@ -15,7 +15,8 @@ import java.util.*;
 
 public class AndroidDeviceTest {
 
-	String udid = "ZX1G323GNB";
+//	String udid = "ZX1G323GNB";
+	String udid = "9YJ7N17429007528";
 	int appiumPort = 47454;
 	int localProxyPort = 48454;
 	AndroidDevice device;
@@ -48,6 +49,7 @@ public class AndroidDeviceTest {
 	 */
 	@Test
 	public void testInstallApk() {
+		System.out.println(device);
 
 		System.out.println(device.getHeight());
 		System.out.println(device.getWidth());
