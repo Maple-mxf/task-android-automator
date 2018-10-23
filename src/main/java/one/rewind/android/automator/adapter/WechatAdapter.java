@@ -9,7 +9,7 @@ import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskFailRecord;
-import one.rewind.android.automator.model.WechatEssay;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
@@ -45,12 +45,12 @@ public class WechatAdapter extends Adapter {
 
 	public static Dao<TaskFailRecord, String> dao1;
 
-	public static Dao<WechatEssay, String> dao2;
+	public static Dao<Essays, String> dao2;
 
 	static {
 		try {
 			dao1 = DaoManager.getDao(TaskFailRecord.class);
-			dao2 = DaoManager.getDao(WechatEssay.class);
+			dao2 = DaoManager.getDao(Essays.class);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -363,7 +363,7 @@ public class WechatAdapter extends Adapter {
 	public static List<Future<?>> futures = Lists.newArrayList();
 
 	/**
-	 * 针对于在抓取微信公众号文章时候的异常处理
+	 * 针对于在抓取微信公众号文章时候的异常处理   失败无限重试  直到当前公众号的所有文章抓取完成
 	 *
 	 * @param wxAccountName
 	 */

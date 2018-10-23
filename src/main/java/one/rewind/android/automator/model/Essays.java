@@ -3,7 +3,7 @@ package one.rewind.android.automator.model;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.data.raw.model.base.ModelL;
+import one.rewind.data.raw.model.base.ModelD;
 import one.rewind.db.DBName;
 import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
@@ -14,18 +14,26 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Create By 2018/10/23
+ * Description      id // md5(平台简称+媒体名称+title)
+ */
 @DBName(value = "raw")
-@DatabaseTable(tableName = "wechat_essays")
-public class WechatEssay extends ModelL {
+@DatabaseTable(tableName = "essays")
+public class Essays extends ModelD {
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
-	public String essay_id;
+	public String media_name;  // 微信号的ID
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
-	public String wechat_name;
+	public String media_nick; // 微信号的名称
+
+	@DatabaseField(dataType = DataType.STRING)
+	public String media_content;  //微信号名称
+
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
-	public String mid;
+	public String src_id;
 
 	@DatabaseField(dataType = DataType.STRING, width = 256)
 	public String title;
@@ -43,16 +51,34 @@ public class WechatEssay extends ModelL {
 	public int like_count;
 
 	@DatabaseField(dataType = DataType.STRING)
-	public String wechat_id;
+	public String platform; // default = WX
+
+	@DatabaseField(dataType = DataType.STRING)
+	public String images;
+
+	@DatabaseField(dataType = DataType.INTEGER)
+	public int platform_id;   // default = 1
+
+	@DatabaseField(dataType = DataType.INTEGER)
+	public int fav_count;  // 喜欢数量
+
+	@DatabaseField(dataType = DataType.INTEGER)
+	public int comment_count;  //评论量
+
+	@DatabaseField(dataType = DataType.INTEGER)
+	public int forward_count; //转发数量
+
+	@DatabaseField(dataType = DataType.STRING)
+	public String f_id; //未知
 
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
 	public String uid;
 
-	public WechatEssay() {
+	public Essays() {
 	}
 
-	public WechatEssay parseContent(String source) throws ParseException {
+	public Essays parseContent(String source) throws ParseException {
 
 		Pattern pattern = Pattern.compile("(?si)<h2.*?</h2>");
 		Matcher matcher = pattern.matcher(source);
@@ -63,19 +89,19 @@ public class WechatEssay extends ModelL {
 		pattern = Pattern.compile("(?si)<span class=\"profile_meta_value\">.+?</span>");
 		matcher = pattern.matcher(source);
 		if (matcher.find()) {
-			essay_id = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
+			media_name = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
 		}
 
 		pattern = Pattern.compile("(?si)<strong class=\"profile_nickname\">.+?</strong>");
 		matcher = pattern.matcher(source);
 		if (matcher.find()) {
-			wechat_name = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
+			media_nick = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
 		}
 
 		pattern = Pattern.compile("(?si)(?<=mid = \").+?(?=\")");
 		matcher = pattern.matcher(source);
 		if (matcher.find()) {
-			mid = matcher.group();
+			src_id = matcher.group();
 		}
 
 		pattern = Pattern.compile("(?si)(?<=publish_time = \").+?(?=\")");
@@ -99,7 +125,7 @@ public class WechatEssay extends ModelL {
 		return this;
 	}
 
-	public WechatEssay parseStat(String source) {
+	public Essays parseStat(String source) {
 
 		Pattern pattern = Pattern.compile("(?si)(?<=\"read_num\":)\\d+");
 		Matcher matcher = pattern.matcher(source);

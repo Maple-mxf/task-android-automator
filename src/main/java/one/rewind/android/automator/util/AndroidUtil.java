@@ -9,8 +9,8 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.TaskFailRecord;
-import one.rewind.android.automator.model.WechatEssay;
-import one.rewind.android.automator.model.WechatEssayComment;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.Comments;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -230,9 +230,17 @@ public class AndroidUtil {
 
 							String comments_src = comments_stack.pop();
 
-							WechatEssay we = new WechatEssay().parseContent(content_src).parseStat(stats_src);
+							Essays we = new Essays().parseContent(content_src).parseStat(stats_src);
 
 							System.err.println(we.title);
+
+							we.id = MD5Util.MD5Encode("WX" + we.media_name + we.title, "UTF-8");
+
+							we.media_content = we.media_nick;
+							we.platform = "WX";
+							we.platform_id = 1;
+							we.fav_count = 0;
+							we.forward_count = 0;
 
 							we.insert_time = new Date();
 
@@ -240,7 +248,7 @@ public class AndroidUtil {
 
 							we.insert();
 
-							List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments_src);
+							List<Comments> comments_ = Comments.parseComments(we.src_id, comments_src);
 
 							System.err.println(comments_.size());
 
@@ -320,9 +328,9 @@ public class AndroidUtil {
 		}
 	}
 
-	public static TaskFailRecord retry(String wxPublicName, Dao<WechatEssay, String> dao2, String udid, Dao<TaskFailRecord, String> dao1) throws Exception {
+	public static TaskFailRecord retry(String wxPublicName, Dao<Essays, String> dao2, String udid, Dao<TaskFailRecord, String> dao1) throws Exception {
 
-		long count = dao2.queryBuilder().where().eq("wechat_name", wxPublicName).countOf();
+		long count = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
 
 		TaskFailRecord temp = dao1.queryBuilder().where().eq("wxPublicName", wxPublicName).queryForFirst();
 
@@ -337,9 +345,9 @@ public class AndroidUtil {
 			int var = (int) count % 6;
 
 			if (var >= 3) {
-				record.slideNumByPage = (int) (count / 6) + 1;
+				record.slideNumByPage = (int) (count / 6) + 2;
 			} else {
-				record.slideNumByPage = (int) (count / 6);
+				record.slideNumByPage = (int) (count / 6) + 1;
 			}
 			record.insert();
 
@@ -350,9 +358,9 @@ public class AndroidUtil {
 			int var = (int) count % 6;
 
 			if (var >= 3) {
-				temp.slideNumByPage = (int) (count / 6) + 1;
+				temp.slideNumByPage = (int) (count / 6) + 2;
 			} else {
-				temp.slideNumByPage = (int) (count / 6);
+				temp.slideNumByPage = (int) (count / 6) + 1;
 			}
 
 			temp.update();
