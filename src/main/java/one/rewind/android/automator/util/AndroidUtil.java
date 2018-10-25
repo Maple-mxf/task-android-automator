@@ -200,8 +200,9 @@ public class AndroidUtil {
 			JSONObject v = (JSONObject) o;
 
 			String words = v.getString("words");
-			if (words.contains("关闭应用")) {
-				AndroidUtil.clickPoint(521, 1256, 1000, driver);
+			if (words.contains("微信没有响应") || words.contains("关闭应用")) {
+				AndroidUtil.clickPoint(517, 1258, 1000, driver);
+				AndroidUtil.clickPoint(517, 1258, 1000, driver);
 				break;
 			}
 			if (words.contains("要将其关闭吗")) {
@@ -219,7 +220,7 @@ public class AndroidUtil {
 		/**
 		 * close之后再按一次home键  防止微信没有启动
 		 */
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 6; i++) {
 			driver.navigate().back();
 		}
 	}
