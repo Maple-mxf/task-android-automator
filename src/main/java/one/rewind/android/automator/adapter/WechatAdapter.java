@@ -221,7 +221,7 @@ public class WechatAdapter extends Adapter {
 				for (int i = 0; i < 2; i++) {
 					AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 500);
 				}
-				Thread.sleep(2000);
+				Thread.sleep(1000);
 				//关闭文章
 				AndroidUtil.closeEssay(driver);
 				//设置为默认值
