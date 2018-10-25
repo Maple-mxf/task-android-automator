@@ -201,7 +201,8 @@ public class WechatAdapterTest {
 		AndroidDeviceManager.originalAccounts.add("Java技术栈");
 		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 		manager.allotTask(AndroidDeviceManager.TaskType.SUBSCRIBE);
-
 	}
+
+
 
 }
