@@ -209,6 +209,10 @@ public class AndroidUtil {
 				AndroidUtil.clickPoint(1196, 1377, 1000, driver);
 				break;
 			}
+			if (words.contains("系统繁忙") && words.contains("请稍后再试")) {
+				AndroidUtil.clickPoint(1109, 1332, 5000, driver);
+				break;
+			}
 		}
 
 		driver.closeApp();

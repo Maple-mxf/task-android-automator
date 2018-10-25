@@ -245,7 +245,7 @@ public class WechatAdapter extends Adapter {
 		}
 
 		@Override
-		public Boolean call() throws SQLException {
+		public Boolean call() {
 			assert taskType != null;
 			if (taskType.equals(AndroidDeviceManager.TaskType.SUBSCRIBE)) {
 				for (String var : device.queue) {
@@ -257,24 +257,10 @@ public class WechatAdapter extends Adapter {
 
 					digestionCrawler(var, getRetry());
 
-					//修改微信账号抓取的状态
-					SubscribeAccount subscribeAccount = dao3.queryBuilder().where().
-							eq("udid", device.udid).and().
-							eq("media_name", var).
-							queryForFirst();
-
-					subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
-
 					//删除失败任务记录
-					TaskFailRecord record = new TaskFailRecord();
-					record.deviceUdid = device.udid;
-					record.wxPublicName = var;
-					try {
-						dao1.delete(record);
-						subscribeAccount.update();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+//					TaskFailRecord record = new TaskFailRecord();
+//					record.deviceUdid = device.udid;
+//					record.wxPublicName = var;
 				}
 			}
 			return true;
@@ -385,8 +371,21 @@ public class WechatAdapter extends Adapter {
 		try {
 			//继续获取文章
 			getIntoPublicAccountEssayList(wxAccountName, retry);
-		} catch (Exception e) {
 
+			//改变账号状态
+			//修改微信账号抓取的状态
+			SubscribeAccount subscribeAccount = dao3.queryBuilder().where().
+					eq("udid", device.udid).and().
+					eq("media_name", wxAccountName).
+					queryForFirst();
+
+			subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
+
+			subscribeAccount.update();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (AndroidCollapseException e) {
 			e.printStackTrace();
 			try {
 				//当前设备系统卡死   进入重试    直到设备不报异常为止
@@ -396,10 +395,19 @@ public class WechatAdapter extends Adapter {
 				Thread.sleep(10000);
 				AndroidUtil.activeWechat(device);
 
-				digestionCrawler(wxAccountName, true);
+				// 去掉重试机制  来提升数据抓取效率
+//				digestionCrawler(wxAccountName, true);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
+		} catch (InvokingBaiduAPIException e) {
+			e.printStackTrace();
+
+			System.err.println("百度API调用失败");
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
 		}
 	}
 
@@ -418,7 +426,7 @@ public class WechatAdapter extends Adapter {
 			subscribeWxAccount(wxPublicName);
 		} catch (Exception e) {
 			e.printStackTrace();
-			digestionSubscribe(wxPublicName, true);
+//			digestionSubscribe(wxPublicName, true);
 		}
 	}
 

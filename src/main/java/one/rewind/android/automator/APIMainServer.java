@@ -26,7 +26,6 @@ public class APIMainServer {
 					Instance = new APIMainServer();
 				}
 			}
-
 		}
 
 		return Instance;

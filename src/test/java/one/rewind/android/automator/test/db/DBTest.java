@@ -55,8 +55,26 @@ public class DBTest {
 		Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
 		long count = dao.queryBuilder().where().between("insert_time", zero, current).countOf();
 		System.out.println(count);
+	}
 
 
+	@Test
+	public void updateData() throws Exception {
+		Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+
+		SubscribeAccount subscribeAccount = dao.queryBuilder().where().
+				eq("udid", "ZX1G22PQLH").
+				and().
+				eq("media_name", "北京理工大学研究生教育").
+				queryForFirst();
+
+		System.out.println(subscribeAccount);
+
+		subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
+
+		System.out.println(subscribeAccount);
+
+		subscribeAccount.update();
 	}
 
 }

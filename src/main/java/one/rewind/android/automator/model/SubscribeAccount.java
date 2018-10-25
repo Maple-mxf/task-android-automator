@@ -42,4 +42,13 @@ public class SubscribeAccount extends ModelL {
 		}
 	}
 
+	@Override
+	public String toString() {
+		return "SubscribeAccount{" +
+				"udid='" + udid + '\'' +
+				", media_name='" + media_name + '\'' +
+				", media_id='" + media_id + '\'' +
+				", status=" + status +
+				'}';
+	}
 }

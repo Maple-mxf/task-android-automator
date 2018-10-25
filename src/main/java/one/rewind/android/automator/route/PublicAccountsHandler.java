@@ -102,7 +102,7 @@ public class PublicAccountsHandler {
 
 		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 
-		manager.allotCrawlerTask(availableDevices, true);
+		manager.allotCrawlerTask(availableDevices, false);
 
 		return new Msg<>(1, "恢复成功");
 	};
