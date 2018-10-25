@@ -106,4 +106,15 @@ public class PublicAccountsHandler {
 
 		return new Msg<>(1, "恢复成功");
 	};
+
+
+	public static Route readJson = (Request req, Response res) -> {
+
+		String jsonString = req.body();
+
+		JSONArray jsonArray = new JSONArray(jsonString);
+
+		System.out.println(jsonArray);
+		return new Msg<>(0, "请求成功");
+	};
 }

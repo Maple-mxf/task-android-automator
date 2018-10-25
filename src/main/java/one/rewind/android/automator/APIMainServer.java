@@ -51,6 +51,9 @@ public class APIMainServer {
 			post("/accounts", PublicAccountsHandler.postAccounts);
 
 			post("/recovery", PublicAccountsHandler.recovery);
+
+
+			post("/json", PublicAccountsHandler.readJson);
 		});
 
 		return this;

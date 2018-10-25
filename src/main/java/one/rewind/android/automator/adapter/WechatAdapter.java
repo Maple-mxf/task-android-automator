@@ -212,14 +212,14 @@ public class WechatAdapter extends Adapter {
 				throw new AndroidCollapseException("安卓系统卡住点不动了！");
 			}
 
-			AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
+			AndroidUtil.clickPoint(320, wordsPoint.top, 5000, driver);
 
 			// 有很大的概率点击不进去
 			//所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
 			if (this.device.isClickEffect()) {
 				System.out.println("文章点进去了....");
 				for (int i = 0; i < 3; i++) {
-					AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 1000);
+					AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 500);
 				}
 				Thread.sleep(2000);
 				//关闭文章
