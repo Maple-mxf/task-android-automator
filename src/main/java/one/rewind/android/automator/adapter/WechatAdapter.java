@@ -218,7 +218,7 @@ public class WechatAdapter extends Adapter {
 			//所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
 			if (this.device.isClickEffect()) {
 				System.out.println("文章点进去了....");
-				for (int i = 0; i < 3; i++) {
+				for (int i = 0; i < 2; i++) {
 					AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 500);
 				}
 				Thread.sleep(2000);
