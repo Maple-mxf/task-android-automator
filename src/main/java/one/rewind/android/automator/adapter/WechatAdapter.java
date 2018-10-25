@@ -35,7 +35,7 @@ public class WechatAdapter extends Adapter {
 
 	private boolean isFirstPage = true;
 
-	public static ExecutorService executor = Executors.newFixedThreadPool(10);
+	public static volatile ExecutorService executor;
 
 	public static AndroidDeviceManager.TaskType taskType = null;
 

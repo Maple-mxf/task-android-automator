@@ -78,6 +78,7 @@ public class AndroidDeviceManager {
 	 */
 	public void allotTask() throws InterruptedException {
 		running = true;
+		WechatAdapter.executor = Executors.newFixedThreadPool(10);
 		if (taskType == null) {
 			taskType = TaskType.SUBSCRIBE;
 		}
@@ -157,8 +158,8 @@ public class AndroidDeviceManager {
 
 				//初始化设备的任务队列
 				device.queue.clear();
-				int rest = (int) (10 - currentSub);
-				for (int i = 0; i < 10; i++) { // TODO 测试改动
+				int rest = (int) (40 - currentSub);
+				for (int i = 0; i < rest; i++) { // TODO 测试改动
 					if (originalAccounts.size() == 0) break;
 					device.queue.add(originalAccounts.take());
 				}
