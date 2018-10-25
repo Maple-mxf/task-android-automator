@@ -96,23 +96,14 @@ public class PublicAccountsHandler {
 	 */
 	public static Route recovery = (Request req, Response res) -> {
 
-		new Thread(() -> {
-			//启动app
-			try {
+		Class.forName("one.rewind.android.automator.AndroidDeviceManager");
 
-				Class.forName("one.rewind.android.automator.AndroidDeviceManager");
+		List<AndroidDevice> availableDevices = AndroidDeviceManager.obtainAvailableDevices();
 
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
+		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 
-			List<AndroidDevice> availableDevices = AndroidDeviceManager.obtainAvailableDevices();
+		manager.allotCrawlerTask(availableDevices, true);
 
-			AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
-
-			manager.allotCrawlerTask(availableDevices, true);
-
-		}).start();
 		return new Msg<>(1, "恢复成功");
 	};
 }
