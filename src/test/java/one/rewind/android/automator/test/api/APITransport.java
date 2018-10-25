@@ -50,7 +50,6 @@ public class APITransport {
 
 			ResultSet rs = ps.executeQuery();
 
-
 			List<String> accounts = Lists.newArrayList();
 			while (rs.next()) {
 
@@ -98,14 +97,17 @@ public class APITransport {
 		if (AndroidDeviceManager.running) {
 			return;
 		}
+
+
 		//   账号限制
 		int var = 10000;
 
 		for (int i = 3; i < var / 20; i++) {
 
-			if (i % 1000 == 0) {
+			/*if (i % 1000 == 0) {
 				var = countAccounts() / 20;
-			}
+			}*/
+
 
 			List<String> accounts = sendAccounts(i);
 
@@ -115,6 +117,7 @@ public class APITransport {
 
 			manager.allotTask();
 
+			if (i == 5) return;
 		}
 	}
 
