@@ -1,4 +1,4 @@
-package one.rewind.android.automator.test;
+package one.rewind.android.automator.test.model;
 
 import one.rewind.android.automator.model.WechatFriend;
 import org.junit.Test;

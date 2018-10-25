@@ -7,19 +7,24 @@ import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.WechatEssay;
-import one.rewind.android.automator.model.WechatEssayComment;
+import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.AppInfo;
+import one.rewind.android.automator.util.MD5Util;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Queue;
+import java.util.Stack;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class WechatAdapterTest {
 
-	String udid = "ZX1G323GNB";
+	//	String udid = "ZX1G323GNB";
+	String udid = "ZX1G22PQLH";
 	int appiumPort = 47454;
 	int localProxyPort = 48454;
 	AndroidDevice device;
@@ -66,7 +71,6 @@ public class WechatAdapterTest {
 			if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
 
 				try {
-
 					// 正文
 					if (url.contains("https://mp.weixin.qq.com/s")) {
 						device.setClickEffect(true);
@@ -86,38 +90,41 @@ public class WechatAdapterTest {
 						comments_stack.push(contents.getTextContents());
 					}
 
-					if (content_stack.size() >= 1 && stats_stack.size() >= 1 && comments_stack.size() >= 1) {
+					if (content_stack.size() > 0) {
 						device.setClickEffect(true);
-
-						System.err.println("Fully received.");
-
+						System.out.println("有内容了");
 						String content_src = content_stack.pop();
-
-						String stats_src = stats_stack.pop();
-
-						String comments_src = comments_stack.pop();
-
-						WechatEssay we = new WechatEssay().parseContent(content_src).parseStat(stats_src);
-
-						System.err.println(we.title);
-
+						Essays we;
+						if (stats_stack.size() > 0) {
+							String stats_src = stats_stack.pop();
+							we = new Essays().parseContent(content_src).parseStat(stats_src);
+						} else {
+							we = new Essays().parseContent(content_src);
+							we.view_count = 0;
+							we.like_count = 0;
+						}
+						we.id = MD5Util.MD5Encode("WX" + we.media_name + we.title, "UTF-8");
 						we.insert_time = new Date();
 
 						we.update_time = new Date();
 
+						we.media_content = we.media_nick;
+						we.platform = "WX";
+						we.platform_id = 1;
+						we.fav_count = 0;
+						we.forward_count = 0;
 						we.insert();
-
-						List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments_src);
-
-						System.err.println(comments_.size());
-
-						comments_.stream().forEach(c -> {
-							try {
-								c.insert();
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						});
+						if (comments_stack.size() > 0) {
+							String comments_src = comments_stack.pop();
+							List<Comments> comments_ = Comments.parseComments(we.src_id, comments_src);
+							comments_.stream().forEach(c -> {
+								try {
+									c.insert();
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							});
+						}
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -142,13 +149,14 @@ public class WechatAdapterTest {
 	//先将公众号关注  再点击进去抓取文章
 
 	@Test
-	public void testGetOnePublicAccountsEssays() throws InterruptedException, AndroidCollapseException, InvokingBaiduAPIException {
-		adapter.getIntoPublicAccountEssayList("阿里巴巴",false);
+	public void testGetOnePublicAccountsEssays() throws
+			InterruptedException, AndroidCollapseException, InvokingBaiduAPIException {
+		adapter.getIntoPublicAccountEssayList("阿里巴巴", false);
 	}
 
 	@Test
 	public void testGetOnePublicAccountsEssaysByHandlerException() {
-		adapter.digestion("抖音", false);
+		adapter.digestionCrawler("民间股神007", false);
 	}
 
 	@Test
@@ -163,10 +171,10 @@ public class WechatAdapterTest {
 	public void testSubscribeAccount() throws Exception {
 		Queue<String> queue = new ArrayBlockingQueue<>(10);
 		queue.add("菜鸟教程");
-		queue.add("阿里巴巴");
-		queue.add("今日头条");
 		queue.add("淘迷网");
-		adapter.searchPublicAccount(queue);
+		for (String var : queue) {
+			adapter.subscribeWxAccount(var);
+		}
 	}
 
 

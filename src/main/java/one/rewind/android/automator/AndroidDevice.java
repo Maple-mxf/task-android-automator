@@ -15,7 +15,10 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AppInfo;
+import one.rewind.android.automator.util.MD5Util;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
@@ -29,8 +32,11 @@ import se.vidstige.jadb.managers.PackageManager;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.ParseException;
+import java.util.Date;
 import java.util.List;
 import java.util.Queue;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -180,7 +186,7 @@ public class AndroidDevice {
 
 					execShell(d, "settings", "put", "global", "http_proxy", LOCAL_IP + ":" + proxyPort);
 					execShell(d, "settings", "put", "global", "https_proxy", LOCAL_IP + ":" + proxyPort);
-					//d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
+//					d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
 
 					Thread.sleep(2000);
 				}
@@ -413,6 +419,114 @@ public class AndroidDevice {
 
 		State(int state) {
 			this.state = state;
+		}
+	}
+
+	/**
+	 * 初始化设备
+	 */
+	public void initApp(int localProxyPort) {
+		this.startProxy(localProxyPort);
+		this.setupWifiProxy();
+		this.state = AndroidDevice.State.INIT;
+		System.out.println("Starting....Please wait!");
+		try {
+			RequestFilter requestFilter = (request, contents, messageInfo) -> {
+
+				String url = messageInfo.getOriginalUrl();
+
+				if (url.contains("https://mp.weixin.qq.com/s"))
+					System.out.println(" . " + url);
+				return null;
+			};
+			Stack<String> content_stack = new Stack<>();
+			Stack<String> stats_stack = new Stack<>();
+			Stack<String> comments_stack = new Stack<>();
+			ResponseFilter responseFilter = (response, contents, messageInfo) -> {
+
+				String url = messageInfo.getOriginalUrl();
+
+				if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
+
+					// 正文
+					if (url.contains("https://mp.weixin.qq.com/s")) {
+						this.setClickEffect(true);
+						System.err.println(" : " + url);
+						content_stack.push(contents.getTextContents());
+					}
+					// 统计信息
+					else if (url.contains("getappmsgext")) {
+						this.setClickEffect(true);
+						System.err.println(" :: " + url);
+						stats_stack.push(contents.getTextContents());
+					}
+					// 评论信息
+					else if (url.contains("appmsg_comment?action=getcomment")) {
+						this.setClickEffect(true);
+						System.err.println(" ::: " + url);
+						comments_stack.push(contents.getTextContents());
+					}
+					if (content_stack.size() > 0) {
+						this.setClickEffect(true);
+						System.out.println("有内容了");
+						String content_src = content_stack.pop();
+						Essays we = null;
+						try {
+							if (stats_stack.size() > 0) {
+								String stats_src = stats_stack.pop();
+								we = new Essays().parseContent(content_src).parseStat(stats_src);
+							} else {
+								we = new Essays().parseContent(content_src);
+								we.view_count = 0;
+								we.like_count = 0;
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						assert we != null;
+						we.id = MD5Util.MD5Encode("WX" + we.media_name + we.title, "UTF-8");
+						we.insert_time = new Date();
+
+						we.update_time = new Date();
+
+						we.media_content = we.media_nick;
+						we.platform = "WX";
+						we.platform_id = 1;
+						we.fav_count = 0;
+						we.forward_count = 0;
+						try {
+							we.insert();
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						if (comments_stack.size() > 0) {
+							String comments_src = comments_stack.pop();
+							List<Comments> comments_ = null;
+							try {
+								comments_ = Comments.parseComments(we.src_id, comments_src);
+							} catch (ParseException e) {
+								e.printStackTrace();
+							}
+							comments_.stream().forEach(c -> {
+								try {
+									c.insert();
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							});
+						}
+					}
+				}
+			};
+			this.setProxyRequestFilter(requestFilter);
+			this.setProxyResponseFilter(responseFilter);
+
+			AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
+			this.initAppiumServiceAndDriver(appInfo);
+			Thread.sleep(3000);
+
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 }

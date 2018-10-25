@@ -1,8 +1,8 @@
-package one.rewind.android.automator.test;
+package one.rewind.android.automator.test.mobile;
 
 import one.rewind.android.automator.adapter.ContactsAdapter;
-import one.rewind.android.automator.model.WechatEssay;
-import one.rewind.android.automator.model.WechatEssayComment;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.AndroidDevice;
 import net.lightbody.bmp.filters.RequestFilter;
@@ -142,13 +142,13 @@ public class AndroidDeviceTest {
 
 						String comments_src = comments_stack.pop();
 
-						WechatEssay we = new WechatEssay().parseContent(content_src).parseStat(stats_src);
+						Essays we = new Essays().parseContent(content_src).parseStat(stats_src);
 
 						System.err.println(JSON.toPrettyJson(we));
 
 						we.insert();
 
-						List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments_src);
+						List<Comments> comments_ = Comments.parseComments(we.src_id, comments_src);
 
 						System.err.println(JSON.toPrettyJson(comments_));
 
@@ -171,6 +171,10 @@ public class AndroidDeviceTest {
 		device.setProxyResponseFilter(responseFilter);
 
 		Thread.sleep(10000000);
+
+	}
+
+	public void installCt(){
 
 	}
 }

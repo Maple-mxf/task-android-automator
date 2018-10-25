@@ -1,9 +1,9 @@
-package one.rewind.android.automator.test;
+package one.rewind.android.automator.test.db;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.SubscribeAccount;
-import one.rewind.android.automator.model.WechatEssay;
-import one.rewind.android.automator.model.WechatEssayComment;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.Comments;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
 import org.apache.commons.lang3.time.DateUtils;
@@ -23,23 +23,23 @@ public class DBTest {
 
 	@Test
 	public void setupTable() throws Exception {
-		Refacter.dropTable(WechatEssayComment.class);
-		Refacter.createTable(WechatEssayComment.class);
-		Refacter.dropTable(WechatEssay.class);
-		Refacter.createTable(WechatEssay.class);
+		Refacter.dropTable(Comments.class);
+		Refacter.createTable(Comments.class);
+		Refacter.dropTable(Essays.class);
+		Refacter.createTable(Essays.class);
 	}
 
 
 	@Test
 	public void setupRawTable() throws Exception {
-		Refacter.createTable(SubscribeAccount.class);
+		Refacter.createTable(Comments.class);
 	}
 
 
 	@Test
 	public void testSQLInject() throws Exception {
-		Dao<WechatEssay, String> dao = DaoManager.getDao(WechatEssay.class);
-		long countOf = dao.queryBuilder().where().eq("wechat_name", "IPP评论").countOf();
+		Dao<Essays, String> dao = DaoManager.getDao(Essays.class);
+		long countOf = dao.queryBuilder().where().eq("media_nick", "IPP评论").countOf();
 		System.out.println(countOf);
 	}
 

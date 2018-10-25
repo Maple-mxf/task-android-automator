@@ -1,4 +1,4 @@
-package one.rewind.android.automator.test;
+package one.rewind.android.automator.test.db;
 
 import one.rewind.android.automator.model.TaskFailRecord;
 import one.rewind.db.RedissonAdapter;

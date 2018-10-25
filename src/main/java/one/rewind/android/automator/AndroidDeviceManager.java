@@ -37,7 +37,7 @@ public class AndroidDeviceManager {
 	 * key : udid
 	 * value: state
 	 */
-	private static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
+	public static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
 
 	private static AndroidDeviceManager instance;
 
@@ -59,7 +59,7 @@ public class AndroidDeviceManager {
 	 *
 	 * @return
 	 */
-	private static List<AndroidDevice> obtainAvailableDevices() {
+	public static List<AndroidDevice> obtainAvailableDevices() {
 		synchronized (AndroidDeviceManager.class) {
 			List<AndroidDevice> availableDevices = new ArrayList<>();
 			devices.forEach((k, v) -> {
@@ -73,22 +73,20 @@ public class AndroidDeviceManager {
 
 	/**
 	 * 任务分配
+	 *
+	 * @throws InterruptedException
 	 */
 	public void allotTask() throws InterruptedException {
 		running = true;
 		if (taskType == null) {
 			taskType = TaskType.SUBSCRIBE;
 		}
-		/**
-		 * 当前任务执行完毕之后   切入下一个状态  进行数据抓取
-		 */
 		allotTask(taskType);
 
 		WechatAdapter.executor.shutdown();
 		while (!WechatAdapter.executor.isTerminated()) {
-			WechatAdapter.executor.awaitTermination(5, TimeUnit.SECONDS);
+			WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
 			System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
-
 		}
 
 		System.out.println("=======所有任务'''订阅任务'''执行完毕");
@@ -102,25 +100,29 @@ public class AndroidDeviceManager {
 
 		WechatAdapter.executor.shutdown();
 		while (!WechatAdapter.executor.isTerminated()) {
-			WechatAdapter.executor.awaitTermination(5, TimeUnit.SECONDS);
+			WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
 			System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
 
 		}
 
 		WechatAdapter.futures.forEach(v -> System.out.println("v:" + v));
+
+		running = false;
 	}
 
 
 	/**
-	 * Description:  获取到可用的设备   开启线程池进行任务分配
+	 * 获取到可用的设备   开启线程池进行任务分配
 	 * 任务分配有两种: 关注公众号和抓取特定公众号文章
+	 *
+	 * @param type
 	 */
 	public void allotTask(TaskType type) {
 		List<AndroidDevice> availableDevices = obtainAvailableDevices();
 		if (TaskType.SUBSCRIBE.equals(type)) {
 			allotSubscribeTask(availableDevices);
 		} else if (TaskType.CRAWLER.equals(type)) {
-			allotCrawlerTask(availableDevices);
+			allotCrawlerTask(availableDevices, false);
 		}
 
 	}
@@ -155,8 +157,8 @@ public class AndroidDeviceManager {
 
 				//初始化设备的任务队列
 				device.queue.clear();
-				int rest = (int) (40 - currentSub); // TODO 测试改动
-				for (int i = 0; i < rest; i++) {
+				int rest = (int) (10 - currentSub);
+				for (int i = 0; i < 10; i++) { // TODO 测试改动
 					if (originalAccounts.size() == 0) break;
 					device.queue.add(originalAccounts.take());
 				}
@@ -169,7 +171,7 @@ public class AndroidDeviceManager {
 
 				WechatAdapter.taskType = TaskType.SUBSCRIBE;
 
-				adapter.start();
+				adapter.start(false);
 
 				logger.info("任务初始化完毕！！！");
 			}
@@ -183,8 +185,9 @@ public class AndroidDeviceManager {
 	 * Description:  抓取文章任务
 	 *
 	 * @param availableDevices
+	 * @param recovery         恢复机制
 	 */
-	public void allotCrawlerTask(List<AndroidDevice> availableDevices) {
+	public void allotCrawlerTask(List<AndroidDevice> availableDevices, boolean recovery) {
 		WechatAdapter.taskType = TaskType.CRAWLER;
 		try {
 			for (AndroidDevice device : availableDevices) {
@@ -192,14 +195,19 @@ public class AndroidDeviceManager {
 
 				//任务队列
 				device.queue.clear();
-				List<SubscribeAccount> subscribeAccounts = dao.queryBuilder().where().eq("udid", device.udid).query();
+				List<SubscribeAccount> subscribeAccounts =
+						dao.queryBuilder().
+								where().eq("udid", device.udid).
+								and().eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+								query();
+
 				for (SubscribeAccount var : subscribeAccounts) {
 					device.queue.add(var.media_name);
 				}
 				//重置点击生效标记
 				device.setClickEffect(false);
 				WechatAdapter adapter = new WechatAdapter(device);
-				adapter.start();
+				adapter.start(recovery);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -220,19 +228,14 @@ public class AndroidDeviceManager {
 		}
 	}
 
+	//初始化设备
 	static {
-		/**
-		 * 初始化设备
-		 */
 		String[] var = AndroidUtil.obtainDevices();
 		Random random = new Random();
 		for (int i = 0; i < var.length; i++) {
 			AndroidDevice device = new AndroidDevice(var[i], random.nextInt(50000));
 			device.state = AndroidDevice.State.INIT;
-			/**
-			 * 初始化APP
-			 */
-			AndroidUtil.initApp(DEFAULT_LOCAL_PROXY_PORT + i, device);
+			device.initApp(DEFAULT_LOCAL_PROXY_PORT + i);
 			devices.put(var[i], device);
 		}
 	}

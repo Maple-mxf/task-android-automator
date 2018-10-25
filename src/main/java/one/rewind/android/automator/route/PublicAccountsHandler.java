@@ -1,6 +1,7 @@
 package one.rewind.android.automator.route;
 
 import one.rewind.android.automator.APIMainServer;
+import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.io.server.Msg;
 import org.apache.logging.log4j.LogManager;
@@ -10,6 +11,8 @@ import org.json.JSONObject;
 import spark.Request;
 import spark.Response;
 import spark.Route;
+
+import java.util.List;
 
 /**
  * Create By  2018/10/18
@@ -39,6 +42,20 @@ public class PublicAccountsHandler {
 		return storageAccounts(jsonArray);
 	};
 
+	/**
+	 * 继续执行已经关注的公众号
+	 */
+	public static Route oldAccounts = (Request req, Response res) -> {
+
+		if (AndroidDeviceManager.running) {
+			return new Msg<>(0, "程序正在运行,请稍后再试！");
+		}
+		new Thread(() -> {
+
+		}).start();
+		return new Msg<>(1, "请求成功！程序即将执行您的请求，请稍后");
+	};
+
 
 	/**
 	 * <p>初始化任务队列   执行任务</p>
@@ -66,4 +83,36 @@ public class PublicAccountsHandler {
 		}
 		return null;
 	}
+
+
+	/**
+	 * 恢复任务的进行    这种场景是web服务停止了一段时间  突然又启动
+	 * <p>
+	 * 1：数据库查询未完成的  ---->  完成未完成的公众号
+	 * 2：在另一个未完成记录表中查询详细的文章抓取信息。
+	 * 3：获取设备和公众号的对应关系
+	 * 4：如何设备存在继续抓   不存在移除不存在设备对应的公众号
+	 * <p>
+	 */
+	public static Route recovery = (Request req, Response res) -> {
+
+		new Thread(() -> {
+			//启动app
+			try {
+
+				Class.forName("one.rewind.android.automator.AndroidDeviceManager");
+
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+
+			List<AndroidDevice> availableDevices = AndroidDeviceManager.obtainAvailableDevices();
+
+			AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
+
+			manager.allotCrawlerTask(availableDevices, true);
+
+		}).start();
+		return new Msg<>(1, "恢复成功");
+	};
 }

@@ -7,9 +7,9 @@ import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskFailRecord;
-import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
@@ -19,9 +19,9 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -47,10 +47,13 @@ public class WechatAdapter extends Adapter {
 
 	public static Dao<Essays, String> dao2;
 
+	public static Dao<SubscribeAccount, String> dao3;
+
 	static {
 		try {
 			dao1 = DaoManager.getDao(TaskFailRecord.class);
 			dao2 = DaoManager.getDao(Essays.class);
+			dao3 = DaoManager.getDao(SubscribeAccount.class);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -58,7 +61,6 @@ public class WechatAdapter extends Adapter {
 
 
 	private List<WordsPoint> obtainClickPoints() throws InterruptedException, InvokingBaiduAPIException {
-		//截图
 		String filePrefix = UUID.randomUUID().toString();
 		String fileName = filePrefix + ".png";
 		String path = System.getProperty("user.dir") + "/screen/";
@@ -68,11 +70,10 @@ public class WechatAdapter extends Adapter {
 		if (wordsPoints != null && wordsPoints.size() > 0) {
 			return wordsPoints;
 		} else {
-			/**
-			 * 此处已经出现异常：====>>>> 异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
-			 *
-			 * 当前公众号不能继续抓取了
-			 */
+
+			//此处已经出现异常：====>>>> 异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
+
+			//当前公众号不能继续抓取了
 			AndroidUtil.returnPrevious(driver);
 			return null;
 		}
@@ -87,9 +88,8 @@ public class WechatAdapter extends Adapter {
 	@SuppressWarnings("JavaDoc")
 	private List<WordsPoint> analysisImage(String filePath) throws InvokingBaiduAPIException {
 		JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
-		/**
-		 * 得到即将要点击的坐标位置
-		 */
+
+		//得到即将要点击的坐标位置
 		return analysisWordsPoint(jsonObject.getJSONArray("words_result"));
 
 	}
@@ -157,18 +157,18 @@ public class WechatAdapter extends Adapter {
 
 			if (retry) {
 				TaskFailRecord record = AndroidUtil.retry(wxPublicName, dao2, device.udid, dao1);
-				//下滑到第一页
-				AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
-				//向下划指定页数
-				for (int i = 0; i < record.slideNumByPage; i++) {
+				if (record != null) {
+					//下滑到第一页
+					AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
+					//向下划指定页数
+					for (int i = 0; i < record.slideNumByPage; i++) {
 
-					AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
+						AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
+					}
 				}
 			}
 			while (!isLastPage) {
-				/**
-				 * 下滑到指定的位置
-				 */
+				//下滑到指定的位置
 				if (isFirstPage) {
 
 					AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
@@ -196,15 +196,7 @@ public class WechatAdapter extends Adapter {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			/**
-			 * 如果此处捕获到异常  则说明移动端的微信处于挂掉状态
-			 * 解决方法：截图  分析是否存在等待或者关闭等
-			 * 如果存在，关闭微信  进入微信一路返回进入主界面
-			 * 进入主界面之后再次搜索公众号名称
-			 */
-			e.printStackTrace();
-
-			logger.error("系统崩溃！");
+			logger.error("=========================当前设备{}已经崩溃了=============================", device.udid);
 
 			throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
 		}
@@ -221,22 +213,18 @@ public class WechatAdapter extends Adapter {
 			}
 
 			AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
-			/**
-			 * 有很大的概率点击不进去
-			 * 所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
-			 */
 
+			// 有很大的概率点击不进去
+			//所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
 			if (this.device.isClickEffect()) {
 				System.out.println("文章点进去了....");
-				for (int i = 0; i < 4; i++) {
+				for (int i = 0; i < 3; i++) {
 					AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 1000);
 				}
 				Thread.sleep(2000);
 				//关闭文章
 				AndroidUtil.closeEssay(driver);
-				/**
-				 *  设置为默认值
-				 */
+				//设置为默认值
 				this.device.setClickEffect(false);
 			} else {
 				++neverClickCount;
@@ -246,15 +234,47 @@ public class WechatAdapter extends Adapter {
 
 	public class Start implements Callable<Boolean> {
 
-		@Override
-		public Boolean call() throws Exception {
+		private boolean retry = false;
 
+		public synchronized boolean getRetry() {
+			return retry;
+		}
+
+		public synchronized void setRetry(boolean retry) {
+			this.retry = retry;
+		}
+
+		@Override
+		public Boolean call() throws SQLException {
 			assert taskType != null;
 			if (taskType.equals(AndroidDeviceManager.TaskType.SUBSCRIBE)) {
-				searchPublicAccount(device.queue);
+				for (String var : device.queue) {
+
+					digestionSubscribe(var, false);
+				}
 			} else if (taskType.equals(AndroidDeviceManager.TaskType.CRAWLER)) {
 				for (String var : device.queue) {
-					digestion(var, false);
+
+					digestionCrawler(var, getRetry());
+
+					//修改微信账号抓取的状态
+					SubscribeAccount subscribeAccount = dao3.queryBuilder().where().
+							eq("udid", device.udid).and().
+							eq("media_name", var).
+							queryForFirst();
+
+					subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
+
+					//删除失败任务记录
+					TaskFailRecord record = new TaskFailRecord();
+					record.deviceUdid = device.udid;
+					record.wxPublicName = var;
+					try {
+						dao1.delete(record);
+						subscribeAccount.update();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			return true;
@@ -267,8 +287,11 @@ public class WechatAdapter extends Adapter {
 	 * @throws AndroidException
 	 * @throws InvokingBaiduAPIException
 	 */
-	public void start() {
-		Future<Boolean> future = executor.submit(new Start());
+	public void start(boolean retry) {
+		Start start = new Start();
+
+		start.setRetry(retry);
+		Future<Boolean> future = executor.submit(start);
 		submit(future);
 		logger.info("任务提交完毕！");
 	}
@@ -286,77 +309,68 @@ public class WechatAdapter extends Adapter {
 	/**
 	 * 订阅公众号
 	 *
-	 * @param accounts
+	 * @param wxPublicName
 	 * @throws Exception
 	 */
-	public void searchPublicAccount(Queue<String> accounts) throws Exception {
+	public void subscribeWxAccount(String wxPublicName) throws Exception {
+
 		// A 点搜索
 		WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
 		searchButton.click();
 		Thread.sleep(1000);
+
 		// B 点公众号
 		WebElement publicAccountLink = driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]"));
 		publicAccountLink.click();
 		Thread.sleep(4000);
 
-		int size = accounts.size();
+		System.out.println("方法坐标：one.rewind.android.automator.adapter.WechatAdapter.subscribeWxAccount  线程名称" + Thread.currentThread().getName());
+		System.out.println("正在订阅微信公众号: " + wxPublicName);
 
-		for (int i = 0; i < size; i++) {
-			if (i > 0) {
-				driver.navigate().back();
-				Thread.sleep(500);
-			}
-			String var = accounts.poll();
+		// C1 输入框输入搜索信息
+		driver.findElement(By.className("android.widget.EditText")).sendKeys(wxPublicName);
 
-			System.out.println("方法坐标：one.rewind.android.automator.adapter.WechatAdapter.searchPublicAccount  线程名称" + Thread.currentThread().getName());
-			System.out.println("正在订阅微信公众号: " + var);
+		// C2 点击搜索输入框
+		AndroidUtil.clickPoint(223, 172, 0, driver);
 
-			if (i > 0) {
-				AndroidUtil.clickPoint(1373, 167, 0, driver);
-			}
+		// C3 点击软键盘的搜索键
+		AndroidUtil.clickPoint(1350, 2250, 4000, driver); //TODO 时间适当调整
 
-			// C1 输入框输入搜索信息
-			driver.findElement(By.className("android.widget.EditText")).sendKeys(var);
+		// D 点击第一个结果
+		AndroidUtil.clickPoint(720, 600, 4000, driver);
 
-			// C2 点击搜索输入框
-			AndroidUtil.clickPoint(720, 150, 0, driver);
+		// 点击订阅
+		try {
 
-			// C3 点击软键盘的搜索键
-			AndroidUtil.clickPoint(1350, 2250, 4000, driver);
+			driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
+					.click();
 
-			// D 点击第一个结果
-			AndroidUtil.clickPoint(720, 600, 2000, driver);
+			Thread.sleep(4000);  // TODO 时间适当调整
 
-			// 点击订阅
-			try {
-
-				driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
-						.click();
-
-				Thread.sleep(2000);
-
+			long tempCount = dao3.queryBuilder().where()
+					.eq("media_name", wxPublicName)
+					.and().eq("udid", this.device.udid)
+					.countOf();
+			if (tempCount == 0) {
 				//订阅完成之后再数据库存储记录
 				SubscribeAccount e = new SubscribeAccount();
 				e.udid = device.udid;
-				e.media_name = var;
+				e.media_name = wxPublicName;
 				e.insert();
-
-				driver.navigate().back();
-			} catch (Exception e) {
-				e.printStackTrace();
-				logger.info("Already add public account: {}", var);
-				driver.navigate().back();
 			}
+
+			driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.info("Already add public account: {}", wxPublicName);
+			driver.navigate().back();
 		}
 
-
-		Thread.sleep(1000);
-		driver.navigate().back();
-		Thread.sleep(500);
-		driver.navigate().back();
-		Thread.sleep(500);
-		driver.navigate().back();
-		Thread.sleep(500);
+		Thread.sleep(1500);
+		for (int i = 0; i < 3; i++) {
+			driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+			Thread.sleep(500);
+		}
 	}
 
 
@@ -367,43 +381,44 @@ public class WechatAdapter extends Adapter {
 	 *
 	 * @param wxAccountName
 	 */
-	public void digestion(String wxAccountName, boolean retry) {
+	public void digestionCrawler(String wxAccountName, boolean retry) {
 		try {
-
-			/**
-			 * 继续获取文章
-			 */
+			//继续获取文章
 			getIntoPublicAccountEssayList(wxAccountName, retry);
-		} catch (AndroidCollapseException e) {
+		} catch (Exception e) {
 
 			e.printStackTrace();
-
-			logger.error("=====安卓系统出现崩溃情况！=====");
-
 			try {
-				/**
-				 * 当前设备系统卡死   进入重试    直到设备不报异常为止
-				 * 截图查看图片中是否存在无响应
-				 */
+				//当前设备系统卡死   进入重试    直到设备不报异常为止
+				//截图查看图片中是否存在无响应
 				AndroidUtil.closeApp(driver);
 
-				Thread.sleep(5000);
+				Thread.sleep(10000);
 				AndroidUtil.activeWechat(device);
 
-				digestion(wxAccountName, true);
-			} catch (InterruptedException | InvokingBaiduAPIException e1) {
-				if (e1 instanceof InterruptedException) System.out.println("InterruptedException");
-				if (e1 instanceof InvokingBaiduAPIException) System.out.println("InvokingBaiduAPIException");
+				digestionCrawler(wxAccountName, true);
+			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
+		}
+	}
 
-		} catch (InvokingBaiduAPIException e) {
-
-			e.printStackTrace();
-
-			logger.error("=====百度API调用失败！=====");
+	/**
+	 * 订阅公众号重试机制
+	 *
+	 * @param wxPublicName
+	 * @param retry
+	 */
+	public void digestionSubscribe(String wxPublicName, boolean retry) {
+		try {
+			if (retry) {
+				AndroidUtil.closeApp(driver);
+				AndroidUtil.activeWechat(device);
+			}
+			subscribeWxAccount(wxPublicName);
 		} catch (Exception e) {
 			e.printStackTrace();
+			digestionSubscribe(wxPublicName, true);
 		}
 	}
 

@@ -62,7 +62,7 @@ public class EssayComment extends ModelD {
         return dao.queryBuilder()
                 .limit(size).offset(offset)
                 .where()
-                .eq("essay_id", essay_id)
+                .eq("media_name", essay_id)
                 .query();
     }
 
@@ -76,7 +76,7 @@ public class EssayComment extends ModelD {
         Dao<EssayComment, String> dao = DaoManager.getDao(EssayComment.class);
         return dao.queryBuilder()
                 .where()
-                .eq("essay_id", essay_id)
+                .eq("media_name", essay_id)
                 .countOf();
     }
 

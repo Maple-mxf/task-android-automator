@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.wechat;
 
-import one.rewind.android.automator.model.WechatEssay;
-import one.rewind.android.automator.model.WechatEssayComment;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.Comments;
 import one.rewind.json.JSON;
 import one.rewind.util.FileUtil;
 import org.junit.Before;
@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class WechatEssayTest {
+public class EssaysTest {
 
 	String content;
 	String stats;
@@ -25,11 +25,11 @@ public class WechatEssayTest {
 	@Test
 	public void testParseWechatEssay() throws Exception {
 
-		WechatEssay we = new WechatEssay().parseContent(content).parseStat(stats);
+		Essays we = new Essays().parseContent(content).parseStat(stats);
 
 		System.err.println(JSON.toPrettyJson(we));
 
-		List<WechatEssayComment> comments_ = WechatEssayComment.parseComments(we.mid, comments);
+		List<Comments> comments_ = Comments.parseComments(we.src_id, comments);
 
 		System.err.println(JSON.toPrettyJson(comments_));
 

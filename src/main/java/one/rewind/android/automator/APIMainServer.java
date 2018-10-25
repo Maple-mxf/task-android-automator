@@ -50,6 +50,8 @@ public class APIMainServer {
 
 		path("/api", () -> {
 			post("/accounts", PublicAccountsHandler.postAccounts);
+
+			post("/recovery", PublicAccountsHandler.recovery);
 		});
 
 		return this;

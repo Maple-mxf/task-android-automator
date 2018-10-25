@@ -4,13 +4,10 @@ import com.j256.ormlite.dao.Dao;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
-import net.lightbody.bmp.filters.RequestFilter;
-import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.TaskFailRecord;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.model.TaskFailRecord;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -21,7 +18,7 @@ import org.openqa.selenium.TakesScreenshot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.UUID;
 
 /**
  * Create By 2018/10/15
@@ -68,7 +65,7 @@ public class AndroidUtil {
 
 		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
 
-		Thread.sleep(7000); // TODO 此处时间需要调整
+		Thread.sleep(10000); // TODO 此处时间需要调整
 
 	}
 
@@ -174,111 +171,7 @@ public class AndroidUtil {
 	}
 
 
-	/**
-	 * 初始化APP
-	 */
-	public static void initApp(int localProxyPort, AndroidDevice device) {
-		device.startProxy(localProxyPort);
-		device.setupWifiProxy();
-		device.state = AndroidDevice.State.INIT;
-		System.out.println("Starting....Please wait!");
-		try {
-			RequestFilter requestFilter = (request, contents, messageInfo) -> {
-
-				String url = messageInfo.getOriginalUrl();
-
-				if (url.contains("https://mp.weixin.qq.com/s"))
-					System.out.println(" . " + url);
-				return null;
-			};
-			Stack<String> content_stack = new Stack<>();
-			Stack<String> stats_stack = new Stack<>();
-			Stack<String> comments_stack = new Stack<>();
-			ResponseFilter responseFilter = (response, contents, messageInfo) -> {
-
-				String url = messageInfo.getOriginalUrl();
-
-				if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
-
-					// 正文
-					if (url.contains("https://mp.weixin.qq.com/s")) {
-						device.setClickEffect(true);
-						System.err.println(" : " + url);
-						content_stack.push(contents.getTextContents());
-					}
-					// 统计信息
-					else if (url.contains("getappmsgext")) {
-						device.setClickEffect(true);
-						System.err.println(" :: " + url);
-						stats_stack.push(contents.getTextContents());
-					}
-					// 评论信息
-					else if (url.contains("appmsg_comment?action=getcomment")) {
-						device.setClickEffect(true);
-						System.err.println(" ::: " + url);
-						comments_stack.push(contents.getTextContents());
-					}
-
-					if (content_stack.size() >= 1 && stats_stack.size() >= 1 && comments_stack.size() >= 1) {
-						device.setClickEffect(true);
-						try {
-							System.err.println("Fully received.");
-
-							String content_src = content_stack.pop();
-
-							String stats_src = stats_stack.pop();
-
-							String comments_src = comments_stack.pop();
-
-							Essays we = new Essays().parseContent(content_src).parseStat(stats_src);
-
-							System.err.println(we.title);
-
-							we.id = MD5Util.MD5Encode("WX" + we.media_name + we.title, "UTF-8");
-
-							we.media_content = we.media_nick;
-							we.platform = "WX";
-							we.platform_id = 1;
-							we.fav_count = 0;
-							we.forward_count = 0;
-
-							we.insert_time = new Date();
-
-							we.update_time = new Date();
-
-							we.insert();
-
-							List<Comments> comments_ = Comments.parseComments(we.src_id, comments_src);
-
-							System.err.println(comments_.size());
-
-							comments_.stream().forEach(c -> {
-								try {
-									c.insert();
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-							});
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			};
-			device.setProxyRequestFilter(requestFilter);
-			device.setProxyResponseFilter(responseFilter);
-
-			AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
-			device.initAppiumServiceAndDriver(appInfo);
-			Thread.sleep(3000);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
 	public static void closeEssay(AndroidDriver driver) throws InterruptedException {
-//		AndroidUtil.clickPoint(69, 167, 1000, driver);
 		driver.navigate().back();
 		Thread.sleep(1000);
 	}
@@ -301,7 +194,6 @@ public class AndroidUtil {
 
 		JSONArray array = (JSONArray) jsonObject.get("words_result");
 
-		boolean collapse = false;
 
 		for (Object o : array) {
 
@@ -309,17 +201,17 @@ public class AndroidUtil {
 
 			String words = v.getString("words");
 			if (words.contains("关闭应用")) {
-				collapse = true;
+				AndroidUtil.clickPoint(521, 1256, 1000, driver);
+				break;
+			}
+			if (words.contains("要将其关闭吗")) {
+				//点击确定  这个截图和上面的截图是有点不太一样的
+				AndroidUtil.clickPoint(1196, 1377, 1000, driver);
 				break;
 			}
 		}
 
-		if (collapse) {
-			AndroidUtil.clickPoint(521, 1256, 1000, driver);
-		} else {
-			driver.closeApp();
-		}
-
+		driver.closeApp();
 		/**
 		 * close之后再按一次home键  防止微信没有启动
 		 */
@@ -336,6 +228,7 @@ public class AndroidUtil {
 
 		if (temp == null) {
 			TaskFailRecord record = new TaskFailRecord();
+
 			record.deviceUdid = udid;
 
 			record.wxPublicName = wxPublicName;

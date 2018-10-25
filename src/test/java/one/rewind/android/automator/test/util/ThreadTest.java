@@ -1,4 +1,4 @@
-package one.rewind.android.automator.test;
+package one.rewind.android.automator.test.util;
 
 import org.junit.Test;
 

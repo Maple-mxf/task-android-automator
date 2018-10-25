@@ -26,5 +26,20 @@ public class SubscribeAccount extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true)
 	public String media_id;
 
+	@DatabaseField(dataType = DataType.INTEGER)
+	public int status;
+
+
+	public enum CrawlerState {
+
+		FINISH(1),
+		NOFINISH(0);
+
+		public int status;
+
+		CrawlerState(int status) {
+			this.status = status;
+		}
+	}
 
 }
