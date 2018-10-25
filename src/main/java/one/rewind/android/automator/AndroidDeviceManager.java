@@ -92,7 +92,7 @@ public class AndroidDeviceManager {
 
 		System.out.println("=======所有任务'''订阅任务'''执行完毕");
 
-		Thread.sleep(50000);
+		Thread.sleep(10000);
 
 		WechatAdapter.executor = Executors.newFixedThreadPool(10);
 
