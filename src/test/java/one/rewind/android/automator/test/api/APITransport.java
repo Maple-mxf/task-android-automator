@@ -45,7 +45,7 @@ public class APITransport {
              * 第一个参数是分页参数   每次限定20个公众号
              */
             PreparedStatement ps =
-                    connection.prepareStatement("select name,nick from media limit ?,20");
+                    connection.prepareStatement("select name,nick from media limit ?,80");
             ps.setInt(1, page);
 
             ResultSet rs = ps.executeQuery();
@@ -85,7 +85,9 @@ public class APITransport {
 		}*/
 
 
-        List<String> strings = sendAccounts(3);
+        List<String> strings = sendAccounts(4);
+
+        System.out.println(strings.size());
 
         System.out.println(strings);
 
