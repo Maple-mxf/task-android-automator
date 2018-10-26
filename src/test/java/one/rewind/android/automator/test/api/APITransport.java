@@ -3,12 +3,14 @@ package one.rewind.android.automator.test.api;
 import com.google.common.collect.Lists;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.adapter.WechatAdapter;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Create By  2018/10/23
@@ -147,7 +149,7 @@ public class APITransport {
 
 	//从现有数据库中查询微信公众号进行数据抓取    只存在已经抓取文章任务  没有订阅公众号任务
 	@Test
-	public void proceedProgram() throws ClassNotFoundException {
+	public void proceedProgram() throws ClassNotFoundException, InterruptedException {
 
 		Class.forName("one.rewind.android.automator.AndroidDeviceManager");
 
@@ -156,5 +158,12 @@ public class APITransport {
 		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 
 		manager.allotCrawlerTask(availableDevices, false);
+
+		WechatAdapter.executor.shutdown();
+
+		while (!WechatAdapter.executor.isTerminated()) {
+			WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
+			System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
+		}
 	}
 }
