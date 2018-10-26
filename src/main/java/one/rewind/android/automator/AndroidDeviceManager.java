@@ -78,7 +78,6 @@ public class AndroidDeviceManager {
 	 */
 	public void allotTask() throws InterruptedException {
 		running = true;
-		WechatAdapter.executor = Executors.newFixedThreadPool(10);
 		if (taskType == null) {
 			taskType = TaskType.SUBSCRIBE;
 		}
