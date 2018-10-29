@@ -24,7 +24,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 public class WechatAdapterTest {
 
     //    String udid = "ZX1G323GNB";
-    String udid = "ZX1G22PQLH";
+//    String udid = "ZX1G22PQLH";
+    String udid = "1115fb232c991003";
     int appiumPort = 47454;
     int localProxyPort = 48454;
     AndroidDevice device;
@@ -150,7 +151,7 @@ public class WechatAdapterTest {
 
     @Test
     public void testGetOnePublicAccountsEssays() throws
-            InterruptedException, AndroidCollapseException, InvokingBaiduAPIException {
+            AndroidCollapseException, InvokingBaiduAPIException {
         adapter.getIntoPublicAccountEssayList("阿里巴巴", false);
     }
 

@@ -396,7 +396,7 @@ public class WechatAdapter extends Adapter {
 				AndroidUtil.activeWechat(device);
 
 				// 如果每个公众号抓取的文章数量太小的话  启动重试机制
-				long number = dao2.queryBuilder().where().eq("media_name", wxAccountName).countOf();
+				long number = dao2.queryBuilder().where().eq("media_nick", wxAccountName).countOf();
 				if (number < 30) {
 					digestionCrawler(wxAccountName, true);
 				}
