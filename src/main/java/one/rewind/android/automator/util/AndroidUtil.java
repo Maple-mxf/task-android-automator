@@ -295,6 +295,10 @@ public class AndroidUtil {
         for (TaskFailRecord record : records) {
             long countOf = dao2.queryBuilder().where().eq("media_nick", record.wxPublicName).countOf();
 
+            if (countOf >= 30) {
+                dao1.delete(record);
+                continue;
+            }
             if (record.finishNum != countOf) {
 
                 record.finishNum = (int) countOf;

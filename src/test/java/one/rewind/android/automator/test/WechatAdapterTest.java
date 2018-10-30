@@ -1,5 +1,7 @@
 package one.rewind.android.automator.test;
 
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.events.EventFiringWebDriverFactory;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
@@ -7,6 +9,7 @@ import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
+import one.rewind.android.automator.listener.AlertListener;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -145,6 +148,8 @@ public class WechatAdapterTest {
         adapter = new WechatAdapter(device);
 
         Thread.sleep(3000);
+
+        device.driver = EventFiringWebDriverFactory.getEventFiringWebDriver(device.driver, new AlertListener());
     }
 
     //先将公众号关注  再点击进去抓取文章
@@ -203,6 +208,10 @@ public class WechatAdapterTest {
         AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
         manager.allotTask(AndroidDeviceManager.TaskType.SUBSCRIBE);
 
+    }
+
+    @Test
+    public void testAlert() {
     }
 
 }
