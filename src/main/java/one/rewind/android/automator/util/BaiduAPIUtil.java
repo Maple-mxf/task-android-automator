@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Create By
- * Description
+ * 描述：
+ * 作者：MaXFeng
+ * 时间：2018/10/16
  */
 public class BaiduAPIUtil {
 
@@ -58,9 +59,10 @@ public class BaiduAPIUtil {
              */
             System.err.println("result:" + result);
             JSONObject jsonObject = new JSONObject(result);
-            return jsonObject.getString("access_token");
+            String access_token = jsonObject.getString("access_token");
+            return access_token;
         } catch (Exception e) {
-            System.err.print("获取token失败！");
+            System.err.printf("获取token失败！");
             e.printStackTrace(System.err);
         }
         return null;
@@ -75,20 +77,23 @@ public class BaiduAPIUtil {
     public static JSONObject executeImageRecognitionRequest(String filePath) throws InvokingBaiduAPIException {
         try {
             String otherHost = "https://aip.baidubce.com/rest/2.0/ocr/v1/general";
-
             byte[] imgData = FileUtil.readFileByBytes(filePath);
             String imgStr = Base64Util.encode(imgData);
             String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
             /**
              * 线上环境access_token有过期时间， 客户端可自行缓存，过期后重新获取。
              */
-            String accessToken = BaiduAPIUtil.getAuth("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
-
+            String accessToken = BaiduAPIUtil.getAuth("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
             return new JSONObject(HttpUtil.post(otherHost, accessToken, params));
-
         } catch (Exception e) {
             e.printStackTrace();
             throw new InvokingBaiduAPIException("百度API调用失败！");
         }
+    }
+
+
+    public static void main(String[] args) throws InvokingBaiduAPIException {
+        JSONObject jsonObject = executeImageRecognitionRequest("/usr/local/j-wplace/wechat-android-automator/screen/0b93d8ee-40b8-4ee3-bd6c-6c3191da69bc.png");
+        System.out.println(jsonObject);
     }
 }
