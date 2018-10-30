@@ -1,6 +1,8 @@
 package one.rewind.android.automator.util;
 
+import com.google.common.collect.Maps;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -10,13 +12,37 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 /**
- * 描述：
- * 作者：MaXFeng
- * 时间：2018/10/16
+ * Create By 2018/10/19
+ * Description:
  */
 public class BaiduAPIUtil {
+
+    static {
+        initTokens();
+    }
+
+    private static ConcurrentMap<String, String> tokens = Maps.newConcurrentMap();
+
+    private static ConcurrentMap<String, String> currentToken = Maps.newConcurrentMap();
+
+
+    /**
+     * 初始化百度API接口的token信息
+     * k: appKey
+     * s: appSecret
+     */
+    static void initTokens() {
+        tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+        currentToken.clear();
+        tokens.forEach((k, v) -> {
+            currentToken.put(k, v);
+            return;
+        });
+    }
 
     /**
      * 获取接口的信任信息
@@ -83,7 +109,17 @@ public class BaiduAPIUtil {
             /**
              * 线上环境access_token有过期时间， 客户端可自行缓存，过期后重新获取。
              */
-            String accessToken = BaiduAPIUtil.getAuth("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+            if (currentToken.size() > 1) {
+                throw new RuntimeException("当前token设置的太多了...");
+            }
+            Set<String> keySet = currentToken.keySet();
+            StringBuilder key = new StringBuilder();
+            StringBuilder secret = new StringBuilder();
+            for (String var : keySet) {
+                key.append(var);
+                secret.append(currentToken.get(var));
+            }
+            String accessToken = BaiduAPIUtil.getAuth(key.toString(), secret.toString());
             return new JSONObject(HttpUtil.post(otherHost, accessToken, params));
         } catch (Exception e) {
             e.printStackTrace();
@@ -91,9 +127,45 @@ public class BaiduAPIUtil {
         }
     }
 
+    /**
+     * 检查百度API是否可用
+     * {"err_msg":}
+     *
+     * @param jsonObject
+     * @return
+     */
+    public static boolean insepectRateLimit(JSONObject jsonObject) {
+        try {
+            JSONArray array = (JSONArray) jsonObject.get("words_result");
+            return array != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-    public static void main(String[] args) throws InvokingBaiduAPIException {
-        JSONObject jsonObject = executeImageRecognitionRequest("/usr/local/j-wplace/wechat-android-automator/screen/0b93d8ee-40b8-4ee3-bd6c-6c3191da69bc.png");
-        System.out.println(jsonObject);
+
+    /**
+     * 切换当前token
+     */
+    public static JSONObject switchToken(String filePath) {
+
+        currentToken.clear();
+
+        for (Map.Entry<String, String> entry : tokens.entrySet()) {
+            String k = entry.getKey();
+            String v = entry.getValue();
+            try {
+                JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
+
+                if (jsonObject.get("err_msg") == null) {
+                    currentToken.put(k, v);
+                    return jsonObject;
+                }
+            } catch (InvokingBaiduAPIException e) {
+                e.printStackTrace();
+
+            }
+        }
+        return null;
     }
 }
