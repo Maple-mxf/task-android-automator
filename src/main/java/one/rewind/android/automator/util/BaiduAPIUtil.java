@@ -36,12 +36,16 @@ public class BaiduAPIUtil {
      * s: appSecret
      */
     static void initTokens() {
-        tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+        tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");  // 马雪峰
+        tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");  // 刘蒙蒙
+        tokens.put("", "");//王楠
         currentToken.clear();
-        tokens.forEach((k, v) -> {
+        for (Map.Entry<String, String> entry : tokens.entrySet()) {
+            String k = entry.getKey();
+            String v = entry.getValue();
             currentToken.put(k, v);
-            return;
-        });
+            break;
+        }
     }
 
     /**
@@ -147,7 +151,7 @@ public class BaiduAPIUtil {
     /**
      * 切换当前token
      */
-    public static JSONObject switchToken(String filePath) {
+    public synchronized static JSONObject switchToken(String filePath) {
 
         currentToken.clear();
 
