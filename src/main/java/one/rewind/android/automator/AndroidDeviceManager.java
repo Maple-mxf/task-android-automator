@@ -145,11 +145,13 @@ public class AndroidDeviceManager {
                 and().
                 eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
                 query();
-        if (accounts.size() > 0) {
+       /* if (accounts.size() > 0) {
             for (SubscribeAccount account : accounts) {
                 device.queue.add(account.media_name);
             }
-        }
+        }*/   //TODO
+        device.queue.add("鸿运财经");
+        device.queue.add("淘迷网");
 
         WechatAdapter adapter = new WechatAdapter(device);
         adapter.setTaskType(TaskType.CRAWLER);

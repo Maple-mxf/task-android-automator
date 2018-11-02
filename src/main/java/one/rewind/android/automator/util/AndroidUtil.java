@@ -295,33 +295,30 @@ public class AndroidUtil {
      * 更新为完成的公众号数据
      */
     public static void updateProcess() throws Exception {
-        synchronized (AndroidUtil.class) {
-            Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
+        Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
 
-            List<TaskFailRecord> records = dao1.queryBuilder().query();
+        List<TaskFailRecord> records = dao1.queryBuilder().query();
 
-            Dao<Essays, String> dao2 = DaoManager.getDao(Essays.class);
+        Dao<Essays, String> dao2 = DaoManager.getDao(Essays.class);
 
-            for (TaskFailRecord record : records) {
-                long countOf = dao2.queryBuilder().where().eq("media_nick", record.wxPublicName).countOf();
+        for (TaskFailRecord record : records) {
+            long countOf = dao2.queryBuilder().where().eq("media_nick", record.wxPublicName).countOf();
 
-                if (countOf >= 30) {
-                    dao1.delete(record);
+            if (countOf >= 30) {
+                dao1.delete(record);
+            } else {
+                record.finishNum = (int) countOf;
+
+                int var = record.finishNum % 6;
+                if (var >= 3) {
+                    record.slideNumByPage = (record.finishNum / 6) + 2;
                 } else {
-                    record.finishNum = (int) countOf;
-
-                    int var = record.finishNum % 6;
-                    if (var >= 3) {
-                        record.slideNumByPage = (record.finishNum / 6) + 2;
-                    } else {
-                        record.slideNumByPage = (record.finishNum / 6) + 1;
-                    }
-
-                    record.update_time = new Date();
-                    record.update();
+                    record.slideNumByPage = (record.finishNum / 6) + 1;
                 }
-
+                record.update_time = new Date();
+                record.update();
             }
+
         }
     }
 }

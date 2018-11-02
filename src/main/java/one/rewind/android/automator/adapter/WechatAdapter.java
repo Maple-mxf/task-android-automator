@@ -327,15 +327,12 @@ public class WechatAdapter extends Adapter {
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
         searchButton.click();
-        Thread.sleep(1000);
+        Thread.sleep(500);
 
         // B 点公众号
         WebElement publicAccountLink = driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]"));
         publicAccountLink.click();
-        Thread.sleep(4000);
-
-        System.out.println("方法坐标：one.rewind.android.automator.adapter.WechatAdapter.subscribeWxAccount  线程名称" + Thread.currentThread().getName());
-        System.out.println("正在订阅微信公众号: " + wxPublicName);
+        Thread.sleep(2000);
 
         // C1 输入框输入搜索信息
         driver.findElement(By.className("android.widget.EditText")).sendKeys(wxPublicName);
@@ -347,19 +344,18 @@ public class WechatAdapter extends Adapter {
         AndroidUtil.clickPoint(1350, 2250, 4000, driver); //TODO 时间适当调整
 
         // D 点击第一个结果
-        AndroidUtil.clickPoint(720, 600, 4000, driver);
+        AndroidUtil.clickPoint(720, 600, 2000, driver);
 
         // 点击订阅
         try {
-
             driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
                     .click();
 
-            Thread.sleep(4000);  // TODO 时间适当调整
+            Thread.sleep(3000);  // TODO 时间适当调整
 
             long tempCount = dao3.queryBuilder().where()
                     .eq("media_name", wxPublicName)
-                    .and().eq("udid", this.device.udid)
+                    .and()
                     .countOf();
             if (tempCount == 0) {
                 //订阅完成之后再数据库存储记录
