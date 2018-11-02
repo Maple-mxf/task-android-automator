@@ -57,14 +57,7 @@ public class APITransport {
 
             List<String> accounts = Lists.newArrayList();
             while (rs.next()) {
-
                 String media_nick = rs.getString("nick");
-
-//				String media_name = rs.getString("name");
-
-//				map.put("media_nick", media_nick);
-//				map.put("media_id", media_name);
-
                 accounts.add(media_nick);
             }
             return accounts;

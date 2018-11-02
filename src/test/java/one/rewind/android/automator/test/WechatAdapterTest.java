@@ -1,5 +1,6 @@
 package one.rewind.android.automator.test;
 
+import com.google.common.collect.Lists;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
@@ -10,6 +11,7 @@ import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.AppInfo;
+import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.MD5Util;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,8 +24,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class WechatAdapterTest {
 
-//    String udid = "ZX1G323GNB";
-        String udid = "ZX1G22PQLH";
+    //    String udid = "ZX1G323GNB";
+    String udid = "ZX1G42BX4R";
     int appiumPort = 47454;
     int localProxyPort = 48454;
     AndroidDevice device;
@@ -150,7 +152,7 @@ public class WechatAdapterTest {
     @Test
     public void testGetOnePublicAccountsEssays() throws ClassNotFoundException {
         Class.forName("one.rewind.android.automator.util.BaiduAPIUtil");
-        adapter.digestionCrawler("大宗内参", false);
+        adapter.digestionCrawler("海南应急", true);
     }
 
     @Test
@@ -168,9 +170,9 @@ public class WechatAdapterTest {
 
     @Test
     public void testSubscribeAccount() throws Exception {
-        Queue<String> queue = new ArrayBlockingQueue<>(10);
-        queue.add("淘迷网");
-        for (String var : queue) {
+        List<String> list = Lists.newArrayList();
+        DBUtil.obtainFullData(list, 8, 20);
+        for (String var : list) {
             adapter.subscribeWxAccount(var);
         }
     }

@@ -217,7 +217,7 @@ public class AndroidDeviceManager {
 
         //未完成的公众号集合
         List<SubscribeAccount> notFinishR = subscribeDao.queryBuilder().where().
-                eq("udid", udid).
+                eq("udid", udid).and().
                 eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
                 query();
 

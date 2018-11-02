@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -178,18 +179,29 @@ public class WechatAdapter extends Adapter {
         try {
             if (retry) {
                 TaskFailRecord record = AndroidUtil.retry(wxPublicName, dao2, device.udid, dao1);
+                if (record == null) {
+                    //当前公众号抓取的文章已经达到100篇以上
+                    SubscribeAccount var = dao3.queryBuilder().where().eq("media_name", wxPublicName).queryForFirst();
+                    if (var.status == 1) {
+                        return;
+                    } else {
+                        long count = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
+                        if (count > 100) {
+                            return;
+                        } else {
+                            AndroidUtil.updateProcess();
+                        }
+                    }
+                }
+                record = AndroidUtil.retry(wxPublicName, dao2, device.udid, dao1);
                 if (record != null) {
                     isFirstPage = false;
                     //下滑到第一页
                     AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
                     //向下划指定页数
                     for (int i = 0; i < record.slideNumByPage; i++) {
-
                         AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
                     }
-                } else {
-                    //当前公众号抓取的文章已经达到100篇以上
-                    return;
                 }
             }
             while (!isLastPage) {
@@ -286,7 +298,7 @@ public class WechatAdapter extends Adapter {
                     for (String var : device.queue) {
                         isLastPage = false;
                         digestionCrawler(var, getRetry());
-                        AndroidUtil.updateProcess(var, device.udid);
+                        AndroidUtil.deleteFailRecord(var, device.udid);
                         //返回到主界面
                         for (int i = 0; i < 5; i++) {
                             driver.navigate().back();
@@ -333,6 +345,8 @@ public class WechatAdapter extends Adapter {
      */
     public void subscribeWxAccount(String wxPublicName) throws Exception {
 
+        int k = 3;
+
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
         searchButton.click();
@@ -361,30 +375,31 @@ public class WechatAdapter extends Adapter {
                     .click();
 
             Thread.sleep(3000);  // TODO 时间适当调整
-
-            long tempCount = dao3.queryBuilder().where()
-                    .eq("media_name", wxPublicName)
-                    .and()
-                    .countOf();
-            if (tempCount == 0) {
-                //订阅完成之后再数据库存储记录
-                SubscribeAccount e = new SubscribeAccount();
-                e.udid = device.udid;
-                e.media_name = wxPublicName;
-                e.insert();
-            }
-
             driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
         } catch (Exception e) {
             e.printStackTrace();
             logger.info("Already add public account: {}", wxPublicName);
             driver.navigate().back();
+            --k;
         }
-
+        saveSubscribeRecord(wxPublicName);
         Thread.sleep(1500);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < k; i++) {
             driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
             Thread.sleep(500);
+        }
+    }
+
+    private void saveSubscribeRecord(String wxPublicName) throws Exception {
+        long tempCount = dao3.queryBuilder().where()
+                .eq("media_name", wxPublicName)
+                .countOf();
+        if (tempCount == 0) {
+            //订阅完成之后再数据库存储记录
+            SubscribeAccount e = new SubscribeAccount();
+            e.udid = device.udid;
+            e.media_name = wxPublicName;
+            e.insert();
         }
     }
 

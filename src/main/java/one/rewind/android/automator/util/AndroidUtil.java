@@ -20,6 +20,7 @@ import org.openqa.selenium.TakesScreenshot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -291,22 +292,26 @@ public class AndroidUtil {
         Thread.sleep(10000);
     }
 
+    public static void deleteFailRecord(String nick_name, String udid) throws Exception {
+        Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
+        TaskFailRecord wxPublicName = dao1.queryBuilder().where().eq("wxPublicName", nick_name).queryForFirst();
+        if (wxPublicName != null){
+            dao1.delete(wxPublicName);
+        }
+        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        SubscribeAccount subscribeAccount = dao.queryBuilder().where().eq("udid", udid).and().eq("media_name", nick_name).queryForFirst();
+        if (subscribeAccount != null) {
+            subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
+            subscribeAccount.update();
+        }
+    }
+
 
     /**
      * 更新为完成的公众号数据
      */
-    public static void updateProcess(String nick_name, String udid) throws Exception {
+    public static void updateProcess() throws Exception {
         Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
-
-        TaskFailRecord wxPublicName = dao1.queryBuilder().where().eq("wxPublicName", nick_name).queryForFirst();
-        dao1.delete(wxPublicName);
-
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
-        SubscribeAccount subscribeAccount = dao.queryBuilder().where().eq("udid", udid).and().eq("media_name", nick_name).queryForFirst();
-        if (subscribeAccount != null){
-            subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
-            subscribeAccount.update();
-        }
 
         List<TaskFailRecord> records = dao1.queryBuilder().query();
 
