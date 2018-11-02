@@ -1,6 +1,7 @@
 package one.rewind.android.automator.util;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
@@ -8,6 +9,7 @@ import one.rewind.db.DaoManager;
 import java.sql.*;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  *
@@ -43,7 +45,7 @@ public class DBUtil {
 
     }
 
-    public static List<String> sendAccounts(List<String> accounts, int page) {
+    public static Set<String> sendAccounts(Set<String> accounts, int page) {
 
         try {
             Connection connection = getConnection();
@@ -77,10 +79,11 @@ public class DBUtil {
      * @param page
      * @param var
      */
-    public static void obtainFullData(List<String> accounts, int page, int var) {
+    public static int obtainFullData(Set<String> accounts, int page, int var) {
         while (accounts.size() <= var) {
             accounts.addAll(Objects.requireNonNull(sendAccounts(accounts, page)));
             ++page;
         }
+        return page;
     }
 }

@@ -1,26 +1,24 @@
 package one.rewind.android.automator.test;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.adapter.WechatAdapter;
-import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.MD5Util;
+import one.rewind.db.RedissonAdapter;
 import org.junit.Before;
 import org.junit.Test;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RedissonClient;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Queue;
-import java.util.Stack;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.*;
 
 public class WechatAdapterTest {
 
@@ -170,9 +168,12 @@ public class WechatAdapterTest {
 
     @Test
     public void testSubscribeAccount() throws Exception {
-        List<String> list = Lists.newArrayList();
-        DBUtil.obtainFullData(list, 8, 20);
-        for (String var : list) {
+        Set<String> strings = Sets.newHashSet();
+        int page = DBUtil.obtainFullData(strings, 11, 20);
+        RedissonClient redisson = RedissonAdapter.redisson;
+        RAtomicLong atomicLong = redisson.getAtomicLong("android-automator-page");
+        atomicLong.set(page);
+        for (String var : strings) {
             adapter.subscribeWxAccount(var);
         }
     }

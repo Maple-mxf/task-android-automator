@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentMap;
 public class BaiduAPIUtil {
 
 
-
     private static Map<String, String> tokens = Maps.newHashMap();
 
     private static ConcurrentMap[] current = new ConcurrentMap[1];
