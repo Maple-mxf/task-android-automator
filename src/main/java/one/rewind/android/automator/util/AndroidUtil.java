@@ -7,6 +7,7 @@ import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskFailRecord;
 import one.rewind.db.DaoManager;
 import org.apache.commons.io.FileUtils;
@@ -294,8 +295,18 @@ public class AndroidUtil {
     /**
      * 更新为完成的公众号数据
      */
-    public static void updateProcess() throws Exception {
+    public static void updateProcess(String nick_name, String udid) throws Exception {
         Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
+
+        TaskFailRecord wxPublicName = dao1.queryBuilder().where().eq("wxPublicName", nick_name).queryForFirst();
+        dao1.delete(wxPublicName);
+
+        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        SubscribeAccount subscribeAccount = dao.queryBuilder().where().eq("udid", udid).and().eq("media_name", nick_name).queryForFirst();
+        if (subscribeAccount != null){
+            subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
+            subscribeAccount.update();
+        }
 
         List<TaskFailRecord> records = dao1.queryBuilder().query();
 

@@ -142,7 +142,11 @@ public class WechatAdapter extends Adapter {
 
             if (words.contains("已无更多")) {
 
+                System.out.println("============================没有更多文章===================================");
+
                 isLastPage = true;
+
+                System.out.println(isLastPage);
 
             }
 
@@ -280,8 +284,13 @@ public class WechatAdapter extends Adapter {
             } else if (TaskType.CRAWLER.equals(taskType)) {
                 try {
                     for (String var : device.queue) {
+                        isLastPage = false;
                         digestionCrawler(var, getRetry());
-                        AndroidUtil.updateProcess();
+                        AndroidUtil.updateProcess(var, device.udid);
+                        //返回到主界面
+                        for (int i = 0; i < 5; i++) {
+                            driver.navigate().back();
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -398,7 +407,6 @@ public class WechatAdapter extends Adapter {
                 //当前设备系统卡死   进入重试    直到设备不报异常为止
                 //截图查看图片中是否存在无响应
                 AndroidUtil.closeApp(driver);
-
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);
 

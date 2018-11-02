@@ -22,8 +22,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class WechatAdapterTest {
 
-    String udid = "ZX1G323GNB";
-    //    String udid = "ZX1G22PQLH";
+//    String udid = "ZX1G323GNB";
+        String udid = "ZX1G22PQLH";
     int appiumPort = 47454;
     int localProxyPort = 48454;
     AndroidDevice device;
@@ -169,7 +169,6 @@ public class WechatAdapterTest {
     @Test
     public void testSubscribeAccount() throws Exception {
         Queue<String> queue = new ArrayBlockingQueue<>(10);
-        queue.add("菜鸟教程");
         queue.add("淘迷网");
         for (String var : queue) {
             adapter.subscribeWxAccount(var);
