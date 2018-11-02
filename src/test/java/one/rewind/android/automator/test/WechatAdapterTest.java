@@ -6,7 +6,6 @@ import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.exception.AndroidCollapseException;
-import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -23,8 +22,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class WechatAdapterTest {
 
-    //    String udid = "ZX1G323GNB";
-    String udid = "ZX1G22PQLH";
+    String udid = "ZX1G323GNB";
+    //    String udid = "ZX1G22PQLH";
     int appiumPort = 47454;
     int localProxyPort = 48454;
     AndroidDevice device;
@@ -149,9 +148,9 @@ public class WechatAdapterTest {
     //先将公众号关注  再点击进去抓取文章
 
     @Test
-    public void testGetOnePublicAccountsEssays() throws
-            InterruptedException, AndroidCollapseException, InvokingBaiduAPIException {
-        adapter.getIntoPublicAccountEssayList("阿里巴巴", false);
+    public void testGetOnePublicAccountsEssays() throws ClassNotFoundException {
+        Class.forName("one.rewind.android.automator.util.BaiduAPIUtil");
+        adapter.digestionCrawler("大宗内参", false);
     }
 
     @Test
@@ -200,7 +199,7 @@ public class WechatAdapterTest {
         AndroidDeviceManager.originalAccounts.add("菜鸟教程");
         AndroidDeviceManager.originalAccounts.add("Java技术栈");
         AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
-        manager.allotTask(AndroidDeviceManager.TaskType.SUBSCRIBE);
+//        manager.allotTask(AndroidDeviceManager.TaskType.SUBSCRIBE);
 
     }
 

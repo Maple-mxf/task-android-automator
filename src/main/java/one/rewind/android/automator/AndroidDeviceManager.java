@@ -3,12 +3,13 @@ package one.rewind.android.automator;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.TaskFailRecord;
+import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.db.DaoManager;
-import org.apache.commons.lang3.time.DateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -20,20 +21,23 @@ public class AndroidDeviceManager {
 
     private static Dao<SubscribeAccount, String> subscribeDao;
 
-    public volatile static TaskType taskType = null;
-
+    private static Dao<TaskFailRecord, String> failRecordDao;
 
     public volatile static boolean running = false;
 
     /**
-     * 从接口传递过来的微信号
+     * 逻辑定义:   @1 TaskType: @Crawler-> 只在数据库中查找未完成抓取的公众号.当然也包括了未完成任务的公众号
+     *
+     * @2 TaskType: @Subscribe->只需要将当前one.rewind.android.automator.AndroidDeviceManager#originalAccounts
+     * 集合中的所有数据进行关注.
+     * 任务指定:  计算每一台设备(一台设备对应一个微信号) ;任务类型的根据每个设备关注的每个号进行动态计算,合理算出当前设备的任务类型
+     * <p>
+     * one.rewind.android.automator.AndroidDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
      */
     public static BlockingQueue<String> originalAccounts = new LinkedBlockingDeque<>();
 
     private AndroidDeviceManager() {
     }
-
-    Logger logger = LoggerFactory.getLogger(AndroidDeviceManager.class);
 
     /**
      * key : udid
@@ -42,8 +46,6 @@ public class AndroidDeviceManager {
     public static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
 
     private static AndroidDeviceManager instance;
-
-    public static final int DEFAULT_APPIUM_PORT = 47454;
 
     public static final int DEFAULT_LOCAL_PROXY_PORT = 48454;
 
@@ -73,169 +75,11 @@ public class AndroidDeviceManager {
         }
     }
 
-
-    /**
-     * 任务分配
-     *
-     * @throws InterruptedException
-     */
-    @Deprecated
-    public void allotTask() throws InterruptedException {
-        running = true;
-        if (taskType == null) {
-            taskType = TaskType.SUBSCRIBE;
-        }
-        allotTask(taskType);
-
-        WechatAdapter.executor.shutdown();
-        while (!WechatAdapter.executor.isTerminated()) {
-            WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
-            System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
-        }
-
-        System.out.println("=======所有任务'''订阅任务'''执行完毕");
-
-        Thread.sleep(10000);
-
-        WechatAdapter.executor = Executors.newFixedThreadPool(10);
-
-        taskType = TaskType.CRAWLER;
-        allotTask(taskType);
-
-        WechatAdapter.executor.shutdown();
-        while (!WechatAdapter.executor.isTerminated()) {
-            WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
-            System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
-
-        }
-
-        WechatAdapter.futures.forEach(v -> System.out.println("v:" + v));
-
-        running = false;
-    }
-
-
-    /**
-     * 获取到可用的设备   开启线程池进行任务分配
-     * 任务分配有两种: 关注公众号和抓取特定公众号文章
-     *
-     * @param type
-     */
-    public void allotTask(TaskType type) {
-        List<AndroidDevice> availableDevices = obtainAvailableDevices();
-        if (TaskType.SUBSCRIBE.equals(type)) {
-            allotSubscribeTask(availableDevices);
-        } else if (TaskType.CRAWLER.equals(type)) {
-            allotCrawlerTask(availableDevices, false);
-        }
-
-    }
-
-    /**
-     * Description:  分配订阅公众号的任务
-     *
-     * @param availableDevices
-     */
-    private void allotSubscribeTask(List<AndroidDevice> availableDevices) {
-        try {
-            for (AndroidDevice device : availableDevices) {
-
-                Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
-
-                //查询总共关注了多少公众号  今天关注了多少
-                long countSub = dao.queryBuilder().where().
-                        eq("udid", device.udid).countOf();
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTime(new Date());
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                Date var0 = calendar.getTime();
-                Date var1 = DateUtils.addDays(var0, 1);
-                long currentSub = dao.queryBuilder().where().
-                        eq("udid", device.udid).and().
-                        between("insert_time", var0, var1).countOf();
-                if (countSub >= 920 || currentSub >= 40) {
-                    continue;
-                }
-
-                //初始化设备的任务队列
-                device.queue.clear();
-                int rest = (int) (40 - currentSub);
-                for (int i = 0; i < rest; i++) { // TODO 测试改动
-                    if (originalAccounts.size() == 0) break;
-                    device.queue.add(originalAccounts.take());
-                }
-                //开启任务执行
-                if (device.queue.size() == 0) return;
-
-                device.setClickEffect(false);
-
-                WechatAdapter adapter = new WechatAdapter(device);
-
-                WechatAdapter.taskType = TaskType.SUBSCRIBE;
-
-                adapter.start(false);
-
-                logger.info("任务初始化完毕！！！");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    /**
-     * Description:  抓取文章任务
-     *
-     * @param availableDevices
-     * @param recovery         恢复机制
-     */
-    public void allotCrawlerTask(List<AndroidDevice> availableDevices, boolean recovery) {
-        WechatAdapter.taskType = TaskType.CRAWLER;
-        try {
-            for (AndroidDevice device : availableDevices) {
-                Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
-
-                //任务队列
-                device.queue.clear();
-                List<SubscribeAccount> subscribeAccounts =
-                        dao.queryBuilder().
-                                where().eq("udid", device.udid).
-                                and().eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
-                                query();
-
-                for (SubscribeAccount var : subscribeAccounts) {
-                    device.queue.add(var.media_name);
-                }
-                //重置点击生效标记
-                device.setClickEffect(false);
-                WechatAdapter adapter = new WechatAdapter(device);
-                adapter.start(recovery);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 当前任务类型
-     */
-    public enum TaskType {
-        SUBSCRIBE(1),
-        CRAWLER(2);
-
-        private int type;
-
-        TaskType(int type) {
-            this.type = type;
-        }
-    }
-
     //初始化设备
     static {
         try {
             subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            failRecordDao = DaoManager.getDao(TaskFailRecord.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -249,31 +93,165 @@ public class AndroidDeviceManager {
         }
     }
 
+    /**
+     * 启动
+     *
+     * @throws Exception
+     */
+    public void startManager() throws Exception {
+        boolean flag = true;
+        while (flag) {
+            WechatAdapter.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
+            uncertainAllotTask();
+            while (!WechatAdapter.executor.isTerminated()) {
+                WechatAdapter.executor.awaitTermination(300, TimeUnit.SECONDS);
+                System.out.println("progress: % " + WechatAdapter.executor.isTerminated());
+            }
+            if (subscribeDao.queryBuilder().countOf() > 100000) {
+                flag = false;
+            }
+        }
+    }
 
     /**
      * 更细致的任务分配   By Device
      * Dynamic set device state
      */
-    public void uncertainAllotTask() {
+    public void uncertainAllotTask() throws Exception {
         running = true;
         List<AndroidDevice> availableDevices = obtainAvailableDevices();
         for (AndroidDevice device : availableDevices) {
+            if (originalAccounts.size() == 0) {
+                allotFormulateTask(device);
+            } else {
+                TaskType deviceTaskType = calcuState(device.udid);
+                uncertainAllotTask(deviceTaskType, device);
+            }
 
         }
     }
 
 
-    public void uncertainAllotTask(TaskType taskType) {
+    /**
+     * 分配固定的任务  crawler
+     * 这种情景仅限于在任务队列的size == 0
+     *
+     * @param device
+     * @see one.rewind.android.automator.AndroidDeviceManager#originalAccounts
+     */
+    private void allotFormulateTask(AndroidDevice device) throws SQLException {
+        device.setClickEffect(false);
+        List<SubscribeAccount> accounts = subscribeDao.queryBuilder().where().eq("udid", device.udid).
+                and().
+                eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                query();
+        if (accounts.size() > 0) {
+            for (SubscribeAccount account : accounts) {
+                device.queue.add(account.media_name);
+            }
+        }
+
+        WechatAdapter adapter = new WechatAdapter(device);
+        adapter.setTaskType(TaskType.CRAWLER);
+        adapter.start(true);
 
     }
 
 
-    public void calcuState(String udid) throws Exception {
+    /**
+     * 当前设备任务 数据抓取
+     * 一:  从失败任务中提取公众号
+     * 二:  从订阅记录表中提取公众号
+     *
+     * @param taskType
+     * @param device
+     */
+    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException {
+        //清空任务队列
+        device.queue.clear();
+        List<TaskFailRecord> records = failRecordDao.queryBuilder().where().eq("udid", device.udid).query();
+        List<SubscribeAccount> subscribeAccounts = subscribeDao.
+                queryBuilder().
+                where().
+                eq("udid", device.udid).
+                query();
+        //初始化任务队列
+        if (records != null && records.size() != 0) {
+            records.forEach(v -> device.queue.add(v.wxPublicName));
+        }
+
+        subscribeAccounts.forEach(v -> device.queue.add(v.media_name));
+
+        if (TaskType.CRAWLER.equals(taskType)) {
+            uncertainAllotCrawlerTask(device);
+        } else if (TaskType.SUBSCRIBE.equals(taskType)) {
+            uncertainAllotSubscribeTask(device);
+        }
+    }
+
+    private void uncertainAllotCrawlerTask(AndroidDevice device) {
+        device.setClickEffect(false);
+        WechatAdapter adapter = new WechatAdapter(device);
+        adapter.setTaskType(TaskType.CRAWLER);
+        adapter.start(true);
+    }
+
+    private void uncertainAllotSubscribeTask(AndroidDevice device) {
+        device.setClickEffect(false);
+        WechatAdapter adapter = new WechatAdapter(device);
+        adapter.setTaskType(TaskType.SUBSCRIBE);
+        adapter.start(false);
+    }
+
+
+    /**
+     * 主要计算设备当前应该处于的一个状态
+     *
+     * @param udid
+     * @return
+     * @throws Exception
+     */
+    public TaskType calcuState(String udid) throws Exception {
 
         //所有订阅公众号的总数量
         long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
+        //未完成的公众号集合
+        List<SubscribeAccount> notFinishR = subscribeDao.queryBuilder().where().
+                eq("udid", udid).
+                eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                query();
+
         //今日订阅的公众号数量
+        Date date = new Date();
+
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+
+        String nowStr = df.format(date);
+
+        long todaySubscribe = subscribeDao.queryBuilder().where()
+                .eq("udid", udid)
+                .eq("insert_time", nowStr)
+                .countOf();
+
+        long hasFailRecord = failRecordDao.queryBuilder().where().eq("udid", udid).countOf();
+
+        if (allSubscribe > 993 && todaySubscribe >= 40) {
+            return TaskType.CRAWLER;
+        } else if (allSubscribe < 993 && todaySubscribe >= 40) {
+            return TaskType.CRAWLER;
+        } else if (allSubscribe < 993) {
+            if (notFinishR.size() == 0) {
+                if (hasFailRecord == 0) {
+                    return TaskType.SUBSCRIBE;
+                } else {
+                    return TaskType.CRAWLER;
+                }
+            } else {
+                return TaskType.CRAWLER;
+            }
+        }
+        return null;
     }
 
 }

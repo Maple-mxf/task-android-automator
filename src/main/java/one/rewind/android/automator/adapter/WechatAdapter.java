@@ -3,14 +3,10 @@ package one.rewind.android.automator.adapter;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
-import one.rewind.android.automator.model.TaskFailRecord;
-import one.rewind.android.automator.model.WordsPoint;
+import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.db.DaoManager;
@@ -19,14 +15,17 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
- * 微信的自动化操作
+ * Create By 2018/10/10
+ * Description: 微信的自动化操作
  */
 @SuppressWarnings("JavaDoc")
 public class WechatAdapter extends Adapter {
@@ -35,9 +34,19 @@ public class WechatAdapter extends Adapter {
 
     private boolean isFirstPage = true;
 
-    public static volatile ExecutorService executor = Executors.newFixedThreadPool(10);
+    public static volatile ExecutorService executor;
 
-    public static AndroidDeviceManager.TaskType taskType = null;
+    private TaskType taskType = null;
+
+    public static final int ESSAY_NUM = 100;
+
+    public TaskType getTaskType() {
+        return taskType;
+    }
+
+    public void setTaskType(TaskType taskType) {
+        this.taskType = taskType;
+    }
 
     public WechatAdapter(AndroidDevice device) {
         super(device);
@@ -90,7 +99,7 @@ public class WechatAdapter extends Adapter {
         JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
 
         //检查当前appKey和appSecret是否可用
-        boolean r = BaiduAPIUtil.insepectRateLimit(jsonObject);
+        boolean r = BaiduAPIUtil.inspectRateLimit(jsonObject);
 
         if (!r) {
             jsonObject = BaiduAPIUtil.switchToken(filePath);
@@ -161,14 +170,12 @@ public class WechatAdapter extends Adapter {
      * @param wxPublicName
      * @throws InterruptedException
      */
-    public void getIntoPublicAccountEssayList(String wxPublicName, boolean retry) throws AndroidCollapseException, InvokingBaiduAPIException {
+    public void getIntoPublicAccountEssayList(String wxPublicName, boolean retry) throws AndroidCollapseException {
         try {
-
-            AndroidUtil.enterEssaysPage(wxPublicName, driver);
-
             if (retry) {
                 TaskFailRecord record = AndroidUtil.retry(wxPublicName, dao2, device.udid, dao1);
                 if (record != null) {
+                    isFirstPage = false;
                     //下滑到第一页
                     AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
                     //向下划指定页数
@@ -176,6 +183,9 @@ public class WechatAdapter extends Adapter {
 
                         AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
                     }
+                } else {
+                    //当前公众号抓取的文章已经达到100篇以上
+                    return;
                 }
             }
             while (!isLastPage) {
@@ -188,7 +198,7 @@ public class WechatAdapter extends Adapter {
 
                 } else {
 
-                    AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 10000);
+                    AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
 
                 }
                 //获取模拟点击的坐标位置
@@ -258,25 +268,23 @@ public class WechatAdapter extends Adapter {
         @Override
         public Boolean call() {
             assert taskType != null;
-            if (taskType.equals(AndroidDeviceManager.TaskType.SUBSCRIBE)) {
-                for (String var : device.queue) {
+            if (TaskType.SUBSCRIBE.equals(taskType)) {
+                try {
+                    for (String var : device.queue) {
 
-                    digestionSubscribe(var, false);
-                }
-            } else if (taskType.equals(AndroidDeviceManager.TaskType.CRAWLER)) {
-                for (String var : device.queue) {
-
-                    digestionCrawler(var, getRetry());
-
-                    //删除失败任务记录
-                    TaskFailRecord record = new TaskFailRecord();
-                    record.deviceUdid = device.udid;
-                    record.wxPublicName = var;
-                    try {
-                        dao1.delete(record);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        digestionSubscribe(var, false);
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else if (TaskType.CRAWLER.equals(taskType)) {
+                try {
+                    for (String var : device.queue) {
+                        digestionCrawler(var, getRetry());
+                        AndroidUtil.updateProcess();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
             return true;
@@ -386,21 +394,8 @@ public class WechatAdapter extends Adapter {
     public void digestionCrawler(String wxAccountName, boolean retry) {
         try {
             //继续获取文章
+            AndroidUtil.enterEssaysPage(wxAccountName, driver);
             getIntoPublicAccountEssayList(wxAccountName, retry);
-
-            //改变账号状态
-            //修改微信账号抓取的状态
-            SubscribeAccount subscribeAccount = dao3.queryBuilder().where().
-                    eq("udid", device.udid).and().
-                    eq("media_name", wxAccountName).
-                    queryForFirst();
-
-            subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
-
-            subscribeAccount.update();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
             try {
@@ -414,19 +409,13 @@ public class WechatAdapter extends Adapter {
                 // 如果每个公众号抓取的文章数量太小的话  启动重试机制
                 long number = dao2.queryBuilder().where().eq("media_nick", wxAccountName).countOf();
 
-                if (number < 30) {
+                if (number < ESSAY_NUM && !this.isLastPage) {
                     digestionCrawler(wxAccountName, true);
                 }
             } catch (Exception e1) {
                 e1.printStackTrace();
             }
-        } catch (InvokingBaiduAPIException e) {
-            e.printStackTrace();
-
-            System.err.println("百度API调用失败");
-
         } catch (Exception e) {
-
             e.printStackTrace();
         }
     }
@@ -437,7 +426,7 @@ public class WechatAdapter extends Adapter {
      * @param wxPublicName
      * @param retry
      */
-    public void digestionSubscribe(String wxPublicName, boolean retry) {
+    public void digestionSubscribe(String wxPublicName, boolean retry) throws Exception {
         try {
             if (retry) {
                 AndroidUtil.closeApp(driver);
@@ -446,7 +435,11 @@ public class WechatAdapter extends Adapter {
             subscribeWxAccount(wxPublicName);
         } catch (Exception e) {
             e.printStackTrace();
-//			digestionSubscribe(wxPublicName, true);
+            Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+            SubscribeAccount forFirst = dao.queryBuilder().where().eq("media_name", wxPublicName).queryForFirst();
+            if (forFirst == null) {
+                digestionSubscribe(wxPublicName, true);
+            }
         }
     }
 

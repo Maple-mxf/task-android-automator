@@ -7,7 +7,6 @@ import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskFailRecord;
 import one.rewind.db.DaoManager;
 import org.apache.commons.io.FileUtils;
@@ -16,7 +15,6 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
-import sun.reflect.generics.tree.VoidDescriptor;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,25 +40,25 @@ public class AndroidUtil {
 
         driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 
-        Thread.sleep(1000);
+        Thread.sleep(500);
 
         driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
 
-        Thread.sleep(1000);
+        Thread.sleep(500);
 
         driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
 
-        Thread.sleep(1000);
+        Thread.sleep(200);
 
         // 搜索
         driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
 
         AndroidUtil.clickPoint(720, 150, 0, driver);
 
-        AndroidUtil.clickPoint(1350, 2250, 2000, driver);
+        AndroidUtil.clickPoint(1350, 2250, 1000, driver);
 
         // 进入公众号
-        AndroidUtil.clickPoint(720, 360, 1000, driver);
+        AndroidUtil.clickPoint(720, 360, 500, driver);
 
         driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
 
@@ -70,7 +68,7 @@ public class AndroidUtil {
 
         driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
 
-        Thread.sleep(10000); // TODO 此处时间需要调整
+        Thread.sleep(5000); // TODO 此处时间需要调整
 
     }
 
@@ -194,11 +192,19 @@ public class AndroidUtil {
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, driver);
-
         JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(path + fileName);
+        //TODO   类似的代码写了三遍  需要封装
+        boolean r = BaiduAPIUtil.inspectRateLimit(jsonObject);
+
+        if (!r) {
+            jsonObject = BaiduAPIUtil.switchToken(path + fileName);
+        }
+
+        if (jsonObject == null) {
+            throw new RuntimeException("没有可用的tokens了");
+        }
 
         JSONArray array = (JSONArray) jsonObject.get("words_result");
-
 
         for (Object o : array) {
 
@@ -238,23 +244,23 @@ public class AndroidUtil {
 
         if (temp == null) {
             TaskFailRecord record = new TaskFailRecord();
+            record.finishNum = (int) count;
 
             record.deviceUdid = udid;
 
             record.wxPublicName = wxPublicName;
-
-            record.finishNum = (int) count;
-
             int var = (int) count % 6;
-
             if (var >= 3) {
                 record.slideNumByPage = (int) (count / 6) + 2;
             } else {
                 record.slideNumByPage = (int) (count / 6) + 1;
             }
-            record.insert();
-
-            return record;
+            if (record.finishNum < 100) {
+                record.insert();
+                return record;
+            } else {
+                return null;
+            }
         } else {
             temp.finishNum = (int) count;
 
@@ -265,9 +271,12 @@ public class AndroidUtil {
             } else {
                 temp.slideNumByPage = (int) (count / 6) + 1;
             }
-
-            temp.update();
-            return temp;
+            if (temp.finishNum < 100) {
+                temp.update();
+                return temp;
+            } else {
+                return null;
+            }
         }
     }
 
@@ -286,32 +295,32 @@ public class AndroidUtil {
      * 更新为完成的公众号数据
      */
     public static void updateProcess() throws Exception {
-        Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
+        synchronized (AndroidUtil.class) {
+            Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
 
-        List<TaskFailRecord> records = dao1.queryBuilder().query();
+            List<TaskFailRecord> records = dao1.queryBuilder().query();
 
-        Dao<Essays, String> dao2 = DaoManager.getDao(Essays.class);
+            Dao<Essays, String> dao2 = DaoManager.getDao(Essays.class);
 
-        for (TaskFailRecord record : records) {
-            long countOf = dao2.queryBuilder().where().eq("media_nick", record.wxPublicName).countOf();
+            for (TaskFailRecord record : records) {
+                long countOf = dao2.queryBuilder().where().eq("media_nick", record.wxPublicName).countOf();
 
-            if (countOf >= 30) {
-                dao1.delete(record);
-                continue;
-            }
-            if (record.finishNum != countOf) {
-
-                record.finishNum = (int) countOf;
-
-                int var = record.finishNum % 6;
-                if (var >= 3) {
-                    record.slideNumByPage = (record.finishNum / 6) + 2;
+                if (countOf >= 30) {
+                    dao1.delete(record);
                 } else {
-                    record.slideNumByPage = (record.finishNum / 6) + 1;
+                    record.finishNum = (int) countOf;
+
+                    int var = record.finishNum % 6;
+                    if (var >= 3) {
+                        record.slideNumByPage = (record.finishNum / 6) + 2;
+                    } else {
+                        record.slideNumByPage = (record.finishNum / 6) + 1;
+                    }
+
+                    record.update_time = new Date();
+                    record.update();
                 }
 
-                record.update_time = new Date();
-                record.update();
             }
         }
     }

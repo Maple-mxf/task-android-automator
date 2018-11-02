@@ -1,6 +1,5 @@
 package one.rewind.android.automator;
 
-import one.rewind.android.automator.route.PublicAccountsHandler;
 
 /**
  * Create By  2018/10/24
@@ -9,7 +8,6 @@ import one.rewind.android.automator.route.PublicAccountsHandler;
  * Because of the program of accounts from java client to send ,The program can not
  * Know a few account,so must Tag the current data flag
  *
- * @see PublicAccountsHandler#postAccounts
  */
 
 public class DBTab {

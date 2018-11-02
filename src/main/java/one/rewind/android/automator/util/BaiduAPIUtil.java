@@ -21,13 +21,11 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class BaiduAPIUtil {
 
-    static {
-        initTokens();
-    }
 
-    private static ConcurrentMap<String, String> tokens = Maps.newConcurrentMap();
 
-    private static ConcurrentMap<String, String> currentToken = Maps.newConcurrentMap();
+    private static Map<String, String> tokens = Maps.newHashMap();
+
+    private static ConcurrentMap[] current = new ConcurrentMap[1];
 
 
     /**
@@ -35,15 +33,18 @@ public class BaiduAPIUtil {
      * k: appKey
      * s: appSecret
      */
-    static void initTokens() {
-        tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");  // 马雪峰
-        tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");  // 刘蒙蒙
-        tokens.put("", "");//王楠
-        currentToken.clear();
+    static {
+        tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+        tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
+        tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
+        tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
+        ConcurrentMap<String, String> var = Maps.newConcurrentMap();
+
         for (Map.Entry<String, String> entry : tokens.entrySet()) {
             String k = entry.getKey();
             String v = entry.getValue();
-            currentToken.put(k, v);
+            var.put(k, v);
+            current[0] = var;
             break;
         }
     }
@@ -110,21 +111,21 @@ public class BaiduAPIUtil {
             byte[] imgData = FileUtil.readFileByBytes(filePath);
             String imgStr = Base64Util.encode(imgData);
             String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
-            /**
-             * 线上环境access_token有过期时间， 客户端可自行缓存，过期后重新获取。
-             */
-            if (currentToken.size() > 1) {
-                throw new RuntimeException("当前token设置的太多了...");
+            //保证只有一个线程切换token
+            synchronized (BaiduAPIUtil.class) {
+                //线上环境access_token有过期时间， 客户端可自行缓存，过期后重新获取。
+                ConcurrentMap<String, String> var = current[0];
+                Set<String> keySet = var.keySet();
+                StringBuilder key = new StringBuilder();
+                StringBuilder secret = new StringBuilder();
+                for (String temp : keySet) {
+                    key.append(temp);
+                    secret.append(var.get(temp));
+                }
+                String accessToken = BaiduAPIUtil.getAuth(key.toString(), secret.toString());
+                String rs = HttpUtil.post(otherHost, accessToken, params);
+                return new JSONObject(rs);
             }
-            Set<String> keySet = currentToken.keySet();
-            StringBuilder key = new StringBuilder();
-            StringBuilder secret = new StringBuilder();
-            for (String var : keySet) {
-                key.append(var);
-                secret.append(currentToken.get(var));
-            }
-            String accessToken = BaiduAPIUtil.getAuth(key.toString(), secret.toString());
-            return new JSONObject(HttpUtil.post(otherHost, accessToken, params));
         } catch (Exception e) {
             e.printStackTrace();
             throw new InvokingBaiduAPIException("百度API调用失败！");
@@ -138,7 +139,7 @@ public class BaiduAPIUtil {
      * @param jsonObject
      * @return
      */
-    public static boolean insepectRateLimit(JSONObject jsonObject) {
+    public static boolean inspectRateLimit(JSONObject jsonObject) {
         try {
             JSONArray array = (JSONArray) jsonObject.get("words_result");
             return array != null;
@@ -149,25 +150,22 @@ public class BaiduAPIUtil {
 
 
     /**
-     * 切换当前token
+     * 切换当前百度API接口的token
      */
     public synchronized static JSONObject switchToken(String filePath) {
-
-        currentToken.clear();
-
         for (Map.Entry<String, String> entry : tokens.entrySet()) {
             String k = entry.getKey();
             String v = entry.getValue();
             try {
                 JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
-
                 if (jsonObject.get("err_msg") == null) {
-                    currentToken.put(k, v);
+                    ConcurrentMap<String, String> var = Maps.newConcurrentMap();
+                    var.put(k, v);
+                    current[0] = var;
                     return jsonObject;
                 }
             } catch (InvokingBaiduAPIException e) {
                 e.printStackTrace();
-
             }
         }
         return null;

@@ -1,17 +1,18 @@
 package one.rewind.android.automator.test.api;
 
 import com.google.common.collect.Lists;
-import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.AndroidDeviceManager;
-import one.rewind.android.automator.adapter.WechatAdapter;
-import one.rewind.android.automator.util.AndroidUtil;
+import com.j256.ormlite.dao.Dao;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.TaskFailRecord;
+import one.rewind.db.DaoManager;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.sql.*;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Create By  2018/10/23
@@ -98,7 +99,7 @@ public class APITransport {
     }
 
 
-    @Test
+   /* @Test
     public void feedProgram() throws InterruptedException {
         if (AndroidDeviceManager.running) {
             return;
@@ -112,9 +113,9 @@ public class APITransport {
 
         for (int i = 4; i < var / 20; i++) {
 
-			/*if (i % 1000 == 0) {
+			*//*if (i % 1000 == 0) {
 				var = countAccounts() / 20;
-			}*/
+			}*//*
             List<String> accounts = sendAccounts(i);
 
             accounts.forEach(v -> AndroidDeviceManager.originalAccounts.add(v));
@@ -123,7 +124,7 @@ public class APITransport {
 
             if (i == 6) return;
         }
-    }
+    }*/
 
 
     /**
@@ -149,7 +150,7 @@ public class APITransport {
 
 
     //从现有数据库中查询微信公众号进行数据抓取    只存在已经抓取文章任务  没有订阅公众号任务
-    @Test
+   /* @Test
     public void proceedProgram() throws Exception {
 
         AndroidUtil.updateProcess();
@@ -167,6 +168,32 @@ public class APITransport {
         while (!WechatAdapter.executor.isTerminated()) {
             WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
             System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
+        }
+    }*/
+
+
+    @Test
+    public void updateNotFinish() throws Exception {
+        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+
+        List<SubscribeAccount> accounts = dao.queryBuilder().where().eq("status", 0).query();
+
+        Dao<Essays, String> dao1 = DaoManager.getDao(Essays.class);
+
+        Dao<TaskFailRecord, String> dao2 = DaoManager.getDao(TaskFailRecord.class);
+
+        for (SubscribeAccount account : accounts) {
+            long var = dao1.queryBuilder().where().eq("media_nick", account.media_name).countOf();
+            List<TaskFailRecord> wxPublicName = dao2.queryBuilder().where().eq("wxPublicName", account.media_name).query();
+            if (var > 50) {
+                account.status = 1;
+                account.update_time = new Date();
+                account.update();
+                for (TaskFailRecord taskFailRecord : wxPublicName) {
+                    dao2.delete(taskFailRecord);
+                }
+
+            }
         }
     }
 }
