@@ -20,9 +20,6 @@ import org.openqa.selenium.TakesScreenshot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -37,40 +34,54 @@ public class AndroidUtil {
      * @param name
      * @throws InterruptedException
      */
-    public static void enterEssaysPage(String name, AndroidDriver driver) throws InterruptedException {
+    public static void enterEssaysPage(String name, AndroidDevice device) throws InterruptedException {
 
 
-        driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+        try {
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 
-        Thread.sleep(500);
+            Thread.sleep(500);
 
-        driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
 
-        Thread.sleep(500);
+            Thread.sleep(500);
 
-        driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
 
-        Thread.sleep(200);
+            Thread.sleep(200);
 
-        // 搜索
-        driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
+            // 搜索
+            device.driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
 
-        AndroidUtil.clickPoint(720, 150, 0, driver);
+            AndroidUtil.clickPoint(720, 150, 0, device.driver);
 
-        AndroidUtil.clickPoint(1350, 2250, 1000, driver);
+            AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
 
-        // 进入公众号
-        AndroidUtil.clickPoint(720, 360, 500, driver);
+            // 进入公众号
+            AndroidUtil.clickPoint(720, 360, 500, device.driver);
 
-        driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
 
-        Thread.sleep(1000);
+            Thread.sleep(1000);
 
-        AndroidUtil.slideToPoint(720, 1196, 720, 170, driver, 1000);
+            AndroidUtil.slideToPoint(720, 1196, 720, 170, device.driver, 1000);
 
-        driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
 
-        Thread.sleep(5000); // TODO 此处时间需要调整
+            Thread.sleep(5000); // TODO 此处时间需要调整
+        } catch (Exception e) {
+            //重试机制
+            e.printStackTrace();
+            try {
+                AndroidUtil.closeApp(device.driver);
+                AndroidUtil.activeWechat(device);
+                enterEssaysPage(name, device);
+
+
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        }
 
     }
 
@@ -239,46 +250,21 @@ public class AndroidUtil {
     }
 
     public static TaskFailRecord retry(String wxPublicName, Dao<Essays, String> dao2, String udid, Dao<TaskFailRecord, String> dao1) throws Exception {
-
         long count = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
-
-        TaskFailRecord temp = dao1.queryBuilder().where().eq("wxPublicName", wxPublicName).queryForFirst();
-
-        if (temp == null) {
-            TaskFailRecord record = new TaskFailRecord();
-            record.finishNum = (int) count;
-
-            record.deviceUdid = udid;
-
-            record.wxPublicName = wxPublicName;
-            int var = (int) count % 6;
-            if (var >= 3) {
-                record.slideNumByPage = (int) (count / 6) + 2;
-            } else {
-                record.slideNumByPage = (int) (count / 6) + 1;
-            }
-            if (record.finishNum < 100) {
-                record.insert();
-                return record;
-            } else {
-                return null;
-            }
+        TaskFailRecord record = new TaskFailRecord();
+        record.finishNum = (int) count;
+        record.deviceUdid = udid;
+        record.wxPublicName = wxPublicName;
+        int var = (int) count % 6;
+        if (var >= 3) {
+            record.slideNumByPage = (int) (count / 6) + 2;
         } else {
-            temp.finishNum = (int) count;
-
-            int var = (int) count % 6;
-
-            if (var >= 3) {
-                temp.slideNumByPage = (int) (count / 6) + 2;
-            } else {
-                temp.slideNumByPage = (int) (count / 6) + 1;
-            }
-            if (temp.finishNum < 100) {
-                temp.update();
-                return temp;
-            } else {
-                return null;
-            }
+            record.slideNumByPage = (int) (count / 6) + 1;
+        }
+        if (record.finishNum < 100) {
+            return record;
+        } else {
+            return null;
         }
     }
 
@@ -292,49 +278,19 @@ public class AndroidUtil {
         Thread.sleep(10000);
     }
 
-    public static void deleteFailRecord(String nick_name, String udid) throws Exception {
-        Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
-        TaskFailRecord wxPublicName = dao1.queryBuilder().where().eq("wxPublicName", nick_name).queryForFirst();
-        if (wxPublicName != null){
-            dao1.delete(wxPublicName);
-        }
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
-        SubscribeAccount subscribeAccount = dao.queryBuilder().where().eq("udid", udid).and().eq("media_name", nick_name).queryForFirst();
-        if (subscribeAccount != null) {
-            subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
-            subscribeAccount.update();
-        }
-    }
-
 
     /**
      * 更新为完成的公众号数据
      */
-    public static void updateProcess() throws Exception {
-        Dao<TaskFailRecord, String> dao1 = DaoManager.getDao(TaskFailRecord.class);
+    public static void updateProcess(String wxPublicName, String udid) throws Exception {
 
-        List<TaskFailRecord> records = dao1.queryBuilder().query();
+        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
 
-        Dao<Essays, String> dao2 = DaoManager.getDao(Essays.class);
+        SubscribeAccount account = dao.queryBuilder().where().eq("media_name", wxPublicName).and().eq("udid", udid).queryForFirst();
 
-        for (TaskFailRecord record : records) {
-            long countOf = dao2.queryBuilder().where().eq("media_nick", record.wxPublicName).countOf();
-
-            if (countOf >= 30) {
-                dao1.delete(record);
-            } else {
-                record.finishNum = (int) countOf;
-
-                int var = record.finishNum % 6;
-                if (var >= 3) {
-                    record.slideNumByPage = (record.finishNum / 6) + 2;
-                } else {
-                    record.slideNumByPage = (record.finishNum / 6) + 1;
-                }
-                record.update_time = new Date();
-                record.update();
-            }
-
+        if (account != null) {
+            account.status = 1;
+            account.update();
         }
     }
 }

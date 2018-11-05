@@ -3,14 +3,16 @@ package one.rewind.android.automator;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.SubscribeAccount;
-import one.rewind.android.automator.model.TaskFailRecord;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.db.DaoManager;
 
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.*;
 
 /**
@@ -20,8 +22,6 @@ import java.util.concurrent.*;
 public class AndroidDeviceManager {
 
     private static Dao<SubscribeAccount, String> subscribeDao;
-
-    private static Dao<TaskFailRecord, String> failRecordDao;
 
     public volatile static boolean running = false;
 
@@ -79,7 +79,6 @@ public class AndroidDeviceManager {
     static {
         try {
             subscribeDao = DaoManager.getDao(SubscribeAccount.class);
-            failRecordDao = DaoManager.getDao(TaskFailRecord.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -99,17 +98,11 @@ public class AndroidDeviceManager {
      * @throws Exception
      */
     public void startManager() throws Exception {
-        boolean flag = true;
-        while (flag) {
-            WechatAdapter.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
-            uncertainAllotTask();
-            while (!WechatAdapter.executor.isTerminated()) {
-                WechatAdapter.executor.awaitTermination(300, TimeUnit.SECONDS);
-                System.out.println("progress: % " + WechatAdapter.executor.isTerminated());
-            }
-            if (subscribeDao.queryBuilder().countOf() > 100000) {
-                flag = false;
-            }
+        WechatAdapter.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
+        uncertainAllotTask();
+        while (!WechatAdapter.executor.isTerminated()) {
+            WechatAdapter.executor.awaitTermination(300, TimeUnit.SECONDS);
+            System.out.println("progress: % " + WechatAdapter.executor.isTerminated());
         }
     }
 
@@ -124,7 +117,7 @@ public class AndroidDeviceManager {
             if (originalAccounts.size() == 0) {
                 allotFormulateTask(device);
             } else {
-                TaskType deviceTaskType = calcuState(device.udid);
+                TaskType deviceTaskType = calculateState(device.udid);
                 uncertainAllotTask(deviceTaskType, device);
             }
 
@@ -165,25 +158,19 @@ public class AndroidDeviceManager {
      * @param taskType
      * @param device
      */
-    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException {
+    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException {
         //清空任务队列
         device.queue.clear();
-        List<TaskFailRecord> records = failRecordDao.queryBuilder().where().eq("udid", device.udid).query();
-        List<SubscribeAccount> subscribeAccounts = subscribeDao.
-                queryBuilder().
-                where().
-                eq("udid", device.udid).
-                query();
-        //初始化任务队列
-        if (records != null && records.size() != 0) {
-            records.forEach(v -> device.queue.add(v.wxPublicName));
-        }
-
-        subscribeAccounts.forEach(v -> device.queue.add(v.media_name));
-
         if (TaskType.CRAWLER.equals(taskType)) {
+            List<SubscribeAccount> var1 = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", 0).query();
+            for (SubscribeAccount account : var1) {
+                device.queue.add(account.media_name);
+            }
             uncertainAllotCrawlerTask(device);
         } else if (TaskType.SUBSCRIBE.equals(taskType)) {
+            for (int i = 0; i < 40; i++) {
+                device.queue.add(originalAccounts.take());
+            }
             uncertainAllotSubscribeTask(device);
         }
     }
@@ -210,7 +197,7 @@ public class AndroidDeviceManager {
      * @return
      * @throws Exception
      */
-    public TaskType calcuState(String udid) throws Exception {
+    public TaskType calculateState(String udid) throws Exception {
 
         //所有订阅公众号的总数量
         long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
@@ -223,17 +210,15 @@ public class AndroidDeviceManager {
 
         //今日订阅的公众号数量
         Date date = new Date();
-
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-
-        String nowStr = df.format(date);
+        String format = df.format(date);
+        df.parse(format);
 
         long todaySubscribe = subscribeDao.queryBuilder().where()
                 .eq("udid", udid)
-                .eq("insert_time", nowStr)
+                .and()
+                .eq("insert_time", date)
                 .countOf();
-
-        long hasFailRecord = failRecordDao.queryBuilder().where().eq("udid", udid).countOf();
 
         if (allSubscribe > 993 && todaySubscribe >= 40) {
             return TaskType.CRAWLER;
@@ -241,11 +226,7 @@ public class AndroidDeviceManager {
             return TaskType.CRAWLER;
         } else if (allSubscribe < 993) {
             if (notFinishR.size() == 0) {
-                if (hasFailRecord == 0) {
-                    return TaskType.SUBSCRIBE;
-                } else {
-                    return TaskType.CRAWLER;
-                }
+                return TaskType.SUBSCRIBE;
             } else {
                 return TaskType.CRAWLER;
             }

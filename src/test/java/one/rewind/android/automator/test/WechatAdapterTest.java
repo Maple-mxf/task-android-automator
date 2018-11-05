@@ -12,13 +12,13 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.MD5Util;
-import one.rewind.db.RedissonAdapter;
 import org.junit.Before;
 import org.junit.Test;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RedissonClient;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 
 public class WechatAdapterTest {
 
@@ -162,19 +162,16 @@ public class WechatAdapterTest {
     public void testActiveApp() throws InterruptedException {
         device.driver.closeApp();
         AndroidUtil.activeWechat(device);
-        AndroidUtil.enterEssaysPage("Java技术栈", device.driver);
+//        AndroidUtil.enterEssaysPage("Java技术栈", device.driver);
     }
 
 
     @Test
     public void testSubscribeAccount() throws Exception {
         Set<String> strings = Sets.newHashSet();
-        int page = DBUtil.obtainFullData(strings, 11, 20);
-        RedissonClient redisson = RedissonAdapter.redisson;
-        RAtomicLong atomicLong = redisson.getAtomicLong("android-automator-page");
-        atomicLong.set(page);
+        DBUtil.obtainFullData(strings, 11, 20);
         for (String var : strings) {
-            adapter.subscribeWxAccount(var);
+            adapter.digestionSubscribe(var, true);
         }
     }
 

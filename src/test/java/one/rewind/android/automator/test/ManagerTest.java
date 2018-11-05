@@ -5,7 +5,6 @@ import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.util.DBUtil;
 import org.junit.Test;
 
-import java.util.List;
 import java.util.Set;
 
 public class ManagerTest {
@@ -36,13 +35,11 @@ public class ManagerTest {
     @Test
     public void startManagerHasTaskQueue() throws Exception {
         Class.forName("one.rewind.android.automator.AndroidDeviceManager");
-
-        /*Set<String> set = Sets.newHashSet();
+        Set<String> set = Sets.newHashSet();
         //初始化原始任务队列
-        List<String> accounts = DBUtil.obtainFullData(set, 1);
+        DBUtil.obtainFullData(set, 20, 60);
         AndroidDeviceManager.originalAccounts.addAll(set);
-
         AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
-        manager.startManager();*/
+        manager.startManager();
     }
 }

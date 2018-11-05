@@ -1,7 +1,5 @@
 package one.rewind.android.automator.util;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
@@ -10,6 +8,7 @@ import java.sql.*;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -34,15 +33,12 @@ public class DBUtil {
         if (conn == null) {
             Class.forName("com.mysql.jdbc.Driver");
 
-            String url = "jdbc:mysql://192.168.164.11:3306/raw?useSSL=false";
+            String url = "jdbc:mysql://192.168.164.15:3306/raw?useSSL=false";
             String user = "raw";
             String password = "raw";
-
-            return DriverManager.getConnection(url, user, password);
-        } else {
-            return conn;
+            conn = DriverManager.getConnection(url, user, password);
         }
-
+        return conn;
     }
 
     public static Set<String> sendAccounts(Set<String> accounts, int page) {
@@ -58,10 +54,11 @@ public class DBUtil {
 
             ResultSet rs = ps.executeQuery();
 
+            List<String> collect = subscribeDao.queryForAll().stream().map(ec -> ec.media_name).collect(Collectors.toList());
+
             while (rs.next()) {
                 String media_nick = rs.getString("nick");
-                long count = subscribeDao.queryBuilder().where().eq("media_name", media_nick).countOf();
-                if (count == 0) {
+                if (!collect.contains(media_nick)) {
                     accounts.add(media_nick);
                 }
             }

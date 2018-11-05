@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
-import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -15,12 +14,10 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -40,10 +37,6 @@ public class WechatAdapter extends Adapter {
     private TaskType taskType = null;
 
     public static final int ESSAY_NUM = 100;
-
-    public TaskType getTaskType() {
-        return taskType;
-    }
 
     public void setTaskType(TaskType taskType) {
         this.taskType = taskType;
@@ -189,7 +182,7 @@ public class WechatAdapter extends Adapter {
                         if (count > 100) {
                             return;
                         } else {
-                            AndroidUtil.updateProcess();
+                            AndroidUtil.updateProcess(wxPublicName,device.udid);
                         }
                     }
                 }
@@ -298,7 +291,7 @@ public class WechatAdapter extends Adapter {
                     for (String var : device.queue) {
                         isLastPage = false;
                         digestionCrawler(var, getRetry());
-                        AndroidUtil.deleteFailRecord(var, device.udid);
+                        AndroidUtil.updateProcess(var, device.udid);
                         //返回到主界面
                         for (int i = 0; i < 5; i++) {
                             driver.navigate().back();
@@ -312,12 +305,6 @@ public class WechatAdapter extends Adapter {
         }
     }
 
-    /**
-     * @throws ExecutionException
-     * @throws InterruptedException
-     * @throws AndroidException
-     * @throws InvokingBaiduAPIException
-     */
     public void start(boolean retry) {
         Start start = new Start();
 
@@ -344,9 +331,7 @@ public class WechatAdapter extends Adapter {
      * @throws Exception
      */
     public void subscribeWxAccount(String wxPublicName) throws Exception {
-
         int k = 3;
-
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
         searchButton.click();
@@ -376,13 +361,14 @@ public class WechatAdapter extends Adapter {
 
             Thread.sleep(3000);  // TODO 时间适当调整
             driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+            saveSubscribeRecord(wxPublicName);
         } catch (Exception e) {
+            //已经订阅了
             e.printStackTrace();
             logger.info("Already add public account: {}", wxPublicName);
             driver.navigate().back();
             --k;
         }
-        saveSubscribeRecord(wxPublicName);
         Thread.sleep(1500);
         for (int i = 0; i < k; i++) {
             driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
@@ -414,7 +400,7 @@ public class WechatAdapter extends Adapter {
     public void digestionCrawler(String wxAccountName, boolean retry) {
         try {
             //继续获取文章
-            AndroidUtil.enterEssaysPage(wxAccountName, driver);
+            AndroidUtil.enterEssaysPage(wxAccountName, device);
             getIntoPublicAccountEssayList(wxAccountName, retry);
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
