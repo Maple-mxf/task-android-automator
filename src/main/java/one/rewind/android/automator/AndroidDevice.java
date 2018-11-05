@@ -414,6 +414,7 @@ public class AndroidDevice {
     public enum State {
 
         INIT(0),
+        IDLE(4),
         RUNNING(1),
         CLOSE(2);
         private int state;

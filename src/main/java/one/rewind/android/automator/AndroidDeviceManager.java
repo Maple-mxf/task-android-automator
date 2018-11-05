@@ -39,10 +39,6 @@ public class AndroidDeviceManager {
     private AndroidDeviceManager() {
     }
 
-    /**
-     * key : udid
-     * value: state
-     */
     public static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
 
     private static AndroidDeviceManager instance;
@@ -107,7 +103,7 @@ public class AndroidDeviceManager {
     }
 
     /**
-     * 更细致的任务分配   By Device
+     * 任务分配   By Device
      * Dynamic set device state
      */
     public void uncertainAllotTask() throws Exception {
@@ -127,7 +123,7 @@ public class AndroidDeviceManager {
 
     /**
      * 分配固定的任务  crawler
-     * 这种情景仅限于在任务队列的size == 0
+     * 这种情景仅限于在任务队列的size = 0
      *
      * @param device
      * @see one.rewind.android.automator.AndroidDeviceManager#originalAccounts
@@ -189,7 +185,6 @@ public class AndroidDeviceManager {
         adapter.start(false);
     }
 
-
     /**
      * 主要计算设备当前应该处于的一个状态
      *
@@ -233,5 +228,4 @@ public class AndroidDeviceManager {
         }
         return null;
     }
-
 }

@@ -5,7 +5,6 @@ import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
 
 import java.sql.*;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,10 +73,10 @@ public class DBUtil {
      *
      * @param accounts
      * @param page
-     * @param var
+     * @param size
      */
-    public static int obtainFullData(Set<String> accounts, int page, int var) {
-        while (accounts.size() <= var) {
+    public static int obtainFullData(Set<String> accounts, int page, int size) {
+        while (accounts.size() <= size) {
             accounts.addAll(Objects.requireNonNull(sendAccounts(accounts, page)));
             ++page;
         }
