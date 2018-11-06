@@ -5,12 +5,11 @@ import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
+import one.rewind.android.automator.util.DBUtil;
 import one.rewind.db.DaoManager;
 
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -154,7 +153,8 @@ public class AndroidDeviceManager {
      * @param taskType
      * @param device
      */
-    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException {
+    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException, ClassNotFoundException {
+        int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         //清空任务队列
         device.queue.clear();
         if (TaskType.CRAWLER.equals(taskType)) {
@@ -164,7 +164,7 @@ public class AndroidDeviceManager {
             }
             uncertainAllotCrawlerTask(device);
         } else if (TaskType.SUBSCRIBE.equals(taskType)) {
-            for (int i = 0; i < 40; i++) {
+            for (int i = 0; i < 40 - numToday; i++) {
                 device.queue.add(originalAccounts.take());
             }
             uncertainAllotSubscribeTask(device);
@@ -203,17 +203,7 @@ public class AndroidDeviceManager {
                 eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
                 query();
 
-        //今日订阅的公众号数量
-        Date date = new Date();
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-        String format = df.format(date);
-        df.parse(format);
-
-        long todaySubscribe = subscribeDao.queryBuilder().where()
-                .eq("udid", udid)
-                .and()
-                .eq("insert_time", date)
-                .countOf();
+        int todaySubscribe = DBUtil.obtainSubscribeNumToday(udid);
 
         if (allSubscribe > 993 && todaySubscribe >= 40) {
             return TaskType.CRAWLER;
