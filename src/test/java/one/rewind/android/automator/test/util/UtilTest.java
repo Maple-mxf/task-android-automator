@@ -25,7 +25,7 @@ public class UtilTest {
 
     @Test
     public void testSubscribeNumber() throws SQLException, ClassNotFoundException {
-        int numToday = DBUtil.obtainSubscribeNumToday("");
+        int numToday = DBUtil.obtainSubscribeNumToday("ZX1G423DMM");
         System.out.println(numToday);
     }
 

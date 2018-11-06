@@ -1,5 +1,5 @@
 plugins {
-	id 'java'
+    id 'java'
 }
 
 group 'one.rewind'
@@ -8,49 +8,49 @@ version '1.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
 repositories {
-	mavenCentral()
-	jcenter()
-	maven {
-		url "http://uml.ink:2333/artifactory/snapshots"
-		credentials {
-			username = artifactory_username
-			password = artifactory_password
-		}
-	}
-	maven{
-		url "http://api.genymotion.com/repositories/releases/"
-	}
-	maven { 
-		url "https://jitpack.io" 
-	}
-	maven {
-		url "http://repo.maven.apache.org/maven2"
-	}
+    mavenCentral()
+    jcenter()
+    maven {
+        url "http://uml.ink:2333/artifactory/snapshots"
+        credentials {
+            username = artifactory_username
+            password = artifactory_password
+        }
+    }
+    maven {
+        url "http://api.genymotion.com/repositories/releases/"
+    }
+    maven {
+        url "https://jitpack.io"
+    }
+    maven {
+        url "http://repo.maven.apache.org/maven2"
+    }
 }
 
 dependencies {
-	testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
 
-	compile 'one.rewind:common:1.1.51-SNAPSHOT'
+    compile 'one.rewind:common:1.1.51-SNAPSHOT'
 
-	compile 'com.github.vidstige:jadb:v1.0.1'
+    compile 'com.github.vidstige:jadb:v1.0.1'
 
-	// https://mvnrepository.com/artifact/com.google.guava/guava
-	compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
 
-	compile 'one.rewind:common:1.1.50-SNAPSHOT'
+    compile 'one.rewind:common:1.1.50-SNAPSHOT'
 
-	compile 'one.rewind:raw-data:1.0.16-SNAPSHOT'
+    compile 'one.rewind:raw-data:1.0.16-SNAPSHOT'
 
-	compile 'com.sparkjava:spark-core:2.3'
+    compile 'com.sparkjava:spark-core:2.3'
 
-	compile group: 'org.json', name: 'json', version: '20180130'
+    compile group: 'org.json', name: 'json', version: '20180130'
 
-	testCompile group: 'io.appium', name: 'java-client'
+    testCompile group: 'io.appium', name: 'java-client'
 }
 
 
 task "create-dirs" << {
-	sourceSets*.java.srcDirs*.each { it.mkdirs() }
-	sourceSets*.resources.srcDirs*.each { it.mkdirs() }
-}
+    sourceSets*.java.srcDirs*.each { it.mkdirs() }
+    sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+} as String

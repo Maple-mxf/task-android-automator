@@ -1,6 +1,7 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
 
@@ -83,15 +84,10 @@ public class DBUtil {
      * @return
      */
     public static int obtainSubscribeNumToday(String udid) throws SQLException, ClassNotFoundException {
-        Connection connection = getConnection();
-        PreparedStatement ps =
-                connection.prepareStatement("select count(id) as number from wechat_subscribe_account where udid = ? and to_days(insert_time) = to_days(NOW())");
-        ps.setString(1, udid);
-
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return rs.getInt("number");
-        }
-        return 0;
+        GenericRawResults<String[]> results = subscribeDao.queryRaw("select count(id) as number from wechat_subscribe_account where udid = ? and to_days(insert_time) = to_days(NOW())",
+                udid);
+        String[] firstResult = results.getFirstResult();
+        String var = firstResult[0];
+        return Integer.parseInt(var);
     }
 }

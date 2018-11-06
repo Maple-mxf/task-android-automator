@@ -321,7 +321,7 @@ public class WechatAdapter extends Adapter {
         driver.findElement(By.className("android.widget.EditText")).sendKeys(wxPublicName);
 
         // C2 点击搜索输入框
-        AndroidUtil.clickPoint(223, 172, 0, driver);
+//        AndroidUtil.clickPoint(223, 172, 0, driver);
 
         // C3 点击软键盘的搜索键
         AndroidUtil.clickPoint(1350, 2250, 4000, driver); //TODO 时间适当调整
@@ -345,7 +345,7 @@ public class WechatAdapter extends Adapter {
         }
         Thread.sleep(1500);
         for (int i = 0; i < k; i++) {
-            driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
+            driver.navigate().back();
             Thread.sleep(500);
         }
     }

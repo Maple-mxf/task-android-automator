@@ -1,5 +1,9 @@
 .gradle/
 .idea/
-log/
-out/
-
+.log/
+.out/
+.screen/
+.data/
+.tmp/
+.build.properties
+.gitignore

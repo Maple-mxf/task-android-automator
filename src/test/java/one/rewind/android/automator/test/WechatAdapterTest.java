@@ -155,7 +155,11 @@ public class WechatAdapterTest {
 
     @Test
     public void testGetOnePublicAccountsEssaysByHandlerException() {
-        adapter.digestionCrawler("民间股神007", false);
+        adapter.digestionCrawler("华时代", true);
+    }
+    @Test
+    public void subscribe() throws Exception {
+        adapter.subscribeWxAccount("华时代");
     }
 
     @Test
