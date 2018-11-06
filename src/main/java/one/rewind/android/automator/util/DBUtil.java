@@ -82,7 +82,7 @@ public class DBUtil {
      * @param udid
      * @return
      */
-    private int obtainSubscribeNumToday(String udid) throws SQLException, ClassNotFoundException {
+    public static int obtainSubscribeNumToday(String udid) throws SQLException, ClassNotFoundException {
         Connection connection = getConnection();
         PreparedStatement ps =
                 connection.prepareStatement("select count(id) as number from wechat_subscribe_account where udid = ?");
