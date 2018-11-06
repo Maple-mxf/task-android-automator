@@ -85,7 +85,7 @@ public class DBUtil {
     public static int obtainSubscribeNumToday(String udid) throws SQLException, ClassNotFoundException {
         Connection connection = getConnection();
         PreparedStatement ps =
-                connection.prepareStatement("select count(id) as number from wechat_subscribe_account where udid = ? and to_day(insert_time) = to_day(NOW())");
+                connection.prepareStatement("select count(id) as number from wechat_subscribe_account where udid = ? and to_days(insert_time) = to_days(NOW())");
         ps.setString(1, udid);
 
         ResultSet rs = ps.executeQuery();
