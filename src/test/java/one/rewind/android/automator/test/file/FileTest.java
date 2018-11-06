@@ -23,7 +23,7 @@ public class FileTest {
 
     @Test
     public void testImageCount() {
-        File file = new File("");
+        File file = new File("D:\\workspace\\plus\\wechat-android-automator\\screen");
         Date tmp = new Date();
 
         SimpleDateFormat df = new SimpleDateFormat("yyyy--MM-dd");

@@ -154,6 +154,7 @@ public class AndroidDeviceManager {
      * @param device
      */
     private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException, ClassNotFoundException {
+        DBUtil.reset();
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         //清空任务队列
         device.queue.clear();
