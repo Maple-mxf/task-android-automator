@@ -79,6 +79,7 @@ public class DBTest {
         subscribeAccount.update();
     }
 
+
     @Test
     public void byTimeQuery() throws Exception {
         Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
@@ -89,10 +90,11 @@ public class DBTest {
 
         String result = df.format(date);
 
-        List<SubscribeAccount> insert_time = dao.queryBuilder().where().eq("insert_time", result).query();
+        Date parse = df.parse(result);
+
+        List<SubscribeAccount> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
 
         System.out.println(insert_time.size());
-
     }
 
 }

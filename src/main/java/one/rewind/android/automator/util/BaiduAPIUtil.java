@@ -157,7 +157,7 @@ public class BaiduAPIUtil {
             String v = entry.getValue();
             try {
                 JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
-                if (jsonObject.get("err_msg") == null) {
+                if (jsonObject.get("error_msg") == null || jsonObject.get("error_code") == null) {
                     ConcurrentMap<String, String> var = Maps.newConcurrentMap();
                     var.put(k, v);
                     current[0] = var;
