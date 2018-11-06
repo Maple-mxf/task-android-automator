@@ -2,10 +2,12 @@ package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.GenericRawResults;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,14 +18,33 @@ public class DBUtil {
 
     public static Dao<SubscribeAccount, String> subscribeDao;
 
+    public static Dao<Essays, String> essaysDao;
+
     public static Connection conn;
 
     static {
         try {
             subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            essaysDao = DaoManager.getDao(Essays.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    public static void reset() throws SQLException {
+        List<SubscribeAccount> accounts = subscribeDao.queryForAll();
+        accounts.forEach(v -> {
+            try {
+                long countOf = essaysDao.queryBuilder().where().eq("media_name", v.media_name).countOf();
+                if (countOf < 100) {
+                    v.status = 0;
+                    v.update();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
 
