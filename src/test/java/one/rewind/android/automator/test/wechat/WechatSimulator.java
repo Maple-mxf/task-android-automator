@@ -317,7 +317,5 @@ public class WechatSimulator {
 		String file = "C:\\\\test\\\\newFriend.txt";
 		AndroidDriver driver = WechatSimulator.getStart(udid, appPackage, appActivity);
 		WechatSimulator.addFriendsByFile(driver,file);
-
-
 	}
 }
