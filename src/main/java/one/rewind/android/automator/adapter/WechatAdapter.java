@@ -381,7 +381,7 @@ public class WechatAdapter extends Adapter {
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
             try {
-                //当前设备系统卡死   进入重试    直到设备不报异常为止
+                //进入重试    直到设备不报异常为止
                 AndroidUtil.closeApp(driver);
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);

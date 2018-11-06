@@ -75,4 +75,23 @@ public class DBUtil {
         }
         return page;
     }
+
+    /**
+     * 当前设备今天订阅了多少公众账号
+     *
+     * @param udid
+     * @return
+     */
+    private int obtainSubscribeNumToday(String udid) throws SQLException, ClassNotFoundException {
+        Connection connection = getConnection();
+        PreparedStatement ps =
+                connection.prepareStatement("select count(id) as number from wechat_subscribe_account where udid = ?");
+        ps.setString(1, udid);
+
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            return rs.getInt("number");
+        }
+        return 0;
+    }
 }
