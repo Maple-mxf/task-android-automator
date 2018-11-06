@@ -23,9 +23,9 @@ import java.util.Stack;
 public class WechatAdapterTest {
 
     //    String udid = "ZX1G323GNB";
-    String udid = "ZX1G42BX4R";
-    int appiumPort = 47454;
-    int localProxyPort = 48454;
+    String udid = "ZX1G423DMM";
+    int appiumPort = 47356;
+    int localProxyPort = 48356;
     AndroidDevice device;
     WechatAdapter adapter;
 

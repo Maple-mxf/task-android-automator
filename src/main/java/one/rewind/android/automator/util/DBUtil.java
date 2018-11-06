@@ -5,7 +5,6 @@ import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
 
 import java.sql.*;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,32 +39,26 @@ public class DBUtil {
         return conn;
     }
 
-    public static Set<String> sendAccounts(Set<String> accounts, int page) {
-
+    /**
+     * 第一个参数是分页参数   每次限定20个公众号
+     */
+    public static void sendAccounts(Set<String> accounts, int page) {
         try {
             Connection connection = getConnection();
-            /**
-             * 第一个参数是分页参数   每次限定20个公众号
-             */
             PreparedStatement ps =
                     connection.prepareStatement("select name,nick from media limit ?,80");
             ps.setInt(1, page);
-
             ResultSet rs = ps.executeQuery();
-
-            List<String> collect = subscribeDao.queryForAll().stream().map(ec -> ec.media_name).collect(Collectors.toList());
-
+            Set<String> collect = subscribeDao.queryForAll().stream().map(ec -> ec.media_name).collect(Collectors.toSet());
             while (rs.next()) {
                 String media_nick = rs.getString("nick");
                 if (!collect.contains(media_nick)) {
                     accounts.add(media_nick);
                 }
             }
-            return accounts;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
     }
 
     /**
@@ -73,11 +66,11 @@ public class DBUtil {
      *
      * @param accounts
      * @param page
-     * @param size
+     * @param var
      */
-    public static int obtainFullData(Set<String> accounts, int page, int size) {
-        while (accounts.size() <= size) {
-            accounts.addAll(Objects.requireNonNull(sendAccounts(accounts, page)));
+    public static int obtainFullData(Set<String> accounts, int page, int var) {
+        while (accounts.size() <= var) {
+            sendAccounts(accounts, page);
             ++page;
         }
         return page;
