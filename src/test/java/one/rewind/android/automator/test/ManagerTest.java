@@ -37,7 +37,7 @@ public class ManagerTest {
         Class.forName("one.rewind.android.automator.AndroidDeviceManager");
         Set<String> set = Sets.newHashSet();
         //初始化原始任务队列
-        DBUtil.obtainFullData(set, 20, 60);
+        DBUtil.obtainFullData(set, 20, 80);
         AndroidDeviceManager.originalAccounts.addAll(set);
         AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
         manager.startManager();

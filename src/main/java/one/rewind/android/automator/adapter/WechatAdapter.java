@@ -46,7 +46,6 @@ public class WechatAdapter extends Adapter {
         super(device);
     }
 
-    public static Dao<TaskFailRecord, String> dao1;
 
     public static Dao<Essays, String> dao2;
 
@@ -54,7 +53,6 @@ public class WechatAdapter extends Adapter {
 
     static {
         try {
-            dao1 = DaoManager.getDao(TaskFailRecord.class);
             dao2 = DaoManager.getDao(Essays.class);
             dao3 = DaoManager.getDao(SubscribeAccount.class);
         } catch (Exception e) {
@@ -171,52 +169,34 @@ public class WechatAdapter extends Adapter {
     public void getIntoPublicAccountEssayList(String wxPublicName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
-                TaskFailRecord record = AndroidUtil.retry(wxPublicName, dao2, device.udid, dao1);
+                TaskFailRecord record = AndroidUtil.retry(wxPublicName, dao2, device.udid);
                 if (record == null) {
                     //当前公众号抓取的文章已经达到100篇以上
-                    SubscribeAccount var = dao3.queryBuilder().where().eq("media_name", wxPublicName).queryForFirst();
-                    if (var.status == 1) {
-                        return;
-                    } else {
-                        long count = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
-                        if (count > 100) {
-                            return;
-                        } else {
-                            AndroidUtil.updateProcess(wxPublicName,device.udid);
+                    return;
+                } else {
+                    isFirstPage = (record.finishNum == 0);
+                    if (!isFirstPage) {
+                        //下滑到第一页
+                        AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
+                        //向下划指定页数
+                        for (int i = 0; i < record.slideNumByPage; i++) {
+                            AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
                         }
-                    }
-                }
-                record = AndroidUtil.retry(wxPublicName, dao2, device.udid, dao1);
-                if (record != null) {
-                    isFirstPage = false;
-                    //下滑到第一页
-                    AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
-                    //向下划指定页数
-                    for (int i = 0; i < record.slideNumByPage; i++) {
-                        AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
                     }
                 }
             }
             while (!isLastPage) {
                 //下滑到指定的位置
                 if (isFirstPage) {
-
                     AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
-
                     isFirstPage = false;
-
                 } else {
-
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
-
                 }
                 //获取模拟点击的坐标位置
                 List<WordsPoint> wordsPoints = obtainClickPoints();
-
                 if (wordsPoints == null) {
-
                     logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
-
                     throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
                 } else {
                     //点击计算出来的坐标
@@ -227,17 +207,14 @@ public class WechatAdapter extends Adapter {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("=========================当前设备{}已经崩溃了=============================", device.udid);
-
             throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
         }
     }
 
 
     private void openEssays(List<WordsPoint> wordsPoints) throws InterruptedException, AndroidCollapseException {
-
         int neverClickCount = 0;
         for (WordsPoint wordsPoint : wordsPoints) {
-
             if (neverClickCount > 3) {
                 throw new AndroidCollapseException("安卓系统卡住点不动了！");
             }
@@ -280,7 +257,6 @@ public class WechatAdapter extends Adapter {
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
                     for (String var : device.queue) {
-
                         digestionSubscribe(var, false);
                     }
                 } catch (Exception e) {
@@ -307,7 +283,6 @@ public class WechatAdapter extends Adapter {
 
     public void start(boolean retry) {
         Start start = new Start();
-
         start.setRetry(retry);
         Future<Boolean> future = executor.submit(start);
         submit(future);
@@ -358,10 +333,9 @@ public class WechatAdapter extends Adapter {
         try {
             driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
                     .click();
-
-            Thread.sleep(3000);  // TODO 时间适当调整
-            driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
             saveSubscribeRecord(wxPublicName);
+            Thread.sleep(3000);
+            driver.navigate().back();
         } catch (Exception e) {
             //已经订阅了
             e.printStackTrace();
@@ -400,20 +374,19 @@ public class WechatAdapter extends Adapter {
     public void digestionCrawler(String wxAccountName, boolean retry) {
         try {
             //继续获取文章
-            AndroidUtil.enterEssaysPage(wxAccountName, device);
+            if (!AndroidUtil.enterEssaysPage(wxAccountName, device)) {
+                return;
+            }
             getIntoPublicAccountEssayList(wxAccountName, retry);
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
             try {
                 //当前设备系统卡死   进入重试    直到设备不报异常为止
-                //截图查看图片中是否存在无响应
                 AndroidUtil.closeApp(driver);
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);
-
                 // 如果每个公众号抓取的文章数量太小的话  启动重试机制
                 long number = dao2.queryBuilder().where().eq("media_nick", wxAccountName).countOf();
-
                 if (number < ESSAY_NUM && !this.isLastPage) {
                     digestionCrawler(wxAccountName, true);
                 }

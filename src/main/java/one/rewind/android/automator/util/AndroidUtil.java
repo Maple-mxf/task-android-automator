@@ -28,35 +28,38 @@ import java.util.UUID;
  */
 @SuppressWarnings("JavaDoc")
 public class AndroidUtil {
-
-
     /**
      * @param name
      * @throws InterruptedException
      */
-    public static void enterEssaysPage(String name, AndroidDevice device) throws InterruptedException {
-
+    public static boolean enterEssaysPage(String name, AndroidDevice device) throws InterruptedException, InvokingBaiduAPIException {
 
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+        } catch (Exception e) {
+            e.printStackTrace();
+            AndroidUtil.closeApp(device.driver);
+            AndroidUtil.activeWechat(device);
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+        }
+        Thread.sleep(500);
 
-            Thread.sleep(500);
+        device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+        Thread.sleep(500);
 
-            Thread.sleep(500);
+        device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
 
-            device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
+        Thread.sleep(200);
 
-            Thread.sleep(200);
+        // 搜索
+        device.driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
 
-            // 搜索
-            device.driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
+        AndroidUtil.clickPoint(720, 150, 0, device.driver);
 
-            AndroidUtil.clickPoint(720, 150, 0, device.driver);
+        AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
 
-            AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
-
+        try {
             // 进入公众号
             AndroidUtil.clickPoint(720, 360, 500, device.driver);
 
@@ -69,18 +72,10 @@ public class AndroidUtil {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
 
             Thread.sleep(5000); // TODO 此处时间需要调整
+            return true;
         } catch (Exception e) {
-            //重试机制
             e.printStackTrace();
-            try {
-                AndroidUtil.closeApp(device.driver);
-                AndroidUtil.activeWechat(device);
-                enterEssaysPage(name, device);
-
-
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
+            return false;
         }
 
     }
@@ -249,7 +244,7 @@ public class AndroidUtil {
         }
     }
 
-    public static TaskFailRecord retry(String wxPublicName, Dao<Essays, String> dao2, String udid, Dao<TaskFailRecord, String> dao1) throws Exception {
+    public static TaskFailRecord retry(String wxPublicName, Dao<Essays, String> dao2, String udid) throws Exception {
         long count = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
         TaskFailRecord record = new TaskFailRecord();
         record.finishNum = (int) count;
