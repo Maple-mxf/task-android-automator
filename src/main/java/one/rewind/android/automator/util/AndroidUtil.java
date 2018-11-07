@@ -273,7 +273,7 @@ public class AndroidUtil {
             if (words.equals(mediaName)) {
                 top = b.getInt("top");
                 left = b.getInt("left");
-                return new WordsPoint(top, left, 0, 0, "");
+                return new WordsPoint(top + 15, left, 0, 0, "");
             }
         }
         return null;

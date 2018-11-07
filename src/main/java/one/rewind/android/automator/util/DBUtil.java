@@ -2,6 +2,7 @@ package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.GenericRawResults;
+import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
@@ -32,10 +33,17 @@ public class DBUtil {
     }
 
 
+    /**
+     * @throws SQLException
+     * @see WechatAdapter#subscribeWxAccount(java.lang.String)
+     */
     public static void reset() throws SQLException {
         List<SubscribeAccount> accounts = subscribeDao.queryForAll();
-        accounts.forEach(v -> {
+        for (SubscribeAccount v : accounts) {
             try {
+                if (v.status == 2) {
+                    continue;
+                }
                 long countOf = essaysDao.queryBuilder().where().eq("media_name", v.media_name).countOf();
                 if ((countOf - v.number) > 5) {
                     v.status = 0;
@@ -46,7 +54,7 @@ public class DBUtil {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });
+        }
     }
 
 
@@ -106,7 +114,7 @@ public class DBUtil {
      * @param udid
      * @return
      */
-    public static int obtainSubscribeNumToday(String udid) throws SQLException, ClassNotFoundException {
+    public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = subscribeDao.queryRaw("select count(id) as number from wechat_subscribe_account where udid = ? and to_days(insert_time) = to_days(NOW())",
                 udid);
         String[] firstResult = results.getFirstResult();

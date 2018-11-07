@@ -159,7 +159,7 @@ public class AndroidDeviceManager {
         //清空任务队列
         device.queue.clear();
         if (TaskType.CRAWLER.equals(taskType)) {
-            List<SubscribeAccount> var1 = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", 0).query();
+            List<SubscribeAccount> var1 = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).query();
             for (SubscribeAccount account : var1) {
                 device.queue.add(account.media_name);
             }

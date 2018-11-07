@@ -36,6 +36,8 @@ public class SubscribeAccount extends ModelL {
     public enum CrawlerState {
 
         FINISH(1),
+        //表示搜索不到当前公众号
+        NOMEDIANAME(2),
         NOFINISH(0);
 
         public int status;

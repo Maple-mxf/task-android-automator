@@ -8,6 +8,7 @@ import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
+import one.rewind.android.automator.util.DBUtil;
 import one.rewind.db.DaoManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,6 +16,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -302,10 +304,11 @@ public class WechatAdapter extends Adapter {
      * <p>
      * 要订阅的公众号可能存在一个问题就是搜索不到微信账号或者最准确的结果并不是第一个
      *
-     * @param wxPublicName
+     * @param mediaName
      * @throws Exception
+     * @see DBUtil#reset()
      */
-    public void subscribeWxAccount(String wxPublicName) throws Exception {
+    public void subscribeWxAccount(String mediaName) throws Exception {
         int k = 3;
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
@@ -318,24 +321,37 @@ public class WechatAdapter extends Adapter {
         Thread.sleep(2000);
 
         // C1 输入框输入搜索信息
-        driver.findElement(By.className("android.widget.EditText")).sendKeys(wxPublicName);
+        driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
         // C3 点击软键盘的搜索键
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
 
-        AndroidUtil.clickPoint(720, 600, 2000, driver);
+        //根据
+        WordsPoint point = AndroidUtil.accuracySubscribe(mediaName);
+        if (point == null) {
+            SubscribeAccount tmp = new SubscribeAccount();
+            tmp.media_name = mediaName;
+            tmp.status = 2;
+            tmp.update_time = new Date();
+            tmp.number = 0;
+            tmp.udid = udid;
+            tmp.insert_time = new Date();
+            tmp.insert();
+            return;
+        }
+        AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
 
         // 点击订阅
         try {
             driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
                     .click();
-            saveSubscribeRecord(wxPublicName);
+            saveSubscribeRecord(mediaName);
             Thread.sleep(3000);
             driver.navigate().back();
         } catch (Exception e) {
             //已经订阅了
             e.printStackTrace();
-            logger.info("Already add public account: {}", wxPublicName);
+            logger.info("Already add public account: {}", mediaName);
             driver.navigate().back();
             --k;
         }
