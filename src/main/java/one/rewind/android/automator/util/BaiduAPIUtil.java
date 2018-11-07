@@ -118,6 +118,9 @@ public class BaiduAPIUtil {
                     le("count", 550).
                     queryForFirst();
             var = result;
+            System.out.println(var.app_s);
+            System.out.println(var.app_k);
+            System.out.println(var.id);
             if (DateUtils.isSameDay(result.update_time, new Date())) {
                 result.count += 1;
             } else {

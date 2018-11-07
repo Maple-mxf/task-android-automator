@@ -2,9 +2,9 @@ package one.rewind.android.automator.test.db;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.SubscribeAccount;
-import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
 import org.apache.commons.lang3.time.DateUtils;
@@ -14,7 +14,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 public class DBTest {
 
@@ -111,10 +110,9 @@ public class DBTest {
     @Test
     public void initBaiduTokens() throws Exception {
         BaiduTokens token1 = new BaiduTokens();
-        token1.app_k = "e40LU71rtvxEsD6bVlb9U3wV";
-        token1.app_s = "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh";
+        token1.app_k = "rDztaDallgGp5GkiZ7mPBUwo";
+        token1.app_s = "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n";
         token1.count = 0;
-        token1.id = UUID.randomUUID().toString();
         token1.insert();
 
     }

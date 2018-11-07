@@ -3,7 +3,7 @@ package one.rewind.android.automator.model;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.data.raw.model.base.ModelD;
+import one.rewind.data.raw.model.base.ModelL;
 import one.rewind.db.DBName;
 
 /**
@@ -12,7 +12,7 @@ import one.rewind.db.DBName;
  */
 @DBName(value = "raw")
 @DatabaseTable(tableName = "baidu_tokens")
-public class BaiduTokens extends ModelD {
+public class BaiduTokens extends ModelL {
 
     @DatabaseField(dataType = DataType.STRING, width = 255, unique = true)
     public String app_k;

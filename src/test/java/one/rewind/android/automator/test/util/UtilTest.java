@@ -1,12 +1,14 @@
 package one.rewind.android.automator.test.util;
 
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
+import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.android.automator.util.DBUtil;
 import org.json.JSONObject;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -38,5 +40,38 @@ public class UtilTest {
         System.out.println(jsonObject);
     }
 
+    @Test
+    public void testObtainToken() throws Exception {
+        BaiduTokens token = BaiduAPIUtil.obtainToken();
+        System.out.println(token.app_k);
+        System.out.println(token.app_s);
+    }
+
+    @Test
+    public void testMultiRunnableObtainToken() throws IOException {
+        Thread r1 = new Thread(() -> {
+            BaiduTokens baiduTokens = null;
+            try {
+                baiduTokens = BaiduAPIUtil.obtainToken();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            System.out.println(baiduTokens.id);
+        });
+        r1.start();
+
+        Thread r2 = new Thread(()->{
+            BaiduTokens baiduTokens = null;
+            try {
+                baiduTokens = BaiduAPIUtil.obtainToken();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            System.out.println(baiduTokens.id);
+        });
+        r2.start();
+
+        System.in.read();
+    }
 
 }
