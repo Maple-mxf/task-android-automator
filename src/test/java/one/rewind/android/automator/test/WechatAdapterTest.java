@@ -206,4 +206,9 @@ public class WechatAdapterTest {
 
     }
 
+    @Test
+    public void testRemoveWifiProxy(){
+        device.removeWifiProxy();
+    }
+
 }
