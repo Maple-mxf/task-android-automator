@@ -1,3 +1,5 @@
 
 1: 去掉左右的unique索引字段的限制  改为normal
 2：数据库编码统一设置为utf8mb4（防止表情存储出现问题造成事务回滚）
+
+docker run --name mysql5.7 -p 3306:3306 -v /usr/local/mysql/data:/var/lib/mysql -v /usr/local/mysql/conf.d:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7

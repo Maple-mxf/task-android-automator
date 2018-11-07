@@ -113,8 +113,6 @@ public class BaiduAPIUtil {
             BaiduTokens result = tokensDao.
                     queryBuilder().
                     where().
-                    ge("count", 0).
-                    and().
                     le("count", 550).
                     queryForFirst();
             var = result;
