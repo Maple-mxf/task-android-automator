@@ -186,7 +186,7 @@ public class AndroidUtil {
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, driver);
-        JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(path + fileName);
+        JSONObject jsonObject = BaiduAPIUtil.imageOCR(path + fileName);
         JSONArray array = (JSONArray) jsonObject.get("words_result");
         for (Object o : array) {
 
@@ -260,7 +260,7 @@ public class AndroidUtil {
 
 
     public static WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
-        JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest("/usr/local/j-wplace/wechat-android-automator/webwxgetmsgimg.jpeg");
+        JSONObject jsonObject = BaiduAPIUtil.imageOCR("/usr/local/j-wplace/wechat-android-automator/webwxgetmsgimg.jpeg");
 
         JSONArray result = jsonObject.getJSONArray("words_result");
 

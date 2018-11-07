@@ -25,11 +25,11 @@ import java.util.concurrent.*;
  * Description: 微信的自动化操作
  */
 @SuppressWarnings("JavaDoc")
-public class DefaultWechatAdapter extends Adapter {
+public class LooseWechatAdapter extends Adapter {
 
-    private boolean isLastPage = false;
+    private boolean lastPage = false;
 
-    private boolean isFirstPage = true;
+    private boolean firstPage = true;
 
     private ExecutorService executor;
 
@@ -59,19 +59,19 @@ public class DefaultWechatAdapter extends Adapter {
         this.taskType = taskType;
     }
 
-    public DefaultWechatAdapter(AndroidDevice device) {
+    public LooseWechatAdapter(AndroidDevice device) {
         super(device);
     }
 
 
-    public static Dao<Essays, String> dao2;
+    public static Dao<Essays, String> essayDao;
 
-    public static Dao<SubscribeAccount, String> dao3;
+    public static Dao<SubscribeAccount, String> subscribeDao;
 
     static {
         try {
-            dao2 = DaoManager.getDao(Essays.class);
-            dao3 = DaoManager.getDao(SubscribeAccount.class);
+            essayDao = DaoManager.getDao(Essays.class);
+            subscribeDao = DaoManager.getDao(SubscribeAccount.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -100,7 +100,7 @@ public class DefaultWechatAdapter extends Adapter {
      */
     @SuppressWarnings("JavaDoc")
     private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
-        JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
+        JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         //得到即将要点击的坐标位置
         return analysisWordsPoint(jsonObject.getJSONArray("words_result"), mediaName);
 
@@ -131,18 +131,18 @@ public class DefaultWechatAdapter extends Adapter {
 
                 System.out.println("============================没有更多文章===================================");
 
-                isLastPage = true;
+                lastPage = true;
 
                 try {
                     //计算当前公众号文章数量
-                    long currentEssayNum = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                    SubscribeAccount var = dao3.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                    long currentEssayNum = essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+                    SubscribeAccount var = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                     var.number = (int) (currentEssayNum + wordsPoints.size());
                     var.update();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                System.out.println("是否到最后一页：" + isLastPage);
+                System.out.println("是否到最后一页：" + lastPage);
 
             }
 
@@ -173,13 +173,13 @@ public class DefaultWechatAdapter extends Adapter {
     public void getIntoPublicAccountEssayList(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
-                TaskFailRecord record = AndroidUtil.retry(mediaName, dao2, device.udid);
+                TaskFailRecord record = AndroidUtil.retry(mediaName, essayDao, device.udid);
                 if (record == null) {
                     //当前公众号抓取的文章已经达到100篇以上
                     return;
                 } else {
-                    isFirstPage = (record.finishNum == 0);
-                    if (!isFirstPage) {
+                    firstPage = (record.finishNum == 0);
+                    if (!firstPage) {
                         //下滑到第一页
                         AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
                         //向下划指定页数
@@ -189,13 +189,13 @@ public class DefaultWechatAdapter extends Adapter {
                     }
                 }
             }
-            while (!isLastPage) {
+            while (!lastPage) {
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 //获取模拟点击的坐标位置
                 //下滑到指定的位置
-                if (isFirstPage) {
+                if (firstPage) {
                     AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
-                    isFirstPage = false;
+                    firstPage = false;
                 } else {
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
                 }
@@ -279,7 +279,7 @@ public class DefaultWechatAdapter extends Adapter {
             } else if (TaskType.CRAWLER.equals(taskType)) {
                 try {
                     for (String var : device.queue) {
-                        isLastPage = false;
+                        lastPage = false;
                         digestionCrawler(var, getRetry());
                         AndroidUtil.updateProcess(var, device.udid);
                         //返回到主界面
@@ -358,7 +358,7 @@ public class DefaultWechatAdapter extends Adapter {
     }
 
     private void saveSubscribeRecord(String mediaName) throws Exception {
-        long tempCount = dao3.queryBuilder().where()
+        long tempCount = subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
         if (tempCount == 0) {
@@ -378,7 +378,6 @@ public class DefaultWechatAdapter extends Adapter {
      */
     public void digestionCrawler(String mediaName, boolean retry) {
         try {
-            //继续获取文章
             if (!AndroidUtil.enterEssaysPage(mediaName, device)) {
                 return;
             }
@@ -390,11 +389,12 @@ public class DefaultWechatAdapter extends Adapter {
                 AndroidUtil.closeApp(driver);
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);
-                // 如果每个公众号抓取的文章数量太小的话  启动重试机制
-                long number = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                if (number < ESSAY_NUM && !this.isLastPage) {
-                    digestionCrawler(mediaName, true);
-                }
+                long number = essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+                SubscribeAccount tmp = subscribeDao.queryBuilder().where().eq("media_name", mediaName).
+                        and().
+                        eq("udid", device.udid).
+                        queryForFirst();
+                if (tmp.number - number > 5) digestionCrawler(mediaName, true);
             } catch (Exception e1) {
                 e1.printStackTrace();
             }
@@ -441,8 +441,8 @@ public class DefaultWechatAdapter extends Adapter {
             return this;
         }
 
-        public DefaultWechatAdapter build() {
-            DefaultWechatAdapter adapter = new DefaultWechatAdapter(this.device);
+        public LooseWechatAdapter build() {
+            LooseWechatAdapter adapter = new LooseWechatAdapter(this.device);
             adapter.taskType = this.taskType;
             return adapter;
         }

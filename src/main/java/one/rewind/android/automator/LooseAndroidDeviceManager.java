@@ -1,7 +1,7 @@
 package one.rewind.android.automator;
 
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.adapter.DefaultWechatAdapter;
+import one.rewind.android.automator.adapter.LooseWechatAdapter;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingDeque;
  * Create By 2018/10/19
  * Description   多设备管理
  */
-public class DefaultAndroidDeviceManager {
+public class LooseAndroidDeviceManager {
 
     private static Dao<SubscribeAccount, String> subscribeDao;
 
@@ -27,26 +27,26 @@ public class DefaultAndroidDeviceManager {
 
     public static BlockingQueue<String> originalAccounts = new LinkedBlockingDeque<>();
 
-    private DefaultAndroidDeviceManager() {
+    private LooseAndroidDeviceManager() {
     }
 
     public static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
 
-    private static DefaultAndroidDeviceManager instance;
+    private static LooseAndroidDeviceManager instance;
 
     public static final int DEFAULT_LOCAL_PROXY_PORT = 48454;
 
-    public static DefaultAndroidDeviceManager getInstance() {
-        synchronized (DefaultAndroidDeviceManager.class) {
+    public static LooseAndroidDeviceManager getInstance() {
+        synchronized (LooseAndroidDeviceManager.class) {
             if (instance == null) {
-                instance = new DefaultAndroidDeviceManager();
+                instance = new LooseAndroidDeviceManager();
             }
             return instance;
         }
     }
 
     private static List<AndroidDevice> obtainAvailableDevices() {
-        synchronized (DefaultAndroidDeviceManager.class) {
+        synchronized (LooseAndroidDeviceManager.class) {
             List<AndroidDevice> availableDevices = new ArrayList<>();
             devices.forEach((k, v) -> {
                 if (v.state.equals(AndroidDevice.State.INIT)) {
@@ -87,8 +87,8 @@ public class DefaultAndroidDeviceManager {
 
             TaskType taskType = calculateState(device.udid);
 
-            DefaultWechatAdapter adapter =
-                    new DefaultWechatAdapter.
+            LooseWechatAdapter adapter =
+                    new LooseWechatAdapter.
                             Builder().
                             taskType(taskType).
                             device(device).

@@ -36,7 +36,7 @@ public class UtilTest {
 
     @Test
     public void testBaiduAPI() throws InvokingBaiduAPIException {
-        JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest("D:\\workspace\\plus\\wechat-android-automator\\screen\\0d69bf67-469f-454f-ae2f-b46f3c14130a.png");
+        JSONObject jsonObject = BaiduAPIUtil.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0d69bf67-469f-454f-ae2f-b46f3c14130a.png");
         System.out.println(jsonObject);
     }
 

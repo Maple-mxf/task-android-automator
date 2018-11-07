@@ -89,7 +89,7 @@ public class WechatAdapter extends Adapter {
      */
     @SuppressWarnings("JavaDoc")
     private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
-        JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
+        JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         //得到即将要点击的坐标位置
         return analysisWordsPoint(jsonObject.getJSONArray("words_result"), mediaName);
 
