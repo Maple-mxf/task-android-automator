@@ -37,13 +37,12 @@ public class DBUtil {
         accounts.forEach(v -> {
             try {
                 long countOf = essaysDao.queryBuilder().where().eq("media_name", v.media_name).countOf();
-                if ((countOf - v.number) < 5) {
+                if ((countOf - v.number) > 5) {
                     v.status = 0;
-                    v.update();
                 } else {
                     v.status = 1;
-                    v.update();
                 }
+                v.update();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -51,7 +50,7 @@ public class DBUtil {
     }
 
 
-    public static synchronized Connection getConnection() throws ClassNotFoundException, SQLException {
+    private static synchronized Connection getConnection() throws ClassNotFoundException, SQLException {
 
         if (conn == null) {
             Class.forName("com.mysql.jdbc.Driver");
