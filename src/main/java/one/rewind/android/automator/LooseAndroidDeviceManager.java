@@ -70,7 +70,6 @@ public class LooseAndroidDeviceManager {
     }
 
     /**
-     * start all device
      * 任务队列初始化放在adapter中,更加便捷可控制
      *
      * @throws Exception
@@ -80,7 +79,7 @@ public class LooseAndroidDeviceManager {
 
         for (AndroidDevice device : androidDevices) {
 
-            TaskType taskType = calculateState(device.udid);
+            TaskType taskType = calculateTaskType(device.udid);
 
             LooseWechatAdapter adapter =
                     new LooseWechatAdapter.
@@ -100,7 +99,7 @@ public class LooseAndroidDeviceManager {
      * @return
      * @throws Exception
      */
-    private TaskType calculateState(String udid) throws Exception {
+    private TaskType calculateTaskType(String udid) throws Exception {
 
         long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
