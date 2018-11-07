@@ -299,6 +299,8 @@ public class WechatAdapter extends Adapter {
 
     /**
      * 订阅公众号
+     * <p>
+     * 要订阅的公众号可能存在一个问题就是搜索不到微信账号或者最准确的结果并不是第一个
      *
      * @param wxPublicName
      * @throws Exception
@@ -318,13 +320,9 @@ public class WechatAdapter extends Adapter {
         // C1 输入框输入搜索信息
         driver.findElement(By.className("android.widget.EditText")).sendKeys(wxPublicName);
 
-        // C2 点击搜索输入框
-//        AndroidUtil.clickPoint(223, 172, 0, driver);
-
         // C3 点击软键盘的搜索键
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
 
-        // D 点击第一个结果    问题  第一个结果可能并不是最准确的结果
         AndroidUtil.clickPoint(720, 600, 2000, driver);
 
         // 点击订阅

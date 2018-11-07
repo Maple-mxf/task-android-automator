@@ -9,6 +9,7 @@ import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskFailRecord;
+import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.db.DaoManager;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
@@ -208,20 +209,17 @@ public class AndroidUtil {
             }
         }
         driver.closeApp();
-        /**
-         * close之后再按一次home键  防止微信没有启动
-         */
         for (int i = 0; i < 6; i++) {
             driver.navigate().back();
         }
     }
 
-    public static TaskFailRecord retry(String wxPublicName, Dao<Essays, String> dao2, String udid) throws Exception {
-        long count = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
+    public static TaskFailRecord retry(String mediaName, Dao<Essays, String> dao2, String udid) throws Exception {
+        long count = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
         TaskFailRecord record = new TaskFailRecord();
         record.finishNum = (int) count;
         record.deviceUdid = udid;
-        record.wxPublicName = wxPublicName;
+        record.wxPublicName = mediaName;
         int var = (int) count % 6;
         if (var >= 3) {
             record.slideNumByPage = (int) (count / 6) + 2;
@@ -248,15 +246,36 @@ public class AndroidUtil {
     /**
      * 更新为完成的公众号数据
      */
-    public static void updateProcess(String wxPublicName, String udid) throws Exception {
+    public static void updateProcess(String mediaName, String udid) throws Exception {
 
         Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
 
-        SubscribeAccount account = dao.queryBuilder().where().eq("media_name", wxPublicName).and().eq("udid", udid).queryForFirst();
+        SubscribeAccount account = dao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
 
         if (account != null) {
             account.status = 1;
             account.update();
         }
+    }
+
+
+    public static WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
+        JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest("/usr/local/j-wplace/wechat-android-automator/webwxgetmsgimg.jpeg");
+
+        JSONArray result = jsonObject.getJSONArray("words_result");
+
+        int top;
+        int left;
+
+        for (Object v : result) {
+            JSONObject b = (JSONObject) v;
+            String words = b.getString("words");
+            if (words.equals(mediaName)) {
+                top = b.getInt("top");
+                left = b.getInt("left");
+                return new WordsPoint(top, left, 0, 0, "");
+            }
+        }
+        return null;
     }
 }
