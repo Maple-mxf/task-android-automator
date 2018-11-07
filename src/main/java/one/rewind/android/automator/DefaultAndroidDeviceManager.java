@@ -100,6 +100,7 @@ public class DefaultAndroidDeviceManager {
 
     /**
      * 主要计算设备当前应该处于的一个状态
+     *
      * @param udid
      * @return
      * @throws Exception

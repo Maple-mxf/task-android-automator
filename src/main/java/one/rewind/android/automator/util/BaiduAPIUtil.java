@@ -20,6 +20,7 @@ import java.util.Map;
  * Create By 2018/10/19
  * Description:
  */
+@SuppressWarnings("JavaDoc")
 public class BaiduAPIUtil {
     private static Dao<BaiduTokens, String> tokensDao;
 
@@ -72,9 +73,6 @@ public class BaiduAPIUtil {
             while ((line = in.readLine()) != null) {
                 result += line;
             }
-            /**
-             * 返回结果示例
-             */
             System.err.println("result:" + result);
             JSONObject jsonObject = new JSONObject(result);
             return jsonObject.getString("access_token");
@@ -86,8 +84,6 @@ public class BaiduAPIUtil {
     }
 
     /**
-     * 发起请求到百度服务器进行图像识别
-     *
      * @param filePath
      * @return
      */
@@ -109,21 +105,27 @@ public class BaiduAPIUtil {
 
     public static BaiduTokens obtainToken() throws Exception {
         synchronized (BaiduAPIUtil.class) {
+            List<BaiduTokens> updateList = tokensDao.queryForAll();
+            updateList.forEach(v -> {
+                if (DateUtils.isSameDay(v.update_time, new Date())) {
+                    v.update_time = new Date();
+                    v.count = 0;
+                    try {
+                        v.update();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
             BaiduTokens var;
             BaiduTokens result = tokensDao.
                     queryBuilder().
                     where().
                     le("count", 550).
                     queryForFirst();
+            if (result == null) throw new RuntimeException("当前没有可用的token了");
             var = result;
-            System.out.println(var.app_s);
-            System.out.println(var.app_k);
-            System.out.println(var.id);
-            if (DateUtils.isSameDay(result.update_time, new Date())) {
-                result.count += 1;
-            } else {
-                result.count = 0;
-            }
+            result.count += 1;
             result.update_time = new Date();
             result.update();
             return var;

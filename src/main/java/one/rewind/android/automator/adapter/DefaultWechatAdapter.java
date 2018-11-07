@@ -441,7 +441,6 @@ public class DefaultWechatAdapter extends Adapter {
             return this;
         }
 
-
         public DefaultWechatAdapter build() {
             DefaultWechatAdapter adapter = new DefaultWechatAdapter(this.device);
             adapter.taskType = this.taskType;
