@@ -326,7 +326,7 @@ public class DefaultWechatAdapter extends Adapter {
         if (point == null) {
             SubscribeAccount tmp = new SubscribeAccount();
             tmp.media_name = mediaName;
-            tmp.status = 2;
+            tmp.status = SubscribeAccount.CrawlerState.NOMEDIANAME.status;
             tmp.update_time = new Date();
             tmp.number = 0;
             tmp.udid = udid;
