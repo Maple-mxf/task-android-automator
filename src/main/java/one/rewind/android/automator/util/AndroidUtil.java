@@ -141,21 +141,6 @@ public class AndroidUtil {
         }
     }
 
-    /**
-     * 返回到主界面   只针对于未爬完的公众号
-     *
-     * @throws InterruptedException
-     */
-    public static void exit2Main(AndroidDriver driver) throws InterruptedException {
-
-        for (int i = 0; i < 3; i++) {
-            // 点击返回
-            driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
-            Thread.sleep(1000);
-        }
-    }
-
-
     public static String[] obtainDevices() {
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
@@ -202,7 +187,6 @@ public class AndroidUtil {
         AndroidUtil.screenshot(fileName, path, driver);
         JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(path + fileName);
         JSONArray array = (JSONArray) jsonObject.get("words_result");
-
         for (Object o : array) {
 
             JSONObject v = (JSONObject) o;
@@ -223,7 +207,6 @@ public class AndroidUtil {
                 break;
             }
         }
-
         driver.closeApp();
         /**
          * close之后再按一次home键  防止微信没有启动
@@ -261,7 +244,6 @@ public class AndroidUtil {
         device.startActivity("com.tencent.mm", ".ui.LauncherUI");
         Thread.sleep(10000);
     }
-
 
     /**
      * 更新为完成的公众号数据
