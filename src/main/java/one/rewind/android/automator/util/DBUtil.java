@@ -16,11 +16,11 @@ import java.util.stream.Collectors;
  */
 public class DBUtil {
 
-    public static Dao<SubscribeAccount, String> subscribeDao;
+    private static Dao<SubscribeAccount, String> subscribeDao;
 
-    public static Dao<Essays, String> essaysDao;
+    private static Dao<Essays, String> essaysDao;
 
-    public static Connection conn;
+    private static Connection conn;
 
     static {
         try {
@@ -37,8 +37,11 @@ public class DBUtil {
         accounts.forEach(v -> {
             try {
                 long countOf = essaysDao.queryBuilder().where().eq("media_name", v.media_name).countOf();
-                if (countOf < 100) {
+                if ((countOf - v.number) < 5) {
                     v.status = 0;
+                    v.update();
+                } else {
+                    v.status = 1;
                     v.update();
                 }
             } catch (Exception e) {

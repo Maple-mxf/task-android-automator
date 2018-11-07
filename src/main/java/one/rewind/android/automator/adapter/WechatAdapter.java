@@ -61,19 +61,17 @@ public class WechatAdapter extends Adapter {
     }
 
 
-    private List<WordsPoint> obtainClickPoints() throws InterruptedException, InvokingBaiduAPIException {
+    private List<WordsPoint> obtainClickPoints(String wxPublicName) throws InterruptedException, InvokingBaiduAPIException {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, driver);
         //图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
-        List<WordsPoint> wordsPoints = analysisImage(path + fileName);
+        List<WordsPoint> wordsPoints = analysisImage(wxPublicName, path + fileName);
         if (wordsPoints != null && wordsPoints.size() > 0) {
             return wordsPoints;
         } else {
-
             //此处已经出现异常：====>>>> 异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
-
             //当前公众号不能继续抓取了
             AndroidUtil.returnPrevious(driver);
             return null;
@@ -83,14 +81,15 @@ public class WechatAdapter extends Adapter {
     /**
      * 分析图像
      *
+     * @param wxPublicName
      * @param filePath
      * @return
      */
     @SuppressWarnings("JavaDoc")
-    private List<WordsPoint> analysisImage(String filePath) throws InvokingBaiduAPIException {
+    private List<WordsPoint> analysisImage(String wxPublicName, String filePath) throws InvokingBaiduAPIException {
         JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
         //得到即将要点击的坐标位置
-        return analysisWordsPoint(jsonObject.getJSONArray("words_result"));
+        return analysisWordsPoint(jsonObject.getJSONArray("words_result"), wxPublicName);
 
     }
 
@@ -103,9 +102,10 @@ public class WechatAdapter extends Adapter {
      * {"words":"天坚持做这件事情.",           "location":{"top":2130,"left":43,"width":493,"height":71}}
      *
      * @param array
+     * @param wxPublicName
      * @return
      */
-    public List<WordsPoint> analysisWordsPoint(JSONArray array) {
+    public List<WordsPoint> analysisWordsPoint(JSONArray array, String wxPublicName) {
 
         array.remove(0);
 
@@ -126,7 +126,16 @@ public class WechatAdapter extends Adapter {
 
                 isLastPage = true;
 
-                System.out.println(isLastPage);
+                try {
+                    //计算当前公众号文章数量
+                    long currentEssayNum = dao2.queryBuilder().where().eq("media_nick", wxPublicName).countOf();
+                    SubscribeAccount var = dao3.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", wxPublicName).queryForFirst();
+                    var.number = (int) (currentEssayNum + wordsPoints.size());
+                    var.update();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                System.out.println("是否到最后一页：" + isLastPage);
 
             }
 
@@ -174,6 +183,8 @@ public class WechatAdapter extends Adapter {
                 }
             }
             while (!isLastPage) {
+                List<WordsPoint> wordsPoints = obtainClickPoints(wxPublicName);
+                //获取模拟点击的坐标位置
                 //下滑到指定的位置
                 if (isFirstPage) {
                     AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
@@ -181,8 +192,7 @@ public class WechatAdapter extends Adapter {
                 } else {
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
                 }
-                //获取模拟点击的坐标位置
-                List<WordsPoint> wordsPoints = obtainClickPoints();
+
                 if (wordsPoints == null) {
                     logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
                     throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
@@ -312,9 +322,9 @@ public class WechatAdapter extends Adapter {
 //        AndroidUtil.clickPoint(223, 172, 0, driver);
 
         // C3 点击软键盘的搜索键
-        AndroidUtil.clickPoint(1350, 2250, 4000, driver); //TODO 时间适当调整
+        AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
 
-        // D 点击第一个结果
+        // D 点击第一个结果    问题  第一个结果可能并不是最准确的结果
         AndroidUtil.clickPoint(720, 600, 2000, driver);
 
         // 点击订阅

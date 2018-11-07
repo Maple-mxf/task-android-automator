@@ -22,8 +22,8 @@ import java.util.Stack;
 
 public class WechatAdapterTest {
 
-    //    String udid = "ZX1G323GNB";
-    String udid = "ZX1G423DMM";
+        String udid = "ZX1G323GNB";
+//    String udid = "ZX1G423DMM";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -155,7 +155,7 @@ public class WechatAdapterTest {
 
     @Test
     public void testGetOnePublicAccountsEssaysByHandlerException() {
-        adapter.digestionCrawler("华时代", true);
+        adapter.digestionCrawler("万金解盘", true);
     }
     @Test
     public void subscribe() throws Exception {

@@ -15,40 +15,43 @@ import one.rewind.db.DBName;
 public class SubscribeAccount extends ModelL {
 
 
-	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
-	public String udid;
+    @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
+    public String udid;
 
 
-	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
-	public String media_name;
+    @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
+    public String media_name;
 
 
-	@DatabaseField(dataType = DataType.STRING, width = 32, index = true)
-	public String media_id;
+    @DatabaseField(dataType = DataType.STRING, width = 32, index = true)
+    public String media_id;
 
-	@DatabaseField(dataType = DataType.INTEGER)
-	public int status;
+    @DatabaseField(dataType = DataType.INTEGER)
+    public int status;
+
+    @DatabaseField(dataType = DataType.INTEGER)
+    public int number;
 
 
-	public enum CrawlerState {
+    public enum CrawlerState {
 
-		FINISH(1),
-		NOFINISH(0);
+        FINISH(1),
+        NOFINISH(0);
 
-		public int status;
+        public int status;
 
-		CrawlerState(int status) {
-			this.status = status;
-		}
-	}
+        CrawlerState(int status) {
+            this.status = status;
+        }
+    }
 
-	@Override
-	public String toString() {
-		return "SubscribeAccount{" +
-				"udid='" + udid + '\'' +
-				", media_name='" + media_name + '\'' +
-				", media_id='" + media_id + '\'' +
-				", status=" + status +
-				'}';
-	}
+    @Override
+    public String toString() {
+        return "SubscribeAccount{" +
+                "udid='" + udid + '\'' +
+                ", media_name='" + media_name + '\'' +
+                ", media_id='" + media_id + '\'' +
+                ", status=" + status +
+                '}';
+    }
 }
