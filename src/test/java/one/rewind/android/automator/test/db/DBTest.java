@@ -1,6 +1,7 @@
 package one.rewind.android.automator.test.db;
 
 import com.j256.ormlite.dao.Dao;
+import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.Comments;
@@ -13,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 public class DBTest {
 
@@ -34,7 +36,7 @@ public class DBTest {
 
     @Test
     public void setupRawTable() throws Exception {
-        Refacter.createTable(Comments.class);
+        Refacter.createTable(BaiduTokens.class);
     }
 
 
@@ -95,6 +97,26 @@ public class DBTest {
         List<SubscribeAccount> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
 
         System.out.println(insert_time.size());
+    }
+
+
+    /**
+     * tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+     * tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
+     * tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
+     * tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
+     *
+     * @throws Exception
+     */
+    @Test
+    public void initBaiduTokens() throws Exception {
+        BaiduTokens token1 = new BaiduTokens();
+        token1.app_k = "e40LU71rtvxEsD6bVlb9U3wV";
+        token1.app_s = "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh";
+        token1.count = 0;
+        token1.id = UUID.randomUUID().toString();
+        token1.insert();
+
     }
 
 }

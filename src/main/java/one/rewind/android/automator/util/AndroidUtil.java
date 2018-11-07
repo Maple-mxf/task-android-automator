@@ -201,17 +201,6 @@ public class AndroidUtil {
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, driver);
         JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(path + fileName);
-        //TODO   类似的代码写了三遍  需要封装
-        boolean r = BaiduAPIUtil.inspectRateLimit(jsonObject);
-
-        if (!r) {
-            jsonObject = BaiduAPIUtil.switchToken(path + fileName);
-        }
-
-        if (jsonObject == null) {
-            throw new RuntimeException("没有可用的tokens了");
-        }
-
         JSONArray array = (JSONArray) jsonObject.get("words_result");
 
         for (Object o : array) {

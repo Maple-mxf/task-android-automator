@@ -1,8 +1,10 @@
 package one.rewind.android.automator.util;
 
-import com.google.common.collect.Maps;
+import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import org.json.JSONArray;
+import one.rewind.android.automator.model.BaiduTokens;
+import one.rewind.db.DaoManager;
+import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -10,22 +12,16 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Create By 2018/10/19
  * Description:
  */
 public class BaiduAPIUtil {
-
-
-    private static Map<String, String> tokens = Maps.newHashMap();
-
-    private static ConcurrentMap[] current = new ConcurrentMap[1];
-
+    private static Dao<BaiduTokens, String> tokensDao;
 
     /**
      * 初始化百度API接口的token信息
@@ -33,18 +29,10 @@ public class BaiduAPIUtil {
      * s: appSecret
      */
     static {
-        tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
-        tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
-        tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
-        tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
-        ConcurrentMap<String, String> var = Maps.newConcurrentMap();
-
-        for (Map.Entry<String, String> entry : tokens.entrySet()) {
-            String k = entry.getKey();
-            String v = entry.getValue();
-            var.put(k, v);
-            current[0] = var;
-            break;
+        try {
+            tokensDao = DaoManager.getDao(BaiduTokens.class);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -89,10 +77,9 @@ public class BaiduAPIUtil {
              */
             System.err.println("result:" + result);
             JSONObject jsonObject = new JSONObject(result);
-            String access_token = jsonObject.getString("access_token");
-            return access_token;
+            return jsonObject.getString("access_token");
         } catch (Exception e) {
-            System.err.printf("获取token失败！");
+            System.err.print("获取token失败！");
             e.printStackTrace(System.err);
         }
         return null;
@@ -110,63 +97,36 @@ public class BaiduAPIUtil {
             byte[] imgData = FileUtil.readFileByBytes(filePath);
             String imgStr = Base64Util.encode(imgData);
             String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
-            //保证只有一个线程切换token
-            synchronized (BaiduAPIUtil.class) {
-                //线上环境access_token有过期时间， 客户端可自行缓存，过期后重新获取。
-                ConcurrentMap<String, String> var = current[0];
-                Set<String> keySet = var.keySet();
-                StringBuilder key = new StringBuilder();
-                StringBuilder secret = new StringBuilder();
-                for (String temp : keySet) {
-                    key.append(temp);
-                    secret.append(var.get(temp));
-                }
-                String accessToken = BaiduAPIUtil.getAuth(key.toString(), secret.toString());
-                String rs = HttpUtil.post(otherHost, accessToken, params);
-                return new JSONObject(rs);
-            }
+            BaiduTokens token = BaiduAPIUtil.obtainToken();
+            String accessToken = BaiduAPIUtil.getAuth(token.app_k, token.app_s);
+            String rs = HttpUtil.post(otherHost, accessToken, params);
+            return new JSONObject(rs);
         } catch (Exception e) {
             e.printStackTrace();
             throw new InvokingBaiduAPIException("百度API调用失败！");
         }
     }
 
-    /**
-     * 检查百度API是否可用
-     * {"err_msg":}
-     *
-     * @param jsonObject
-     * @return
-     */
-    public static boolean inspectRateLimit(JSONObject jsonObject) {
-        try {
-            JSONArray array = (JSONArray) jsonObject.get("words_result");
-            return array != null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-
-    /**
-     * 切换当前百度API接口的token
-     */
-    public synchronized static JSONObject switchToken(String filePath) {
-        for (Map.Entry<String, String> entry : tokens.entrySet()) {
-            String k = entry.getKey();
-            String v = entry.getValue();
-            try {
-                JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
-                if (jsonObject.get("error_msg") == null || jsonObject.get("error_code") == null) {
-                    ConcurrentMap<String, String> var = Maps.newConcurrentMap();
-                    var.put(k, v);
-                    current[0] = var;
-                    return jsonObject;
-                }
-            } catch (InvokingBaiduAPIException e) {
-                e.printStackTrace();
+    public static BaiduTokens obtainToken() throws Exception {
+        synchronized (BaiduAPIUtil.class) {
+            BaiduTokens var;
+            BaiduTokens result = tokensDao.
+                    queryBuilder().
+                    where().
+                    ge("count", 0).
+                    and().
+                    le("count", 550).
+                    queryForFirst();
+            var = result;
+            if (DateUtils.isSameDay(result.update_time, new Date())) {
+                result.count += 1;
+            } else {
+                result.count = 0;
             }
+            result.update_time = new Date();
+            result.update();
+            return var;
         }
-        return null;
     }
 }
+

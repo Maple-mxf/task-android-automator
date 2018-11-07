@@ -89,18 +89,6 @@ public class WechatAdapter extends Adapter {
     @SuppressWarnings("JavaDoc")
     private List<WordsPoint> analysisImage(String filePath) throws InvokingBaiduAPIException {
         JSONObject jsonObject = BaiduAPIUtil.executeImageRecognitionRequest(filePath);
-
-        //检查当前appKey和appSecret是否可用
-        boolean r = BaiduAPIUtil.inspectRateLimit(jsonObject);
-
-        if (!r) {
-            jsonObject = BaiduAPIUtil.switchToken(filePath);
-        }
-
-        if (jsonObject == null) {
-            throw new RuntimeException("没有可用的token了");  //TODO
-        }
-
         //得到即将要点击的坐标位置
         return analysisWordsPoint(jsonObject.getJSONArray("words_result"));
 
