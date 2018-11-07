@@ -196,8 +196,8 @@ public class WechatAdapter extends Adapter {
                 }
 
                 if (wordsPoints == null) {
-                    logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
-                    throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
+                    logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.WechatAdapter.openEssay");
+                    throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.WechatAdapter.openEssay");
                 } else {
                     //点击计算出来的坐标
                     openEssays(wordsPoints);
@@ -207,7 +207,7 @@ public class WechatAdapter extends Adapter {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("=========================当前设备{}已经崩溃了=============================", device.udid);
-            throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
+            throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.WechatAdapter.openEssay");
         }
     }
 

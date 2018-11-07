@@ -59,14 +59,14 @@ public class LooseWechatAdapter extends Adapter {
         this.taskType = taskType;
     }
 
-    public LooseWechatAdapter(AndroidDevice device) {
+    private LooseWechatAdapter(AndroidDevice device) {
         super(device);
     }
 
 
-    public static Dao<Essays, String> essayDao;
+    private static Dao<Essays, String> essayDao;
 
-    public static Dao<SubscribeAccount, String> subscribeDao;
+    private static Dao<SubscribeAccount, String> subscribeDao;
 
     static {
         try {
@@ -78,7 +78,7 @@ public class LooseWechatAdapter extends Adapter {
     }
 
 
-    private List<WordsPoint> obtainClickPoints(String mediaName) throws InterruptedException, InvokingBaiduAPIException {
+    private List<WordsPoint> obtainPoints(String mediaName) throws InterruptedException, InvokingBaiduAPIException {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -102,7 +102,7 @@ public class LooseWechatAdapter extends Adapter {
     private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         //得到即将要点击的坐标位置
-        return analysisWordsPoint(jsonObject.getJSONArray("words_result"), mediaName);
+        return analysisPoint(jsonObject.getJSONArray("words_result"), mediaName);
 
     }
 
@@ -112,7 +112,7 @@ public class LooseWechatAdapter extends Adapter {
      * @param mediaName
      * @return
      */
-    public List<WordsPoint> analysisWordsPoint(JSONArray array, String mediaName) {
+    private List<WordsPoint> analysisPoint(JSONArray array, String mediaName) {
 
         array.remove(0);
 
@@ -170,7 +170,7 @@ public class LooseWechatAdapter extends Adapter {
      * @param mediaName
      * @throws InterruptedException
      */
-    public void getIntoPublicAccountEssayList(String mediaName, boolean retry) throws AndroidCollapseException {
+    private void openEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
                 TaskFailRecord record = AndroidUtil.retry(mediaName, essayDao, device.udid);
@@ -190,7 +190,7 @@ public class LooseWechatAdapter extends Adapter {
                 }
             }
             while (!lastPage) {
-                List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
+                List<WordsPoint> wordsPoints = obtainPoints(mediaName);
                 //获取模拟点击的坐标位置
                 //下滑到指定的位置
                 if (firstPage) {
@@ -201,8 +201,8 @@ public class LooseWechatAdapter extends Adapter {
                 }
 
                 if (wordsPoints == null) {
-                    logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
-                    throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
+                    logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.WechatAdapter.openEssay");
+                    throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.WechatAdapter.openEssay");
                 } else {
                     //点击计算出来的坐标
                     openEssays(wordsPoints);
@@ -212,7 +212,7 @@ public class LooseWechatAdapter extends Adapter {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("=========================当前设备{}已经崩溃了=============================", device.udid);
-            throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.WechatAdapter.getIntoPublicAccountEssayList");
+            throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.WechatAdapter.openEssay");
         }
     }
 
@@ -257,11 +257,11 @@ public class LooseWechatAdapter extends Adapter {
 
         private boolean retry;
 
-        public boolean getRetry() {
+        boolean getRetry() {
             return retry;
         }
 
-        public void setRetry(boolean retry) {
+        void setRetry(boolean retry) {
             this.retry = retry;
         }
 
@@ -303,7 +303,7 @@ public class LooseWechatAdapter extends Adapter {
      * @throws Exception
      * @see DBUtil#reset()
      */
-    public void subscribeWxAccount(String mediaName) throws Exception {
+    private void subscribeWxAccount(String mediaName) throws Exception {
         int k = 3;
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
@@ -376,16 +376,16 @@ public class LooseWechatAdapter extends Adapter {
      *
      * @param mediaName
      */
-    public void digestionCrawler(String mediaName, boolean retry) {
+    private void digestionCrawler(String mediaName, boolean retry) {
         try {
             if (!AndroidUtil.enterEssaysPage(mediaName, device)) {
                 return;
             }
-            getIntoPublicAccountEssayList(mediaName, retry);
+            openEssay(mediaName, retry);
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
             try {
-                //进入重试    直到设备不报异常为止
+                //进入重试
                 AndroidUtil.closeApp(driver);
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);
@@ -409,7 +409,7 @@ public class LooseWechatAdapter extends Adapter {
      * @param mediaName
      * @param retry
      */
-    public void digestionSubscribe(String mediaName, boolean retry) throws Exception {
+    private void digestionSubscribe(String mediaName, boolean retry) throws Exception {
         try {
             if (retry) {
                 AndroidUtil.closeApp(driver);

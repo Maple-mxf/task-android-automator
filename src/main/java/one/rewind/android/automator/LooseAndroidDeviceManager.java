@@ -11,21 +11,16 @@ import one.rewind.db.DaoManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * Create By 2018/10/19
  * Description   多设备管理
  */
+@SuppressWarnings("ALL")
 public class LooseAndroidDeviceManager {
 
     private static Dao<SubscribeAccount, String> subscribeDao;
-
-    public volatile static boolean running = false;
-
-    public static BlockingQueue<String> originalAccounts = new LinkedBlockingDeque<>();
 
     private LooseAndroidDeviceManager() {
     }
@@ -107,10 +102,8 @@ public class LooseAndroidDeviceManager {
      */
     private TaskType calculateState(String udid) throws Exception {
 
-        //所有订阅公众号的总数量
         long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
-        //未完成的公众号集合
         List<SubscribeAccount> notFinishR = subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
                 eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
