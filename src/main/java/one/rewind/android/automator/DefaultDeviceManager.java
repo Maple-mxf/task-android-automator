@@ -1,7 +1,7 @@
 package one.rewind.android.automator;
 
 import one.rewind.android.automator.adapter.WechatAdapter;
-import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -70,7 +70,7 @@ public class DefaultDeviceManager {
     //初始化设备
     static {
         try {
-            DBTab.subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            DBTab.subscribeDao = DaoManager.getDao(SubscribeMedia.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -126,12 +126,12 @@ public class DefaultDeviceManager {
      */
     private void allotFormulateTask(AndroidDevice device) throws SQLException {
         device.setClickEffect(false);
-        List<SubscribeAccount> accounts = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).
+        List<SubscribeMedia> accounts = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).
                 and().
-                eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
                 query();
         if (accounts.size() > 0) {
-            for (SubscribeAccount account : accounts) {
+            for (SubscribeMedia account : accounts) {
                 device.queue.add(account.media_name);
             }
         }
@@ -156,8 +156,8 @@ public class DefaultDeviceManager {
         //清空任务队列
         device.queue.clear();
         if (TaskType.CRAWLER.equals(taskType)) {
-            List<SubscribeAccount> var1 = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).query();
-            for (SubscribeAccount account : var1) {
+            List<SubscribeMedia> var1 = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).query();
+            for (SubscribeMedia account : var1) {
                 device.queue.add(account.media_name);
             }
             uncertainAllotCrawlerTask(device);
@@ -196,9 +196,9 @@ public class DefaultDeviceManager {
         long allSubscribe = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
         //未完成的公众号集合
-        List<SubscribeAccount> notFinishR = DBTab.subscribeDao.queryBuilder().where().
+        List<SubscribeMedia> notFinishR = DBTab.subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
-                eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
                 query();
 
         int todaySubscribe = DBUtil.obtainSubscribeNumToday(udid);

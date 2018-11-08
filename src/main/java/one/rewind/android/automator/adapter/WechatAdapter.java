@@ -51,12 +51,12 @@ public class WechatAdapter extends Adapter {
 
     public static Dao<Essays, String> dao2;
 
-    public static Dao<SubscribeAccount, String> dao3;
+    public static Dao<SubscribeMedia, String> dao3;
 
     static {
         try {
             dao2 = DaoManager.getDao(Essays.class);
-            dao3 = DaoManager.getDao(SubscribeAccount.class);
+            dao3 = DaoManager.getDao(SubscribeMedia.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -131,7 +131,7 @@ public class WechatAdapter extends Adapter {
                 try {
                     //计算当前公众号文章数量
                     long currentEssayNum = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                    SubscribeAccount var = dao3.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                    SubscribeMedia var = dao3.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                     var.number = (int) (currentEssayNum + wordsPoints.size());
                     var.update();
                 } catch (Exception e) {
@@ -168,7 +168,7 @@ public class WechatAdapter extends Adapter {
     public void getIntoPublicAccountEssayList(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
-                TaskFailRecord record = AndroidUtil.retry(mediaName, dao2, device.udid);
+                FailRecord record = AndroidUtil.retry(mediaName, dao2, device.udid);
                 if (record == null) {
                     //当前公众号抓取的文章已经达到100篇以上
                     return;
@@ -329,7 +329,7 @@ public class WechatAdapter extends Adapter {
         //根据
         WordsPoint point = AndroidUtil.accuracySubscribe(mediaName);
         if (point == null) {
-            SubscribeAccount tmp = new SubscribeAccount();
+            SubscribeMedia tmp = new SubscribeMedia();
             tmp.media_name = mediaName;
             tmp.status = 2;
             tmp.update_time = new Date();
@@ -368,7 +368,7 @@ public class WechatAdapter extends Adapter {
                 .countOf();
         if (tempCount == 0) {
             //订阅完成之后再数据库存储记录
-            SubscribeAccount e = new SubscribeAccount();
+            SubscribeMedia e = new SubscribeMedia();
             e.udid = device.udid;
             e.media_name = mediaName;
             e.insert();
@@ -425,8 +425,8 @@ public class WechatAdapter extends Adapter {
             subscribeWxAccount(mediaName);
         } catch (Exception e) {
             e.printStackTrace();
-            Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
-            SubscribeAccount forFirst = dao.queryBuilder().where().eq("media_name", mediaName).queryForFirst();
+            Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
+            SubscribeMedia forFirst = dao.queryBuilder().where().eq("media_name", mediaName).queryForFirst();
             if (forFirst == null) {
                 digestionSubscribe(mediaName, true);
             }

@@ -4,7 +4,7 @@ package one.rewind.android.automator;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.db.DaoManager;
 
 /**
@@ -19,14 +19,14 @@ public class DBTab {
 
     public static Dao<Essays, String> essayDao;
 
-    public static Dao<SubscribeAccount, String> subscribeDao;
+    public static Dao<SubscribeMedia, String> subscribeDao;
 
     public static Dao<BaiduTokens, String> tokenDao;
 
     static {
         try {
             essayDao = DaoManager.getDao(Essays.class);
-            subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            subscribeDao = DaoManager.getDao(SubscribeMedia.class);
             tokenDao = DaoManager.getDao(BaiduTokens.class);
         } catch (Exception e) {
             e.printStackTrace();

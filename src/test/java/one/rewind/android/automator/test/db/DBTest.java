@@ -4,7 +4,7 @@ import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
 import org.apache.commons.lang3.time.DateUtils;
@@ -55,7 +55,7 @@ public class DBTest {
         calendar.set(Calendar.SECOND, 0);
         Date zero = calendar.getTime();
         Date current = DateUtils.addDays(zero, 1);
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
         long count = dao.queryBuilder().where().between("insert_time", zero, current).countOf();
         System.out.println(count);
     }
@@ -63,27 +63,27 @@ public class DBTest {
 
     @Test
     public void updateData() throws Exception {
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
 
-        SubscribeAccount subscribeAccount = dao.queryBuilder().where().
+        SubscribeMedia subscribeMedia = dao.queryBuilder().where().
                 eq("udid", "ZX1G22PQLH").
                 and().
                 eq("media_name", "北京理工大学研究生教育").
                 queryForFirst();
 
-        System.out.println(subscribeAccount);
+        System.out.println(subscribeMedia);
 
-        subscribeAccount.status = SubscribeAccount.CrawlerState.FINISH.status;
+        subscribeMedia.status = SubscribeMedia.CrawlerState.FINISH.status;
 
-        System.out.println(subscribeAccount);
+        System.out.println(subscribeMedia);
 
-        subscribeAccount.update();
+        subscribeMedia.update();
     }
 
 
     @Test
     public void byTimeQuery() throws Exception {
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
 
         Date date = new Date();
 
@@ -93,7 +93,7 @@ public class DBTest {
 
         Date parse = df.parse(result);
 
-        List<SubscribeAccount> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
+        List<SubscribeMedia> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
 
         System.out.println(insert_time.size());
     }

@@ -3,8 +3,8 @@ package one.rewind.android.automator.test.api;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
-import one.rewind.android.automator.model.TaskFailRecord;
+import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.FailRecord;
 import one.rewind.db.DaoManager;
 import org.junit.Test;
 
@@ -167,23 +167,23 @@ public class APITransport {
 
     @Test
     public void updateNotFinish() throws Exception {
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
 
-        List<SubscribeAccount> accounts = dao.queryBuilder().where().eq("status", 0).query();
+        List<SubscribeMedia> accounts = dao.queryBuilder().where().eq("status", 0).query();
 
         Dao<Essays, String> dao1 = DaoManager.getDao(Essays.class);
 
-        Dao<TaskFailRecord, String> dao2 = DaoManager.getDao(TaskFailRecord.class);
+        Dao<FailRecord, String> dao2 = DaoManager.getDao(FailRecord.class);
 
-        for (SubscribeAccount account : accounts) {
+        for (SubscribeMedia account : accounts) {
             long var = dao1.queryBuilder().where().eq("media_nick", account.media_name).countOf();
-            List<TaskFailRecord> wxPublicName = dao2.queryBuilder().where().eq("wxPublicName", account.media_name).query();
+            List<FailRecord> wxPublicName = dao2.queryBuilder().where().eq("wxPublicName", account.media_name).query();
             if (var > 50) {
                 account.status = 1;
                 account.update_time = new Date();
                 account.update();
-                for (TaskFailRecord taskFailRecord : wxPublicName) {
-                    dao2.delete(taskFailRecord);
+                for (FailRecord failRecord : wxPublicName) {
+                    dao2.delete(failRecord);
                 }
 
             }

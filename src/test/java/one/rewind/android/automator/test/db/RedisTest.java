@@ -1,6 +1,6 @@
 package one.rewind.android.automator.test.db;
 
-import one.rewind.android.automator.model.TaskFailRecord;
+import one.rewind.android.automator.model.FailRecord;
 import one.rewind.db.RedissonAdapter;
 import org.junit.Test;
 import org.redisson.api.RMap;
@@ -19,7 +19,7 @@ public class RedisTest {
 	@Test
 	public void testTakeObject() {
 		RedissonClient redisClient = RedissonAdapter.redisson;
-		RMap<String, TaskFailRecord> notFinishTask = redisClient.getMap("NotFinishTask");
+		RMap<String, FailRecord> notFinishTask = redisClient.getMap("NotFinishTask");
 		System.out.println(notFinishTask);
 		notFinishTask.forEach((k, v) -> System.out.println("k: " + k + "   v:" + v));
 	}

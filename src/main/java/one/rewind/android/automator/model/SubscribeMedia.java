@@ -12,7 +12,7 @@ import one.rewind.db.DBName;
  */
 @DBName(value = "raw")
 @DatabaseTable(tableName = "wechat_subscribe_account")
-public class SubscribeAccount extends ModelL {
+public class SubscribeMedia extends ModelL {
 
 
     @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
@@ -49,7 +49,7 @@ public class SubscribeAccount extends ModelL {
 
     @Override
     public String toString() {
-        return "SubscribeAccount{" +
+        return "SubscribeMedia{" +
                 "udid='" + udid + '\'' +
                 ", media_name='" + media_name + '\'' +
                 ", media_id='" + media_id + '\'' +

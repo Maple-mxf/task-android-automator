@@ -67,12 +67,12 @@ public class LooseWechatAdapter extends Adapter {
 
     private static Dao<Essays, String> essayDao;
 
-    private static Dao<SubscribeAccount, String> subscribeDao;
+    private static Dao<SubscribeMedia, String> subscribeDao;
 
     static {
         try {
             essayDao = DaoManager.getDao(Essays.class);
-            subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            subscribeDao = DaoManager.getDao(SubscribeMedia.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -137,7 +137,7 @@ public class LooseWechatAdapter extends Adapter {
                 try {
                     //计算当前公众号文章数量
                     long currentEssayNum = essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                    SubscribeAccount var = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                    SubscribeMedia var = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                     var.number = (int) (currentEssayNum + wordsPoints.size());
                     var.update();
                 } catch (Exception e) {
@@ -174,7 +174,7 @@ public class LooseWechatAdapter extends Adapter {
     private void openEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
-                TaskFailRecord record = AndroidUtil.retry(mediaName, essayDao, device.udid);
+                FailRecord record = AndroidUtil.retry(mediaName, essayDao, device.udid);
                 if (record == null) {
                     //当前公众号抓取的文章已经达到100篇以上
                     return;
@@ -318,13 +318,13 @@ public class LooseWechatAdapter extends Adapter {
         }
 
         private void initCrawlerQueue() throws SQLException {
-            List<SubscribeAccount> accounts =
+            List<SubscribeMedia> accounts =
                     DBTab.subscribeDao.
                             queryBuilder().
                             where().
                             eq("udid", device.udid).
                             and().
-                            eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                            eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
                             query();
             if (accounts.size() == 0) {
                 taskType = TaskType.WAIT;
@@ -364,9 +364,9 @@ public class LooseWechatAdapter extends Adapter {
         //根据
         WordsPoint point = AndroidUtil.accuracySubscribe(mediaName);
         if (point == null) {
-            SubscribeAccount tmp = new SubscribeAccount();
+            SubscribeMedia tmp = new SubscribeMedia();
             tmp.media_name = mediaName;
-            tmp.status = SubscribeAccount.CrawlerState.NOMEDIANAME.status;
+            tmp.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
             tmp.update_time = new Date();
             tmp.number = 0;
             tmp.udid = udid;
@@ -403,7 +403,7 @@ public class LooseWechatAdapter extends Adapter {
                 .countOf();
         if (tempCount == 0) {
             //订阅完成之后再数据库存储记录
-            SubscribeAccount e = new SubscribeAccount();
+            SubscribeMedia e = new SubscribeMedia();
             e.udid = device.udid;
             e.media_name = mediaName;
             e.insert();
@@ -430,7 +430,7 @@ public class LooseWechatAdapter extends Adapter {
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);
                 long number = essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                SubscribeAccount tmp = subscribeDao.queryBuilder().where().eq("media_name", mediaName).
+                SubscribeMedia tmp = subscribeDao.queryBuilder().where().eq("media_name", mediaName).
                         and().
                         eq("udid", device.udid).
                         queryForFirst();
@@ -458,8 +458,8 @@ public class LooseWechatAdapter extends Adapter {
             subscribeWxAccount(mediaName);
         } catch (Exception e) {
             e.printStackTrace();
-            Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
-            SubscribeAccount forFirst = dao.queryBuilder().where().eq("media_name", mediaName).queryForFirst();
+            Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
+            SubscribeMedia forFirst = dao.queryBuilder().where().eq("media_name", mediaName).queryForFirst();
             if (forFirst == null) {
                 digestionSubscribe(mediaName, true);
             }
@@ -491,9 +491,9 @@ public class LooseWechatAdapter extends Adapter {
 
         long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
-        List<SubscribeAccount> notFinishR = subscribeDao.queryBuilder().where().
+        List<SubscribeMedia> notFinishR = subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
-                eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
                 query();
 
         int todaySubscribe = DBUtil.obtainSubscribeNumToday(udid);

@@ -7,8 +7,8 @@ import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
-import one.rewind.android.automator.model.TaskFailRecord;
+import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.FailRecord;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.db.DaoManager;
 import org.apache.commons.io.FileUtils;
@@ -214,9 +214,9 @@ public class AndroidUtil {
         }
     }
 
-    public static TaskFailRecord retry(String mediaName, Dao<Essays, String> dao2, String udid) throws Exception {
+    public static FailRecord retry(String mediaName, Dao<Essays, String> dao2, String udid) throws Exception {
         long count = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
-        TaskFailRecord record = new TaskFailRecord();
+        FailRecord record = new FailRecord();
         record.finishNum = (int) count;
         record.deviceUdid = udid;
         record.wxPublicName = mediaName;
@@ -248,9 +248,9 @@ public class AndroidUtil {
      */
     public static void updateProcess(String mediaName, String udid) throws Exception {
 
-        Dao<SubscribeAccount, String> dao = DaoManager.getDao(SubscribeAccount.class);
+        Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
 
-        SubscribeAccount account = dao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
+        SubscribeMedia account = dao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
 
         if (account != null) {
             account.status = 1;

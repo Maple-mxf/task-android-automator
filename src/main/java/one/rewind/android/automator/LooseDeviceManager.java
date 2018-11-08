@@ -1,7 +1,7 @@
 package one.rewind.android.automator;
 
 import one.rewind.android.automator.adapter.LooseWechatAdapter;
-import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.db.DaoManager;
 
@@ -52,7 +52,7 @@ public class LooseDeviceManager {
     //初始化设备
     static {
         try {
-            DBTab.subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            DBTab.subscribeDao = DaoManager.getDao(SubscribeMedia.class);
         } catch (Exception e) {
             e.printStackTrace();
         }

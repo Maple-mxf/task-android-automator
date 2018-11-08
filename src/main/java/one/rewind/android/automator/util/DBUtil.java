@@ -4,7 +4,7 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeAccount;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.db.DaoManager;
 
 import java.sql.*;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public class DBUtil {
 
-    private static Dao<SubscribeAccount, String> subscribeDao;
+    private static Dao<SubscribeMedia, String> subscribeDao;
 
     private static Dao<Essays, String> essaysDao;
 
@@ -25,7 +25,7 @@ public class DBUtil {
 
     static {
         try {
-            subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            subscribeDao = DaoManager.getDao(SubscribeMedia.class);
             essaysDao = DaoManager.getDao(Essays.class);
         } catch (Exception e) {
             e.printStackTrace();
@@ -38,8 +38,8 @@ public class DBUtil {
      * @see WechatAdapter#subscribeWxAccount(java.lang.String)
      */
     public static void reset() throws SQLException {
-        List<SubscribeAccount> accounts = subscribeDao.queryForAll();
-        for (SubscribeAccount v : accounts) {
+        List<SubscribeMedia> accounts = subscribeDao.queryForAll();
+        for (SubscribeMedia v : accounts) {
             try {
                 if (v.status == 2) {
                     continue;
