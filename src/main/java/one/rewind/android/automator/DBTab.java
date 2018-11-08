@@ -32,16 +32,4 @@ public class DBTab {
             e.printStackTrace();
         }
     }
-
-    /**
-     * The each page size
-     */
-    public static final int SIZE = 20;
-
-    /**
-     * The current page,The start is zero
-     */
-    public static int current = 0;
-
-
 }

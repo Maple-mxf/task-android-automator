@@ -17,6 +17,5 @@ public class LooseManagerTest {
         manager.startManager();
 
         System.out.println("等待任务执行");
-
     }
 }
