@@ -244,11 +244,11 @@ public class LooseWechatAdapter extends Adapter {
         }
     }
 
-    public void start() {
+    public void start() throws Exception {
         this.setExecutor();
         Task task = new Task();
-        assert taskType != null;
-        task.setRetry(this.taskType.equals(TaskType.CRAWLER));
+        this.taskType = calculateTaskType(this.device.udid);
+        task.setRetry(TaskType.CRAWLER.equals(this.taskType));
         this.executor.execute(task);
     }
 
@@ -291,6 +291,10 @@ public class LooseWechatAdapter extends Adapter {
                     e.printStackTrace();
                 }
             }
+        }
+
+        private void execute() {
+
         }
     }
 
@@ -428,7 +432,6 @@ public class LooseWechatAdapter extends Adapter {
 
     public static class Builder {
 
-        private TaskType taskType;
         private AndroidDevice device;
 
         public Builder device(AndroidDevice device) {
@@ -436,16 +439,41 @@ public class LooseWechatAdapter extends Adapter {
             return this;
         }
 
-        public Builder taskType(TaskType taskType) {
-            this.taskType = taskType;
-            return this;
-        }
-
         public LooseWechatAdapter build() {
-            LooseWechatAdapter adapter = new LooseWechatAdapter(this.device);
-            adapter.taskType = this.taskType;
-            return adapter;
+            return new LooseWechatAdapter(this.device);
         }
+    }
+
+
+    /**
+     * 主要计算设备当前应该处于的一个状态
+     *
+     * @return
+     * @throws Exception
+     */
+    private static TaskType calculateTaskType(String udid) throws Exception {
+
+        long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
+
+        List<SubscribeAccount> notFinishR = subscribeDao.queryBuilder().where().
+                eq("udid", udid).and().
+                eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                query();
+
+        int todaySubscribe = DBUtil.obtainSubscribeNumToday(udid);
+
+        if (allSubscribe > 993 && todaySubscribe >= 40) {
+            return TaskType.CRAWLER;
+        } else if (allSubscribe < 993 && todaySubscribe >= 40) {
+            return TaskType.CRAWLER;
+        } else if (allSubscribe < 993) {
+            if (notFinishR.size() == 0) {
+                return TaskType.SUBSCRIBE;
+            } else {
+                return TaskType.CRAWLER;
+            }
+        }
+        return null;
     }
 
 }
