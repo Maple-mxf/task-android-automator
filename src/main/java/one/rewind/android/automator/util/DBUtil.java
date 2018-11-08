@@ -29,10 +29,10 @@ public class DBUtil {
                 if (v.status == 2) {
                     continue;
                 }
-                long countOf = DBTab.subscribeDao.
+                long countOf = DBTab.essayDao.
                         queryBuilder().
                         where().
-                        eq("media_name", v.media_name).
+                        eq("media_nick", v.media_name).
                         countOf();
                 if (countOf >= v.number || Math.abs(v.number - countOf) <= 5) {
                     v.retry_count = 5;
