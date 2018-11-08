@@ -3,8 +3,10 @@ package one.rewind.android.automator;
 import one.rewind.android.automator.adapter.LooseWechatAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
+import one.rewind.android.automator.util.DBUtil;
 import one.rewind.db.DaoManager;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -69,9 +71,11 @@ public class LooseDeviceManager {
     /**
      * 任务队列初始化放在adapter中,更加便捷可控制
      */
-    public void startManager() throws ClassNotFoundException {
+    public void startManager() throws ClassNotFoundException, SQLException {
 
         Class.forName("one.rewind.android.automator.DBTab");
+
+        DBUtil.reset();
 
         List<AndroidDevice> androidDevices = obtainAvailableDevices();
 

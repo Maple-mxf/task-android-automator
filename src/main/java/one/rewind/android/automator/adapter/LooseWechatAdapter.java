@@ -46,13 +46,14 @@ public class LooseWechatAdapter extends Adapter {
                         60,
                         TimeUnit.SECONDS,
                         new SynchronousQueue<>(),
-                        threadFactory(UUID.randomUUID().toString(), false));
+                        threadFactory(UUID.randomUUID().toString().replace("-", "")
+                        ));
     }
 
-    private static ThreadFactory threadFactory(final String name, final boolean daemon) {
+    private static ThreadFactory threadFactory(final String name) {
         return runnable -> {
             Thread result = new Thread(runnable, name);
-            result.setDaemon(daemon);
+            result.setDaemon(false);
             return result;
         };
     }
