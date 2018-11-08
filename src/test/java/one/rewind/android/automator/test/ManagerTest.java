@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test;
 
 import com.google.common.collect.Sets;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.DefaultDeviceManager;
 import one.rewind.android.automator.util.DBUtil;
 import org.junit.Test;
 
@@ -17,9 +17,9 @@ public class ManagerTest {
     @Test
     public void startManagerNotTaskQueue() throws Exception {
 
-        Class.forName("one.rewind.android.automator.AndroidDeviceManager");
+        Class.forName("one.rewind.android.automator.DefaultDeviceManager");
 
-        AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 
         Class.forName("one.rewind.android.automator.util.BaiduAPIUtil");
 
@@ -34,12 +34,12 @@ public class ManagerTest {
      */
     @Test
     public void startManagerHasTaskQueue() throws Exception {
-        Class.forName("one.rewind.android.automator.AndroidDeviceManager");
+        Class.forName("one.rewind.android.automator.DefaultDeviceManager");
         Set<String> set = Sets.newHashSet();
         //初始化原始任务队列
         DBUtil.obtainFullData(set, 20, 80);
-        AndroidDeviceManager.originalAccounts.addAll(set);
-        AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
+        DefaultDeviceManager.originalAccounts.addAll(set);
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
         manager.startManager();
     }
 }

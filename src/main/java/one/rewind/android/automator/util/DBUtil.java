@@ -88,6 +88,7 @@ public class DBUtil {
                     accounts.add(media_nick);
                 }
             }
+            connection.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

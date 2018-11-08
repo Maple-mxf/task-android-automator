@@ -1,6 +1,5 @@
 package one.rewind.android.automator;
 
-import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.model.TaskType;
@@ -18,36 +17,34 @@ import java.util.concurrent.*;
  * Create By 2018/10/19
  * Description   多设备管理
  */
-public class AndroidDeviceManager {
-
-    private static Dao<SubscribeAccount, String> subscribeDao;
+public class DefaultDeviceManager {
 
     public volatile static boolean running = false;
 
     /**
      * 逻辑定义:   @1 TaskType: @Crawler-> 只在数据库中查找未完成抓取的公众号.当然也包括了未完成任务的公众号
      *
-     * @2 TaskType: @Subscribe->只需要将当前one.rewind.android.automator.AndroidDeviceManager#originalAccounts
+     * @2 TaskType: @Subscribe->只需要将当前one.rewind.android.automator.DefaultDeviceManager#originalAccounts
      * 集合中的所有数据进行关注.
      * 任务指定:  计算每一台设备(一台设备对应一个微信号) ;任务类型的根据每个设备关注的每个号进行动态计算,合理算出当前设备的任务类型
      * <p>
-     * one.rewind.android.automator.AndroidDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
+     * one.rewind.android.automator.DefaultDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
      */
     public static BlockingQueue<String> originalAccounts = new LinkedBlockingDeque<>();
 
-    private AndroidDeviceManager() {
+    private DefaultDeviceManager() {
     }
 
     public static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
 
-    private static AndroidDeviceManager instance;
+    private static DefaultDeviceManager instance;
 
     public static final int DEFAULT_LOCAL_PROXY_PORT = 48454;
 
-    public static AndroidDeviceManager getInstance() {
-        synchronized (AndroidDeviceManager.class) {
+    public static DefaultDeviceManager getInstance() {
+        synchronized (DefaultDeviceManager.class) {
             if (instance == null) {
-                instance = new AndroidDeviceManager();
+                instance = new DefaultDeviceManager();
             }
             return instance;
         }
@@ -58,8 +55,8 @@ public class AndroidDeviceManager {
      *
      * @return
      */
-    public static List<AndroidDevice> obtainAvailableDevices() {
-        synchronized (AndroidDeviceManager.class) {
+    private static List<AndroidDevice> obtainAvailableDevices() {
+        synchronized (DefaultDeviceManager.class) {
             List<AndroidDevice> availableDevices = new ArrayList<>();
             devices.forEach((k, v) -> {
                 if (v.state.equals(AndroidDevice.State.INIT)) {
@@ -73,7 +70,7 @@ public class AndroidDeviceManager {
     //初始化设备
     static {
         try {
-            subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            DBTab.subscribeDao = DaoManager.getDao(SubscribeAccount.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -105,7 +102,7 @@ public class AndroidDeviceManager {
      * 任务分配   By Device
      * Dynamic set device state
      */
-    public void uncertainAllotTask() throws Exception {
+    private void uncertainAllotTask() throws Exception {
         running = true;
         List<AndroidDevice> availableDevices = obtainAvailableDevices();
         for (AndroidDevice device : availableDevices) {
@@ -125,11 +122,11 @@ public class AndroidDeviceManager {
      * 这种情景仅限于在任务队列的size = 0
      *
      * @param device
-     * @see one.rewind.android.automator.AndroidDeviceManager#originalAccounts
+     * @see DefaultDeviceManager#originalAccounts
      */
     private void allotFormulateTask(AndroidDevice device) throws SQLException {
         device.setClickEffect(false);
-        List<SubscribeAccount> accounts = subscribeDao.queryBuilder().where().eq("udid", device.udid).
+        List<SubscribeAccount> accounts = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).
                 and().
                 eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
                 query();
@@ -153,13 +150,13 @@ public class AndroidDeviceManager {
      * @param taskType
      * @param device
      */
-    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException, ClassNotFoundException {
+    private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException {
         DBUtil.reset();
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         //清空任务队列
         device.queue.clear();
         if (TaskType.CRAWLER.equals(taskType)) {
-            List<SubscribeAccount> var1 = subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).query();
+            List<SubscribeAccount> var1 = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).query();
             for (SubscribeAccount account : var1) {
                 device.queue.add(account.media_name);
             }
@@ -193,13 +190,13 @@ public class AndroidDeviceManager {
      * @return
      * @throws Exception
      */
-    public TaskType calculateState(String udid) throws Exception {
+    private TaskType calculateState(String udid) throws Exception {
 
         //所有订阅公众号的总数量
-        long allSubscribe = subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
+        long allSubscribe = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
         //未完成的公众号集合
-        List<SubscribeAccount> notFinishR = subscribeDao.queryBuilder().where().
+        List<SubscribeAccount> notFinishR = DBTab.subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
                 eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
                 query();

@@ -94,12 +94,12 @@ public class APITransport {
 
    /* @Test
     public void feedProgram() throws InterruptedException {
-        if (AndroidDeviceManager.running) {
+        if (DefaultDeviceManager.running) {
             return;
         }
 
 
-        AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 
         //   账号限制
         int var = 10000;
@@ -111,7 +111,7 @@ public class APITransport {
 			}*//*
             List<String> accounts = sendAccounts(i);
 
-            accounts.forEach(v -> AndroidDeviceManager.originalAccounts.add(v));
+            accounts.forEach(v -> DefaultDeviceManager.originalAccounts.add(v));
 
             manager.allotTask();
 
@@ -148,11 +148,11 @@ public class APITransport {
 
         AndroidUtil.updateProcess();
 
-        Class.forName("one.rewind.android.automator.AndroidDeviceManager");
+        Class.forName("one.rewind.android.automator.DefaultDeviceManager");
 
-        List<AndroidDevice> availableDevices = AndroidDeviceManager.obtainAvailableDevices();
+        List<AndroidDevice> availableDevices = DefaultDeviceManager.obtainAvailableDevices();
 
-        AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 
         manager.allotCrawlerTask(availableDevices, false);
 

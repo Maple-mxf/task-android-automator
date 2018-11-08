@@ -1,7 +1,9 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.DBTab;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.*;
@@ -14,11 +16,10 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * Create By 2018/10/10
@@ -267,34 +268,69 @@ public class LooseWechatAdapter extends Adapter {
 
         @Override
         public void run() {
-            assert taskType != null;
+            execute();
+        }
+
+        private void execute() {
+            device.queue.clear();
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
+                    initSubscribeQueue();
                     for (String var : device.queue) {
                         digestionSubscribe(var, false);
                     }
+                    taskType = TaskType.CRAWLER;
+                    execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             } else if (TaskType.CRAWLER.equals(taskType)) {
                 try {
+                    initCrawlerQueue();
                     for (String var : device.queue) {
                         lastPage = false;
                         digestionCrawler(var, getRetry());
                         AndroidUtil.updateProcess(var, device.udid);
-                        //返回到主界面
                         for (int i = 0; i < 5; i++) {
                             driver.navigate().back();
                         }
                     }
+                    taskType = TaskType.SUBSCRIBE;
+                    execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            } else if (TaskType.WAIT.equals(taskType)) {
+                System.out.println("当前设备没有可执行的任务");
             }
         }
 
-        private void execute() {
 
+        private void initSubscribeQueue() throws SQLException {
+            int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
+            if (numToday >= 40) {
+                taskType = TaskType.WAIT;
+            } else {
+                Set<String> mediaNicks = Sets.newHashSet();
+                DBUtil.obtainFullData(mediaNicks, 10, 40 - numToday);
+                device.queue.addAll(mediaNicks);
+            }
+        }
+
+        private void initCrawlerQueue() throws SQLException {
+            List<SubscribeAccount> accounts =
+                    DBTab.subscribeDao.
+                            queryBuilder().
+                            where().
+                            eq("udid", device.udid).
+                            and().
+                            eq("status", SubscribeAccount.CrawlerState.NOFINISH.status).
+                            query();
+            if (accounts.size() == 0) {
+                taskType = TaskType.WAIT;
+                return;
+            }
+            device.queue.addAll(accounts.stream().map(v -> v.media_name).collect(Collectors.toSet()));
         }
     }
 

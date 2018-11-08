@@ -1,6 +1,5 @@
 package one.rewind.android.automator;
 
-import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.LooseWechatAdapter;
 import one.rewind.android.automator.model.SubscribeAccount;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -13,32 +12,33 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Create By 2018/10/19
- * Description   多设备管理
+ * Description
+ *
+ * @see DefaultDeviceManager 集中式线程任务分配
+ * @see LooseDeviceManager 分散式线程任务分配
  */
-public class LooseAndroidDeviceManager {
+public class LooseDeviceManager {
 
-    private static Dao<SubscribeAccount, String> subscribeDao;
-
-    private LooseAndroidDeviceManager() {
+    private LooseDeviceManager() {
     }
 
-    public static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
 
-    private static LooseAndroidDeviceManager instance;
+    private static LooseDeviceManager instance;
 
-    public static final int DEFAULT_LOCAL_PROXY_PORT = 48454;
+    private static final int DEFAULT_LOCAL_PROXY_PORT = 48454;
 
-    public static LooseAndroidDeviceManager getInstance() {
-        synchronized (LooseAndroidDeviceManager.class) {
+    public static LooseDeviceManager getInstance() {
+        synchronized (LooseDeviceManager.class) {
             if (instance == null) {
-                instance = new LooseAndroidDeviceManager();
+                instance = new LooseDeviceManager();
             }
             return instance;
         }
     }
 
     private static List<AndroidDevice> obtainAvailableDevices() {
-        synchronized (LooseAndroidDeviceManager.class) {
+        synchronized (LooseDeviceManager.class) {
             List<AndroidDevice> availableDevices = new ArrayList<>();
             devices.forEach((k, v) -> {
                 if (v.state.equals(AndroidDevice.State.INIT)) {
@@ -52,7 +52,7 @@ public class LooseAndroidDeviceManager {
     //初始化设备
     static {
         try {
-            subscribeDao = DaoManager.getDao(SubscribeAccount.class);
+            DBTab.subscribeDao = DaoManager.getDao(SubscribeAccount.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -69,7 +69,10 @@ public class LooseAndroidDeviceManager {
     /**
      * 任务队列初始化放在adapter中,更加便捷可控制
      */
-    public void startManager() {
+    public void startManager() throws ClassNotFoundException {
+
+        Class.forName("one.rewind.android.automator.DBTab");
+
         List<AndroidDevice> androidDevices = obtainAvailableDevices();
 
         for (AndroidDevice device : androidDevices) {

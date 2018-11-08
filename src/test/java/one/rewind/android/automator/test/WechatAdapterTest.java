@@ -4,7 +4,7 @@ import com.google.common.collect.Sets;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.DefaultDeviceManager;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
@@ -199,10 +199,10 @@ public class WechatAdapterTest {
 
     @Test
     public void testAllotTask() throws InterruptedException {
-        AndroidDeviceManager.originalAccounts.add("菜鸟教程");
-        AndroidDeviceManager.originalAccounts.add("Java技术栈");
-        AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
-//        manager.allotTask(AndroidDeviceManager.TaskType.SUBSCRIBE);
+        DefaultDeviceManager.originalAccounts.add("菜鸟教程");
+        DefaultDeviceManager.originalAccounts.add("Java技术栈");
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
+//        manager.allotTask(DefaultDeviceManager.TaskType.SUBSCRIBE);
 
     }
 
