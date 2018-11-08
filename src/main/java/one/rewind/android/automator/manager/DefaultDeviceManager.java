@@ -1,6 +1,8 @@
-package one.rewind.android.automator;
+package one.rewind.android.automator.manager;
 
-import one.rewind.android.automator.adapter.WechatAdapter;
+import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.adapter.DefaultTaskControl;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -28,7 +30,7 @@ public class DefaultDeviceManager {
      * 集合中的所有数据进行关注.
      * 任务指定:  计算每一台设备(一台设备对应一个微信号) ;任务类型的根据每个设备关注的每个号进行动态计算,合理算出当前设备的任务类型
      * <p>
-     * one.rewind.android.automator.DefaultDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
+     * one.rewind.android.automator.manager.DefaultDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
      */
     public static BlockingQueue<String> originalAccounts = new LinkedBlockingDeque<>();
 
@@ -90,11 +92,11 @@ public class DefaultDeviceManager {
      * @throws Exception
      */
     public void startManager() throws Exception {
-        WechatAdapter.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
+        DefaultTaskControl.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
         uncertainAllotTask();
-        while (!WechatAdapter.executor.isTerminated()) {
-            WechatAdapter.executor.awaitTermination(300, TimeUnit.SECONDS);
-            System.out.println("progress: % " + WechatAdapter.executor.isTerminated());
+        while (!DefaultTaskControl.executor.isTerminated()) {
+            DefaultTaskControl.executor.awaitTermination(300, TimeUnit.SECONDS);
+            System.out.println("progress: % " + DefaultTaskControl.executor.isTerminated());
         }
     }
 
@@ -135,7 +137,7 @@ public class DefaultDeviceManager {
                 device.queue.add(account.media_name);
             }
         }
-        WechatAdapter adapter = new WechatAdapter(device);
+        DefaultTaskControl adapter = new DefaultTaskControl(device);
         adapter.setTaskType(TaskType.CRAWLER);
         adapter.start(true);
 
@@ -171,14 +173,14 @@ public class DefaultDeviceManager {
 
     private void uncertainAllotCrawlerTask(AndroidDevice device) {
         device.setClickEffect(false);
-        WechatAdapter adapter = new WechatAdapter(device);
+        DefaultTaskControl adapter = new DefaultTaskControl(device);
         adapter.setTaskType(TaskType.CRAWLER);
         adapter.start(true);
     }
 
     private void uncertainAllotSubscribeTask(AndroidDevice device) {
         device.setClickEffect(false);
-        WechatAdapter adapter = new WechatAdapter(device);
+        DefaultTaskControl adapter = new DefaultTaskControl(device);
         adapter.setTaskType(TaskType.SUBSCRIBE);
         adapter.start(false);
     }

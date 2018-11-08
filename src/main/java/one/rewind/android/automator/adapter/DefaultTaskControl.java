@@ -11,10 +11,9 @@ import java.util.concurrent.Future;
  * Create By 2018/10/10
  * Description: 微信的自动化操作
  */
-@SuppressWarnings("JavaDoc")
-public class WechatAdapter extends AbstractWechatAdapter {
+public class DefaultTaskControl extends AbstractWechatAdapter {
 
-    public WechatAdapter(AndroidDevice device) {
+    public DefaultTaskControl(AndroidDevice device) {
         super(device);
     }
 

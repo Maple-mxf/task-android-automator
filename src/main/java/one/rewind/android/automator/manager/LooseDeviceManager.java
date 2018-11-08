@@ -1,6 +1,8 @@
-package one.rewind.android.automator;
+package one.rewind.android.automator.manager;
 
-import one.rewind.android.automator.adapter.LooseWechatAdapter;
+import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.adapter.LooseTaskControl;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -81,8 +83,8 @@ public class LooseDeviceManager {
 
         for (AndroidDevice device : androidDevices) {
 
-            LooseWechatAdapter adapter =
-                    new LooseWechatAdapter.
+            LooseTaskControl adapter =
+                    new LooseTaskControl.
                             Builder().
                             device(device).
                             build();

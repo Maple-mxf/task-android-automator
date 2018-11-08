@@ -2,7 +2,7 @@ package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.DBTab;
-import one.rewind.android.automator.adapter.WechatAdapter;
+import one.rewind.android.automator.adapter.DefaultTaskControl;
 import one.rewind.android.automator.model.SubscribeMedia;
 
 import java.sql.*;
@@ -20,7 +20,7 @@ public class DBUtil {
 
     /**
      * @throws SQLException
-     * @see WechatAdapter#subscribeWxAccount(java.lang.String)
+     * @see DefaultTaskControl#subscribeWxAccount(java.lang.String)
      */
     public static void reset() throws SQLException {
         List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();

@@ -148,7 +148,7 @@ public class APITransport {
 
         AndroidUtil.updateProcess();
 
-        Class.forName("one.rewind.android.automator.DefaultDeviceManager");
+        Class.forName("one.rewind.android.automator.manager.DefaultDeviceManager");
 
         List<AndroidDevice> availableDevices = DefaultDeviceManager.obtainAvailableDevices();
 
@@ -156,11 +156,11 @@ public class APITransport {
 
         manager.allotCrawlerTask(availableDevices, false);
 
-        WechatAdapter.executor.shutdown();
+        DefaultTaskControl.executor.shutdown();
 
-        while (!WechatAdapter.executor.isTerminated()) {
-            WechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
-            System.out.println("progress:   done   %" + WechatAdapter.executor.isTerminated());
+        while (!DefaultTaskControl.executor.isTerminated()) {
+            DefaultTaskControl.executor.awaitTermination(800, TimeUnit.SECONDS);
+            System.out.println("progress:   done   %" + DefaultTaskControl.executor.isTerminated());
         }
     }*/
 

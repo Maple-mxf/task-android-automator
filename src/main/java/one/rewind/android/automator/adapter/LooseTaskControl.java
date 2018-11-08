@@ -19,8 +19,7 @@ import java.util.stream.Collectors;
  * Create By 2018/10/10
  * Description: 微信的自动化操作
  */
-@SuppressWarnings("JavaDoc")
-public class LooseWechatAdapter extends AbstractWechatAdapter {
+public class LooseTaskControl extends AbstractWechatAdapter {
 
     private ExecutorService executor;
 
@@ -43,7 +42,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
         };
     }
 
-    private LooseWechatAdapter(AndroidDevice device) {
+    private LooseTaskControl(AndroidDevice device) {
         super(device);
     }
 
@@ -172,8 +171,8 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
             return this;
         }
 
-        public LooseWechatAdapter build() {
-            return new LooseWechatAdapter(this.device);
+        public LooseTaskControl build() {
+            return new LooseTaskControl(this.device);
         }
     }
 

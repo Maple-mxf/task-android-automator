@@ -4,8 +4,8 @@ import com.google.common.collect.Sets;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.DefaultDeviceManager;
-import one.rewind.android.automator.adapter.WechatAdapter;
+import one.rewind.android.automator.adapter.DefaultTaskControl;
+import one.rewind.android.automator.manager.DefaultDeviceManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -20,14 +20,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-public class WechatAdapterTest {
+public class DefaultTaskControlTest {
 
         String udid = "ZX1G323GNB";
 //    String udid = "ZX1G423DMM";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
-    WechatAdapter adapter;
+    DefaultTaskControl adapter;
 
     /**
      * 初始化设备
@@ -140,7 +140,7 @@ public class WechatAdapterTest {
 
         device.initAppiumServiceAndDriver(appInfo);
 
-        adapter = new WechatAdapter(device);
+        adapter = new DefaultTaskControl(device);
 
         Thread.sleep(3000);
     }
