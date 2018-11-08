@@ -31,6 +31,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     protected boolean firstPage = true;
 
+    public void setTaskType(TaskType taskType) {
+        this.taskType = taskType;
+    }
+
     public static volatile ExecutorService executor;
 
     protected TaskType taskType = null;

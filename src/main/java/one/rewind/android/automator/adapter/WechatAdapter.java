@@ -14,15 +14,9 @@ import java.util.concurrent.Future;
 @SuppressWarnings("JavaDoc")
 public class WechatAdapter extends AbstractWechatAdapter {
 
-
-    public void setTaskType(TaskType taskType) {
-        this.taskType = taskType;
-    }
-
     public WechatAdapter(AndroidDevice device) {
         super(device);
     }
-
 
     public class Start implements Callable<Boolean> {
 
