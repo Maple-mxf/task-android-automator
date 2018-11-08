@@ -5,12 +5,12 @@ import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.FailRecord;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.WordsPoint;
-import one.rewind.db.DaoManager;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -21,6 +21,7 @@ import org.openqa.selenium.TakesScreenshot;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -248,17 +249,27 @@ public class AndroidUtil {
      */
     public static void updateProcess(String mediaName, String udid) throws Exception {
 
-        Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
-
-        SubscribeMedia account = dao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
+        SubscribeMedia account = DBTab.subscribeDao.
+                queryBuilder().
+                where().
+                eq("media_name", mediaName).
+                and().
+                eq("udid", udid).
+                queryForFirst();
 
         if (account != null) {
+            long countOf = DBTab.essayDao.
+                    queryBuilder().
+                    where().
+                    eq("media_nick", mediaName).
+                    countOf();
+            account.number = (int) countOf;
             account.status = 1;
+            account.update_time = new Date();
+            account.retry_count = 5;
             account.update();
         }
     }
-
-
 
 
     public static WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {

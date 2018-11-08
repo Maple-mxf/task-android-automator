@@ -37,7 +37,7 @@ public class LooseWechatAdapter extends Adapter {
 
     private ExecutorService executor;
 
-    private static final int RETRY_COUNT = 5;
+    public static final int RETRY_COUNT = 5;
 
     private void setExecutor() {
         this.executor =
@@ -422,24 +422,27 @@ public class LooseWechatAdapter extends Adapter {
                                 and().
                                 eq("udid", this.device.udid).
                                 queryForFirst();
+
                 if (subscribeMedia == null) return;
-                if (subscribeMedia.retry_count >= LooseWechatAdapter.RETRY_COUNT) {
-                    AndroidUtil.updateProcess(mediaName, this.device.udid);
-                    return;
-                } else {
-                    subscribeMedia.retry_count += 1;
-                    subscribeMedia.update_time = new Date();
-                    subscribeMedia.update();
-                }
+
+
+                if (subscribeMedia.retry_count >= LooseWechatAdapter.RETRY_COUNT) return;
+
+                subscribeMedia.update_time = new Date();
+                subscribeMedia.retry_count += 1;
+
+                subscribeMedia.update();
+
                 AndroidUtil.closeApp(driver);
+
                 Thread.sleep(10000);
+
                 AndroidUtil.activeWechat(device);
+
                 long number = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                SubscribeMedia tmp = DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).
-                        and().
-                        eq("udid", device.udid).
-                        queryForFirst();
-                if (tmp.number - number > 5) digestionCrawler(mediaName, true);
+                if (subscribeMedia.number - number > 5)
+                    digestionCrawler(mediaName, true);
+
             } catch (Exception e1) {
                 e1.printStackTrace();
             }

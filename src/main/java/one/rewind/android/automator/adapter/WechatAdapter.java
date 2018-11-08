@@ -380,14 +380,38 @@ public class WechatAdapter extends Adapter {
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
             try {
-                //进入重试    直到设备不报异常为止
-                AndroidUtil.closeApp(driver);
-                Thread.sleep(10000);
-                AndroidUtil.activeWechat(device);
-                // 如果每个公众号抓取的文章数量太小的话  启动重试机制
-                long number = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                if (number < ESSAY_NUM && !this.isLastPage) {
-                    digestionCrawler(mediaName, true);
+                try {
+                    SubscribeMedia subscribeMedia =
+                            DBTab.subscribeDao.
+                                    queryBuilder().
+                                    where().
+                                    eq("media_name", mediaName).
+                                    and().
+                                    eq("udid", this.device.udid).
+                                    queryForFirst();
+
+                    if (subscribeMedia == null) return;
+
+
+                    if (subscribeMedia.retry_count >= LooseWechatAdapter.RETRY_COUNT) return;
+
+                    subscribeMedia.update_time = new Date();
+                    subscribeMedia.retry_count += 1;
+
+                    subscribeMedia.update();
+
+                    AndroidUtil.closeApp(driver);
+
+                    Thread.sleep(10000);
+
+                    AndroidUtil.activeWechat(device);
+
+                    long number = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+                    if (subscribeMedia.number - number > 5)
+                        digestionCrawler(mediaName, true);
+
+                } catch (Exception e1) {
+                    e1.printStackTrace();
                 }
             } catch (Exception e1) {
                 e1.printStackTrace();
