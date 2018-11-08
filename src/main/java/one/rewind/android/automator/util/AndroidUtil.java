@@ -259,6 +259,8 @@ public class AndroidUtil {
     }
 
 
+
+
     public static WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR("/usr/local/j-wplace/wechat-android-automator/webwxgetmsgimg.jpeg");
 

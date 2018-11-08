@@ -29,8 +29,13 @@ public class SubscribeMedia extends ModelL {
     @DatabaseField(dataType = DataType.INTEGER)
     public int status;
 
+    //文章总量
     @DatabaseField(dataType = DataType.INTEGER)
     public int number;
+
+    //重试次数
+    @DatabaseField(dataType = DataType.INTEGER)
+    public int retry_count;
 
 
     public enum CrawlerState {

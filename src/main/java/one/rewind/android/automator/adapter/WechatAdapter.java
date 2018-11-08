@@ -3,6 +3,7 @@ package one.rewind.android.automator.adapter;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.DBTab;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.*;
@@ -46,20 +47,6 @@ public class WechatAdapter extends Adapter {
 
     public WechatAdapter(AndroidDevice device) {
         super(device);
-    }
-
-
-    public static Dao<Essays, String> dao2;
-
-    public static Dao<SubscribeMedia, String> dao3;
-
-    static {
-        try {
-            dao2 = DaoManager.getDao(Essays.class);
-            dao3 = DaoManager.getDao(SubscribeMedia.class);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
 
@@ -107,7 +94,7 @@ public class WechatAdapter extends Adapter {
      * @param mediaName
      * @return
      */
-    public List<WordsPoint> analysisWordsPoint(JSONArray array, String mediaName) {
+    private List<WordsPoint> analysisWordsPoint(JSONArray array, String mediaName) {
 
         array.remove(0);
 
@@ -130,8 +117,8 @@ public class WechatAdapter extends Adapter {
 
                 try {
                     //计算当前公众号文章数量
-                    long currentEssayNum = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                    SubscribeMedia var = dao3.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                    long currentEssayNum = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+                    SubscribeMedia var = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                     var.number = (int) (currentEssayNum + wordsPoints.size());
                     var.update();
                 } catch (Exception e) {
@@ -168,7 +155,7 @@ public class WechatAdapter extends Adapter {
     public void getIntoPublicAccountEssayList(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
-                FailRecord record = AndroidUtil.retry(mediaName, dao2, device.udid);
+                FailRecord record = AndroidUtil.retry(mediaName, DBTab.essayDao, device.udid);
                 if (record == null) {
                     //当前公众号抓取的文章已经达到100篇以上
                     return;
@@ -363,7 +350,7 @@ public class WechatAdapter extends Adapter {
     }
 
     private void saveSubscribeRecord(String mediaName) throws Exception {
-        long tempCount = dao3.queryBuilder().where()
+        long tempCount = DBTab.subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
         if (tempCount == 0) {
@@ -398,7 +385,7 @@ public class WechatAdapter extends Adapter {
                 Thread.sleep(10000);
                 AndroidUtil.activeWechat(device);
                 // 如果每个公众号抓取的文章数量太小的话  启动重试机制
-                long number = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
+                long number = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
                 if (number < ESSAY_NUM && !this.isLastPage) {
                     digestionCrawler(mediaName, true);
                 }

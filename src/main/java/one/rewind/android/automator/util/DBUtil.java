@@ -101,12 +101,11 @@ public class DBUtil {
      * @param page
      * @param var
      */
-    public static int obtainFullData(Set<String> accounts, int page, int var) {
+    public static void obtainFullData(Set<String> accounts, int page, int var) {
         while (accounts.size() <= var) {
             sendAccounts(accounts, page);
             ++page;
         }
-        return page;
     }
 
     /**

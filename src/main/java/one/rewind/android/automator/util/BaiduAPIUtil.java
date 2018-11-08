@@ -102,7 +102,7 @@ public class BaiduAPIUtil {
         synchronized (BaiduAPIUtil.class) {
             List<BaiduTokens> updateList = tokensDao.queryForAll();
             updateList.forEach(v -> {
-                if (DateUtils.isSameDay(v.update_time, new Date())) {
+                if (!DateUtils.isSameDay(v.update_time, new Date())) {
                     v.update_time = new Date();
                     v.count = 0;
                     try {
