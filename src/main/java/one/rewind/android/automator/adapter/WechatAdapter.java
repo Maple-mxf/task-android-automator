@@ -406,9 +406,7 @@ public class WechatAdapter extends Adapter {
 
                     AndroidUtil.activeWechat(device);
 
-                    long number = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                    if (subscribeMedia.number - number > 5)
-                        digestionCrawler(mediaName, true);
+                    digestionCrawler(mediaName, true);
 
                 } catch (Exception e1) {
                     e1.printStackTrace();

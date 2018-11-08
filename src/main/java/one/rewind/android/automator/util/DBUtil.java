@@ -47,7 +47,9 @@ public class DBUtil {
                 long countOf = essaysDao.queryBuilder().where().eq("media_name", v.media_name).countOf();
                 if ((countOf - v.number) > 5) {
                     v.status = 0;
+                    v.retry_count = 0;
                 } else {
+                    v.retry_count = 5;
                     v.status = 1;
                 }
                 v.update();
