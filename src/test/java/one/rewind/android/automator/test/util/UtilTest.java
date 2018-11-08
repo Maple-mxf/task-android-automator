@@ -1,5 +1,6 @@
 package one.rewind.android.automator.test.util;
 
+import one.rewind.android.automator.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -60,7 +61,7 @@ public class UtilTest {
         });
         r1.start();
 
-        Thread r2 = new Thread(()->{
+        Thread r2 = new Thread(() -> {
             BaiduTokens baiduTokens = null;
             try {
                 baiduTokens = BaiduAPIUtil.obtainToken();
@@ -77,6 +78,20 @@ public class UtilTest {
     @Test
     public void testAccuracySubscribe() throws InvokingBaiduAPIException {
         AndroidUtil.accuracySubscribe("故事与道理的磨合");
+    }
+
+    @Test
+    public void testMath() throws SQLException {
+        long countOf = DBTab.subscribeDao.
+                queryBuilder().
+                where().
+                eq("media_name", "云南省驻越南商务代表处").countOf();
+
+        if (countOf >= 17 || Math.abs(17 - countOf) <= 5) {
+            System.out.println("1");
+        } else {
+            System.out.println("2");
+        }
     }
 
 }
