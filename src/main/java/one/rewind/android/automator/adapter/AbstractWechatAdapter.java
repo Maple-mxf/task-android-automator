@@ -82,7 +82,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         if (wordsPoints != null && wordsPoints.size() > 0) {
             return wordsPoints;
         } else {
-            //此处已经出现异常：====>>>> 异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
+            //异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
             //当前公众号不能继续抓取了
             AndroidUtil.returnPrevious(driver);
             return null;
@@ -256,6 +256,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @throws Exception
      */
     public void subscribeWxAccount(String mediaName) throws Exception {
+        if (DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
         int k = 3;
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
@@ -273,7 +274,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         // C3 点击软键盘的搜索键
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
 
-        //根据
         WordsPoint point = accuracySubscribe(mediaName);
         if (point == null) {
             SubscribeMedia tmp = new SubscribeMedia();
@@ -314,7 +314,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 .eq("media_name", mediaName)
                 .countOf();
         if (tempCount == 0) {
-            //订阅完成之后再数据库存储记录
             SubscribeMedia e = new SubscribeMedia();
             e.udid = device.udid;
             e.media_name = mediaName;
