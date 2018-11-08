@@ -77,7 +77,7 @@ public class UtilTest {
 
     @Test
     public void testAccuracySubscribe() throws InvokingBaiduAPIException {
-        AndroidUtil.accuracySubscribe("故事与道理的磨合");
+//        AndroidUtil.accuracySubscribe("故事与道理的磨合");
     }
 
     @Test

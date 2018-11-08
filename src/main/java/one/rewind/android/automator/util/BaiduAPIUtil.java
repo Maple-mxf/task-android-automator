@@ -1,9 +1,8 @@
 package one.rewind.android.automator.util;
 
-import com.j256.ormlite.dao.Dao;
+import one.rewind.android.automator.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.db.DaoManager;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONObject;
 
@@ -22,15 +21,6 @@ import java.util.Map;
  */
 @SuppressWarnings("JavaDoc")
 public class BaiduAPIUtil {
-    private static Dao<BaiduTokens, String> tokensDao;
-
-    static {
-        try {
-            tokensDao = DaoManager.getDao(BaiduTokens.class);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * 获取接口的信任信息
@@ -100,7 +90,7 @@ public class BaiduAPIUtil {
 
     public static BaiduTokens obtainToken() throws Exception {
         synchronized (BaiduAPIUtil.class) {
-            List<BaiduTokens> updateList = tokensDao.queryForAll();
+            List<BaiduTokens> updateList = DBTab.tokenDao.queryForAll();
             updateList.forEach(v -> {
                 if (!DateUtils.isSameDay(v.update_time, new Date())) {
                     v.update_time = new Date();
@@ -113,7 +103,7 @@ public class BaiduAPIUtil {
                 }
             });
             BaiduTokens var;
-            BaiduTokens result = tokensDao.
+            BaiduTokens result = DBTab.tokenDao.
                     queryBuilder().
                     where().
                     le("count", 550).

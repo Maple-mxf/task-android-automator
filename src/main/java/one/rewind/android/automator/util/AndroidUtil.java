@@ -1,13 +1,11 @@
 package one.rewind.android.automator.util;
 
-import com.j256.ormlite.dao.Dao;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.FailRecord;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.WordsPoint;
@@ -215,8 +213,8 @@ public class AndroidUtil {
         }
     }
 
-    public static FailRecord retry(String mediaName, Dao<Essays, String> dao2, String udid) throws Exception {
-        long count = dao2.queryBuilder().where().eq("media_nick", mediaName).countOf();
+    public static FailRecord retry(String mediaName, String udid) throws Exception {
+        long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
         FailRecord record = new FailRecord();
         record.finishNum = (int) count;
         record.deviceUdid = udid;
@@ -272,23 +270,5 @@ public class AndroidUtil {
     }
 
 
-    public static WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
-        JSONObject jsonObject = BaiduAPIUtil.imageOCR("/usr/local/j-wplace/wechat-android-automator/webwxgetmsgimg.jpeg");
 
-        JSONArray result = jsonObject.getJSONArray("words_result");
-
-        int top;
-        int left;
-
-        for (Object v : result) {
-            JSONObject b = (JSONObject) v;
-            String words = b.getString("words");
-            if (words.equals(mediaName)) {
-                top = b.getInt("top");
-                left = b.getInt("left");
-                return new WordsPoint(top + 15, left, 0, 0, "");
-            }
-        }
-        return null;
-    }
 }
