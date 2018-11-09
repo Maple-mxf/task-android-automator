@@ -12,6 +12,7 @@ import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
+import one.rewind.android.automator.util.FileUtil;
 import one.rewind.db.DaoManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -55,6 +56,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(path + fileName);
 
+        FileUtil.deleteFile(path + fileName);
+
         JSONArray result = jsonObject.getJSONArray("words_result");
 
         int top;
@@ -73,7 +76,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return null;
     }
 
-    protected List<WordsPoint> obtainClickPoints(String mediaName) throws InterruptedException, InvokingBaiduAPIException {
+    private List<WordsPoint> obtainClickPoints(String mediaName) throws InterruptedException, InvokingBaiduAPIException {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -100,6 +103,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     @SuppressWarnings("JavaDoc")
     protected List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
+        FileUtil.deleteFile(filePath);
         //得到即将要点击的坐标位置
         return analysisWordsPoint(jsonObject.getJSONArray("words_result"), mediaName);
 
