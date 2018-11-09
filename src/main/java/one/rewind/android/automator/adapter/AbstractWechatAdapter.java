@@ -1,6 +1,5 @@
 package one.rewind.android.automator.adapter;
 
-import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
@@ -21,19 +20,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
     protected boolean lastPage = false;
 
     protected boolean firstPage = true;
-
-    private int countCollapse = 0;
-
-    public void setCountCollapse() {
-        countCollapse++;
-    }
 
     public void setTaskType(TaskType taskType) {
         this.taskType = taskType;
@@ -186,7 +178,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @param mediaName
      * @throws InterruptedException
      */
-    public void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
+    private void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
                 FailRecord record = AndroidUtil.retry(mediaName);
@@ -340,9 +332,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-
-    public static List<Future<?>> futures = Lists.newArrayList();
-
     /**
      * 针对于在抓取微信公众号文章时候的异常处理   失败无限重试  直到当前公众号的所有文章抓取完成
      *
@@ -350,12 +339,13 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     public void digestionCrawler(String mediaName, boolean retry) {
         try {
-            //继续获取文章
             if (!AndroidUtil.enterEssay(mediaName, device)) {
+                //很可能存在某一个公众号检索不到
                 return;
             }
             delegateOpenEssay(mediaName, retry);
         } catch (AndroidCollapseException e) {
+            logger.error("设备{}崩溃了.", device.udid);
             e.printStackTrace();
             try {
                 try {
@@ -369,8 +359,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
                                     queryForFirst();
 
                     if (subscribeMedia == null) return;
-
-
                     if (subscribeMedia.retry_count >= RETRY_COUNT) return;
 
                     subscribeMedia.update_time = new Date();
@@ -378,17 +366,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                     subscribeMedia.update();
 
-                    setCountCollapse();
-                    if (this.countCollapse % 10 == 0) {
-                        //释放内存
-                        this.clearMemory();
-                    } else {
-                        AndroidUtil.closeApp(driver);
+                    clearMemory();
 
-                        Thread.sleep(10000);
-
-                        AndroidUtil.activeWechat(device);
-                    }
                     digestionCrawler(mediaName, true);
 
                 } catch (Exception e1) {
@@ -431,7 +410,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      *
      * @throws Exception
      */
-    public void clearMemory() throws Exception {
+    private void clearMemory() throws Exception {
         ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
         AndroidUtil.activeWechat(this.device);
     }
