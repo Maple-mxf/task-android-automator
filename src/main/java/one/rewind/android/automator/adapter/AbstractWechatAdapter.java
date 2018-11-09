@@ -69,12 +69,12 @@ public abstract class AbstractWechatAdapter extends Adapter {
             String words = b.getString("words");
             JSONObject location = b.getJSONObject("location");
             if (words.equals(mediaName)) {
-                k++;
                 if (k == 2) {
                     top = location.getInt("top");
                     left = location.getInt("left");
                     return new WordsPoint(top + 15, left, 0, 0, words);
                 }
+                k++;
 
             }
         }
