@@ -59,23 +59,21 @@ public abstract class AbstractWechatAdapter extends Adapter {
         FileUtil.deleteFile(path + fileName);
 
         JSONArray result = jsonObject.getJSONArray("words_result");
+        result.remove(0);
+        result.remove(0);
+        result.remove(0);
 
         int top;
         int left;
-        int k = 1;
 
         for (Object v : result) {
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
             JSONObject location = b.getJSONObject("location");
             if (words.equalsIgnoreCase(mediaName)) {
-                if (k == 2) {
-                    top = location.getInt("top");
-                    left = location.getInt("left");
-                    return new WordsPoint(top + 30, left + 30, 0, 0, words);
-                }
-                k++;
-
+                top = location.getInt("top");
+                left = location.getInt("left");
+                return new WordsPoint(top + 30, left + 30, 0, 0, words);
             }
         }
         return null;

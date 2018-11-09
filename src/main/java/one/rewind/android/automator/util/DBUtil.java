@@ -8,6 +8,7 @@ import one.rewind.android.automator.model.SubscribeMedia;
 import java.sql.*;
 import java.util.List;
 import java.util.Set;
+import java.util.TimerTask;
 import java.util.stream.Collectors;
 
 /**
@@ -115,5 +116,16 @@ public class DBUtil {
         String[] firstResult = results.getFirstResult();
         String var = firstResult[0];
         return Integer.parseInt(var);
+    }
+
+
+    /**
+     * 定期充值token的状态
+     */
+    class resetTokenState extends TimerTask {
+        @Override
+        public void run() {
+
+        }
     }
 }
