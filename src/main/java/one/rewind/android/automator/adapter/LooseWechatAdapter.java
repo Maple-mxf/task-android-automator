@@ -73,6 +73,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
         }
 
         private void execute() {
+            device.queue.clear();
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
                     if (device.queue.size() == 0) {
