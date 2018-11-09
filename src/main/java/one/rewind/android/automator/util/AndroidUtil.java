@@ -70,7 +70,7 @@ public class AndroidUtil {
 
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
 
-            Thread.sleep(5000); // TODO 此处时间需要调整
+            Thread.sleep(6000); // TODO 此处时间需要调整
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -262,6 +262,7 @@ public class AndroidUtil {
                     eq("media_nick", mediaName).
                     countOf();
             account.number = (int) countOf;
+            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOMEDIANAME.status : SubscribeMedia.CrawlerState.FINISH.status);
             account.status = 1;
             account.update_time = new Date();
             account.retry_count = 5;

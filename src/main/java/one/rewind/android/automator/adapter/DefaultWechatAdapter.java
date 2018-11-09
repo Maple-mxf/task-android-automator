@@ -1,9 +1,11 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.collect.Lists;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
@@ -66,7 +68,7 @@ public class DefaultWechatAdapter extends AbstractWechatAdapter {
         submit(future);
         logger.info("任务提交完毕！");
     }
-
+    public static List<Future<?>> futures = Lists.newArrayList();
 
     /**
      * 将执行结果添加进来
