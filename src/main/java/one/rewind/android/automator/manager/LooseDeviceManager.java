@@ -95,5 +95,7 @@ public class LooseDeviceManager {
                 System.out.println("设备  " + device.udid + " :启动失败!");
             }
         }
+        //启动定时任务
+        new DBUtil.ResetTokenState().startTimer();
     }
 }
