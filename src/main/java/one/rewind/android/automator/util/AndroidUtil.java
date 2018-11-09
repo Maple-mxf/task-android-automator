@@ -216,11 +216,13 @@ public class AndroidUtil {
         long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
         FailRecord record = new FailRecord();
         record.finishNum = (int) count;
-        record.deviceUdid = udid;
-        record.wxPublicName = mediaName;
+        record.udid = udid;
+        record.mediaName = mediaName;
         int var = (int) count % 6;
         if (var >= 3) {
             record.slideNumByPage = (int) (count / 6) + 2;
+        } else if (count == 0) {
+            record.slideNumByPage = 0;
         } else {
             record.slideNumByPage = (int) (count / 6) + 1;
         }
@@ -267,7 +269,6 @@ public class AndroidUtil {
             account.update();
         }
     }
-
 
 
 }
