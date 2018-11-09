@@ -22,7 +22,7 @@ import java.util.Stack;
 
 public class DefaultTaskControlTest {
 
-        String udid = "ZX1G323GNB";
+        String udid = "ZX1G42BX4R";
 //    String udid = "ZX1G423DMM";
     int appiumPort = 47356;
     int localProxyPort = 48356;
@@ -159,7 +159,7 @@ public class DefaultTaskControlTest {
     }
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeMedia("华时代");
+        adapter.subscribeMedia("java技术栈");
     }
 
     @Test

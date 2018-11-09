@@ -82,10 +82,10 @@ public class UtilTest {
 
     @Test
     public void testMath() throws SQLException {
-        long countOf = DBTab.subscribeDao.
+        long countOf = DBTab.essayDao.
                 queryBuilder().
                 where().
-                eq("media_name", "云南省驻越南商务代表处").countOf();
+                eq("media_nick", "云南省驻越南商务代表处").countOf();
 
         if (countOf >= 17 || Math.abs(17 - countOf) <= 5) {
             System.out.println("1");
