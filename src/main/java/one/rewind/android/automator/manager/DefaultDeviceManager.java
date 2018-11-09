@@ -1,8 +1,8 @@
 package one.rewind.android.automator.manager;
 
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.adapter.DefaultWechatAdapter;
 import one.rewind.android.automator.model.DBTab;
-import one.rewind.android.automator.adapter.DefaultTaskControl;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -92,11 +92,11 @@ public class DefaultDeviceManager {
      * @throws Exception
      */
     public void startManager() throws Exception {
-        DefaultTaskControl.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
+        DefaultWechatAdapter.executor = Executors.newFixedThreadPool(obtainAvailableDevices().size() + 2);
         uncertainAllotTask();
-        while (!DefaultTaskControl.executor.isTerminated()) {
-            DefaultTaskControl.executor.awaitTermination(300, TimeUnit.SECONDS);
-            System.out.println("progress: % " + DefaultTaskControl.executor.isTerminated());
+        while (!DefaultWechatAdapter.executor.isTerminated()) {
+            DefaultWechatAdapter.executor.awaitTermination(300, TimeUnit.SECONDS);
+            System.out.println("progress: % " + DefaultWechatAdapter.executor.isTerminated());
         }
     }
 
@@ -137,7 +137,7 @@ public class DefaultDeviceManager {
                 device.queue.add(account.media_name);
             }
         }
-        DefaultTaskControl adapter = new DefaultTaskControl(device);
+        DefaultWechatAdapter adapter = new DefaultWechatAdapter(device);
         adapter.setTaskType(TaskType.CRAWLER);
         adapter.start(true);
 
@@ -173,14 +173,14 @@ public class DefaultDeviceManager {
 
     private void uncertainAllotCrawlerTask(AndroidDevice device) {
         device.setClickEffect(false);
-        DefaultTaskControl adapter = new DefaultTaskControl(device);
+        DefaultWechatAdapter adapter = new DefaultWechatAdapter(device);
         adapter.setTaskType(TaskType.CRAWLER);
         adapter.start(true);
     }
 
     private void uncertainAllotSubscribeTask(AndroidDevice device) {
         device.setClickEffect(false);
-        DefaultTaskControl adapter = new DefaultTaskControl(device);
+        DefaultWechatAdapter adapter = new DefaultWechatAdapter(device);
         adapter.setTaskType(TaskType.SUBSCRIBE);
         adapter.start(false);
     }

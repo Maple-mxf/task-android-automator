@@ -37,4 +37,20 @@ public class TimerTest {
             }
         }
     }
+
+    @Test
+    public void testTimerLoopExecuteTask() throws IOException {
+        Timer timer = new Timer(false);
+
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("定时执行!");
+            }
+        };
+
+        timer.schedule(task, 0, 1000 * 2);
+
+        System.in.read();
+    }
 }

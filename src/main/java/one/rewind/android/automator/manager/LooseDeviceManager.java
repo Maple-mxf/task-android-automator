@@ -1,8 +1,9 @@
 package one.rewind.android.automator.manager;
 
+import com.google.common.collect.Lists;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.model.DBTab;
-import one.rewind.android.automator.adapter.LooseTaskControl;
+import one.rewind.android.automator.adapter.LooseWechatAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -27,6 +28,8 @@ public class LooseDeviceManager {
     }
 
     private static ConcurrentHashMap<String, AndroidDevice> devices = new ConcurrentHashMap<>();
+
+    public static List<LooseWechatAdapter> adapters = Lists.newArrayList();
 
     private static LooseDeviceManager instance;
 
@@ -83,18 +86,18 @@ public class LooseDeviceManager {
 
         for (AndroidDevice device : androidDevices) {
 
-            LooseTaskControl adapter =
-                    new LooseTaskControl.
+            LooseWechatAdapter adapter =
+                    new LooseWechatAdapter.
                             Builder().
                             device(device).
                             build();
             try {
                 adapter.start();
+                adapters.add(adapter);
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("设备  " + device.udid + " :启动失败!");
             }
         }
     }
-
 }

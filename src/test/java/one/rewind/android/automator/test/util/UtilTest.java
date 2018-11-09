@@ -1,8 +1,8 @@
 package one.rewind.android.automator.test.util;
 
-import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -11,6 +11,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Create By 2018/10/18
@@ -92,6 +94,22 @@ public class UtilTest {
         } else {
             System.out.println("2");
         }
+    }
+
+    @Test
+    public void testString() {
+        String b = "";
+        String a = null;
+        b = b + a;
+        System.out.println(b);
+    }
+
+
+    public void testDate(){
+        Calendar calendar = Calendar.getInstance();
+
+        Date time = calendar.getTime();
+
     }
 
 }

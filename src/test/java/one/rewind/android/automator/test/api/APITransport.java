@@ -156,11 +156,11 @@ public class APITransport {
 
         manager.allotCrawlerTask(availableDevices, false);
 
-        DefaultTaskControl.executor.shutdown();
+        DefaultWechatAdapter.executor.shutdown();
 
-        while (!DefaultTaskControl.executor.isTerminated()) {
-            DefaultTaskControl.executor.awaitTermination(800, TimeUnit.SECONDS);
-            System.out.println("progress:   done   %" + DefaultTaskControl.executor.isTerminated());
+        while (!DefaultWechatAdapter.executor.isTerminated()) {
+            DefaultWechatAdapter.executor.awaitTermination(800, TimeUnit.SECONDS);
+            System.out.println("progress:   done   %" + DefaultWechatAdapter.executor.isTerminated());
         }
     }*/
 

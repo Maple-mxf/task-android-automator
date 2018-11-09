@@ -7,6 +7,7 @@ import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
+import one.rewind.android.automator.util.ShellUtil;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
  * Create By 2018/10/10
  * Description: 微信的自动化操作
  */
-public class LooseTaskControl extends AbstractWechatAdapter {
+public class LooseWechatAdapter extends AbstractWechatAdapter {
 
     private ExecutorService executor;
 
@@ -42,17 +43,23 @@ public class LooseTaskControl extends AbstractWechatAdapter {
         };
     }
 
-    private LooseTaskControl(AndroidDevice device) {
+    private LooseWechatAdapter(AndroidDevice device) {
         super(device);
     }
 
-    public void shutdownNow() {
+    private void shutdownNow() {
         this.executor.shutdownNow();
     }
 
+    /**
+     * 清空手机缓存
+     *
+     * @throws Exception
+     */
     public void clearMemory() throws Exception {
         shutdownNow();
-        this.setExecutor();
+        ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
+        AndroidUtil.activeWechat(this.device);
         this.start();
     }
 
@@ -83,10 +90,11 @@ public class LooseTaskControl extends AbstractWechatAdapter {
         }
 
         private void execute() {
-            device.queue.clear();
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
-                    initSubscribeQueue();
+                    if (device.queue.size() == 0) {
+                        initSubscribeQueue();
+                    }
                     for (String var : device.queue) {
                         digestionSubscribe(var, false);
                     }
@@ -97,7 +105,9 @@ public class LooseTaskControl extends AbstractWechatAdapter {
                 }
             } else if (TaskType.CRAWLER.equals(taskType)) {
                 try {
-                    initCrawlerQueue();
+                    if (device.queue.size() == 0) {
+                        initCrawlerQueue();
+                    }
                     for (String var : device.queue) {
                         lastPage = false;
                         digestionCrawler(var, getRetry());
@@ -180,8 +190,8 @@ public class LooseTaskControl extends AbstractWechatAdapter {
             return this;
         }
 
-        public LooseTaskControl build() {
-            return new LooseTaskControl(this.device);
+        public LooseWechatAdapter build() {
+            return new LooseWechatAdapter(this.device);
         }
     }
 
