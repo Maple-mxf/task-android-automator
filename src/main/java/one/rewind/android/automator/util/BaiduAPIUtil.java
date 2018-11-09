@@ -1,6 +1,6 @@
 package one.rewind.android.automator.util;
 
-import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
 import org.apache.commons.lang3.time.DateUtils;

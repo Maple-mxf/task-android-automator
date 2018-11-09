@@ -3,7 +3,7 @@ package one.rewind.android.automator.adapter;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.FailRecord;
@@ -255,7 +255,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @param mediaName
      * @throws Exception
      */
-    public void subscribeWxAccount(String mediaName) throws Exception {
+    public void subscribeMedia(String mediaName) throws Exception {
         if (DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
         int k = 3;
         // A 点搜索
@@ -332,7 +332,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     public void digestionCrawler(String mediaName, boolean retry) {
         try {
             //继续获取文章
-            if (!AndroidUtil.enterEssaysPage(mediaName, device)) {
+            if (!AndroidUtil.enterEssay(mediaName, device)) {
                 return;
             }
             getIntoPublicAccountEssayList(mediaName, retry);
@@ -390,7 +390,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 AndroidUtil.closeApp(driver);
                 AndroidUtil.activeWechat(device);
             }
-            subscribeWxAccount(mediaName);
+            subscribeMedia(mediaName);
         } catch (Exception e) {
             e.printStackTrace();
             Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);

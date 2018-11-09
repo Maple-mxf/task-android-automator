@@ -1,7 +1,7 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.adapter.DefaultTaskControl;
 import one.rewind.android.automator.model.SubscribeMedia;
 
@@ -20,7 +20,7 @@ public class DBUtil {
 
     /**
      * @throws SQLException
-     * @see DefaultTaskControl#subscribeWxAccount(java.lang.String)
+     * @see DefaultTaskControl#subscribeMedia(java.lang.String)
      */
     public static void reset() throws SQLException {
         List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();

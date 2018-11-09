@@ -159,14 +159,14 @@ public class DefaultTaskControlTest {
     }
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeWxAccount("华时代");
+        adapter.subscribeMedia("华时代");
     }
 
     @Test
     public void testActiveApp() throws InterruptedException {
         device.driver.closeApp();
         AndroidUtil.activeWechat(device);
-//        AndroidUtil.enterEssaysPage("Java技术栈", device.driver);
+//        AndroidUtil.enterEssay("Java技术栈", device.driver);
     }
 
 

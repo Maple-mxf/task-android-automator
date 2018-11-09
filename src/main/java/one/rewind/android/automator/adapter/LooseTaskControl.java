@@ -2,7 +2,7 @@ package one.rewind.android.automator.adapter;
 
 import com.google.common.collect.Sets;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -46,6 +46,16 @@ public class LooseTaskControl extends AbstractWechatAdapter {
         super(device);
     }
 
+    public void shutdownNow() {
+        this.executor.shutdownNow();
+    }
+
+    public void clearCache() throws Exception {
+//        adb shell pm clear <packagename>
+        shutdownNow();
+        this.setExecutor();
+        this.start();
+    }
 
     public void start() throws Exception {
         this.setExecutor();

@@ -168,7 +168,7 @@ public class WechatSimulator {
 		PrintWriter out = new PrintWriter(relativepath);
 
 		for (int i = 0; i < 1; i++) {
-			List<WebElement> lis3 = (List<WebElement>) driver.findElementsByClassName("android.view.View");
+			List<WebElement> lis3 = (List<WebElement>) driver.findElementsByClassName("android.template.View");
 			for (int j = lis3.size() - 1; j >= 0; j--) {
 				int x = (lis3.get(j).getLocation().getX());
 				if (x < width / 2) {//对方的信息

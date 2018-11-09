@@ -4,11 +4,10 @@ import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.FailRecord;
 import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.model.WordsPoint;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,7 +31,7 @@ public class AndroidUtil {
      * @param name
      * @throws InterruptedException
      */
-    public static boolean enterEssaysPage(String name, AndroidDevice device) throws InterruptedException, InvokingBaiduAPIException {
+    public static boolean enterEssay(String name, AndroidDevice device) throws InterruptedException, InvokingBaiduAPIException {
 
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();

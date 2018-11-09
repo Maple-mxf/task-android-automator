@@ -1,7 +1,7 @@
 package one.rewind.android.automator.manager;
 
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.DBTab;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.adapter.DefaultTaskControl;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;

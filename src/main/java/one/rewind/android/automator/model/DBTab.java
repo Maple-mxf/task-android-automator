@@ -1,10 +1,7 @@
-package one.rewind.android.automator;
+package one.rewind.android.automator.model;
 
 
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.db.DaoManager;
 
 /**

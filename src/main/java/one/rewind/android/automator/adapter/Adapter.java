@@ -20,4 +20,7 @@ public abstract class Adapter {
     }
 
 
+    //BUG   number = 0
+    class RelaxPolicy {
+    }
 }
