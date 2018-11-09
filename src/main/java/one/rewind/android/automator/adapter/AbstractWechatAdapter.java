@@ -62,15 +62,20 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
         int top;
         int left;
+        int k = 1;
 
         for (Object v : result) {
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
             JSONObject location = b.getJSONObject("location");
             if (words.equals(mediaName)) {
-                top = location.getInt("top");
-                left = location.getInt("left");
-                return new WordsPoint(top + 15, left, 0, 0, words);
+                k++;
+                if (k == 2) {
+                    top = location.getInt("top");
+                    left = location.getInt("left");
+                    return new WordsPoint(top + 15, left, 0, 0, words);
+                }
+
             }
         }
         return null;
