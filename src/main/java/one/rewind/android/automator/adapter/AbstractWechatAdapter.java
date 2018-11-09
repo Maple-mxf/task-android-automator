@@ -204,7 +204,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
             }
             while (!lastPage) {
-                List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
+
                 //获取模拟点击的坐标位置
                 //下滑到指定的位置
                 if (firstPage) {
@@ -214,6 +214,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
                 }
 
+                List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 if (wordsPoints == null) {
                     logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");
                     throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");

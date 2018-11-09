@@ -1,14 +1,14 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.adapter.DefaultWechatAdapter;
+import one.rewind.android.automator.model.BaiduTokens;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 
 import java.sql.*;
-import java.util.List;
-import java.util.Set;
-import java.util.TimerTask;
+import java.util.Date;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -123,10 +123,46 @@ public class DBUtil {
     /**
      * 定期充值token的状态
      */
-    class resetTokenState extends TimerTask {
+    public static class ResetTokenState extends TimerTask {
         @Override
         public void run() {
+            try {
+                List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
 
+                for (BaiduTokens v : tokens) {
+                    v.count = 0;
+                    v.update_time = new Date();
+                    v.update();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void startTimer() {
+            Timer timer = new Timer(false);
+            TimerTask task = new ResetTokenState();
+            timer.schedule(task, buildDate(), 1000 * 60 * 60 * 24);
+        }
+
+        Date buildDate() {
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            Date time = calendar.getTime();
+
+            if (time.before(new Date())) {
+                return addDay(time, 1);
+            }
+            return time;
+        }
+
+        Date addDay(Date date, int days) {
+            Calendar startDT = Calendar.getInstance();
+            startDT.setTime(date);
+            startDT.add(Calendar.DAY_OF_MONTH, days);
+            return startDT.getTime();
         }
     }
 }

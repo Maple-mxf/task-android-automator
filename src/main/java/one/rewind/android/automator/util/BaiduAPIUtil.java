@@ -1,9 +1,8 @@
 package one.rewind.android.automator.util;
 
-import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
-import org.apache.commons.lang3.time.DateUtils;
+import one.rewind.android.automator.model.DBTab;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -90,18 +89,6 @@ public class BaiduAPIUtil {
 
     public static BaiduTokens obtainToken() throws Exception {
         synchronized (BaiduAPIUtil.class) {
-            List<BaiduTokens> updateList = DBTab.tokenDao.queryForAll();
-            updateList.forEach(v -> {
-                if (!DateUtils.isSameDay(v.update_time, new Date())) {
-                    v.update_time = new Date();
-                    v.count = 0;
-                    try {
-                        v.update();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
             BaiduTokens var;
             BaiduTokens result = DBTab.tokenDao.
                     queryBuilder().
