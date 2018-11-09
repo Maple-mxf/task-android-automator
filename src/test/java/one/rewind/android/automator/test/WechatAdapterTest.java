@@ -22,8 +22,7 @@ import java.util.Stack;
 
 public class WechatAdapterTest {
 
-        String udid = "ZX1G42BX4R";
-//    String udid = "ZX1G423DMM";
+        String udid = "ZX1G423DMM";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -159,7 +158,7 @@ public class WechatAdapterTest {
     }
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeMedia("java技术栈");
+        adapter.subscribeMedia("时代光华");
     }
 
     @Test

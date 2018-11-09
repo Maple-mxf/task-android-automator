@@ -6,13 +6,12 @@ import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.android.automator.util.DBUtil;
+import one.rewind.android.automator.util.ShellUtil;
 import org.json.JSONObject;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Calendar;
-import java.util.Date;
 
 /**
  * Create By 2018/10/18
@@ -104,12 +103,9 @@ public class UtilTest {
         System.out.println(b);
     }
 
-
-    public void testDate(){
-        Calendar calendar = Calendar.getInstance();
-
-        Date time = calendar.getTime();
-
+    @Test
+    public void testExecuteCommand() throws IOException, InterruptedException {
+        ShellUtil.shutdownProcess("ZX1G42BX4R", "com.tencent.mm");
     }
 
 }
