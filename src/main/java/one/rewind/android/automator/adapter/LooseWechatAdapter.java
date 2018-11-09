@@ -47,20 +47,14 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
         super(device);
     }
 
-    private void shutdownNow() {
-        this.executor.shutdownNow();
-    }
-
     /**
      * 清空手机缓存
      *
      * @throws Exception
      */
     public void clearMemory() throws Exception {
-        shutdownNow();
         ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
         AndroidUtil.activeWechat(this.device);
-        this.start();
     }
 
     public void start() throws Exception {
@@ -108,13 +102,13 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                     if (device.queue.size() == 0) {
                         initCrawlerQueue();
                     }
+                    device.queue.clear();
+                    device.queue.add("淘迷网");
                     for (String var : device.queue) {
                         lastPage = false;
                         digestionCrawler(var, getRetry());
-                        AndroidUtil.updateProcess(var, device.udid);
-                        for (int i = 0; i < 5; i++) {
-                            driver.navigate().back();
-                        }
+//                        AndroidUtil.updateProcess(var, device.udid);
+                        clearMemory();
                     }
                     taskType = TaskType.SUBSCRIBE;
                     execute();

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-public class DefaultWechatAdapterTest {
+public class WechatAdapterTest {
 
         String udid = "ZX1G42BX4R";
 //    String udid = "ZX1G423DMM";

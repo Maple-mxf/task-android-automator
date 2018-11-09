@@ -67,6 +67,6 @@ public class ShellUtil {
     public static void shutdownProcess(String udid, String packageName) throws IOException, InterruptedException {
         String command = "adb -s " + udid + " shell am force-stop " + packageName;
         Runtime.getRuntime().exec(command);
-        Thread.sleep(5000);
+        Thread.sleep(1000 * 60);
     }
 }
