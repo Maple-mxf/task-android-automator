@@ -68,11 +68,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
             JSONObject location = b.getJSONObject("location");
-            if (words.equals(mediaName)) {
+            if (words.equalsIgnoreCase(mediaName)) {
                 if (k == 2) {
                     top = location.getInt("top");
                     left = location.getInt("left");
-                    return new WordsPoint(top + 15, left, 0, 0, words);
+                    return new WordsPoint(top + 30, left + 30, 0, 0, words);
                 }
                 k++;
 
@@ -285,6 +285,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
 
         WordsPoint point = accuracySubscribe(mediaName);
+        //公众号不存在的情况
         if (point == null) {
             SubscribeMedia tmp = new SubscribeMedia();
             tmp.media_name = mediaName;
