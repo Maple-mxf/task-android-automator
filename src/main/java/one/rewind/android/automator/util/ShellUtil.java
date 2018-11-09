@@ -65,13 +65,8 @@ public class ShellUtil {
 
 
     public static void shutdownProcess(String udid, String packageName) throws IOException, InterruptedException {
-
-        enterADBShell(udid);
-
-        exeCmd("am force-stop " + packageName);
-
-        Thread.sleep(2000);
-
-        exeCmd("exit");
+        String command = "adb -s " + udid + "shell am force-stop " + "com.tencent.mm";
+        Runtime.getRuntime().exec(command);
+        Thread.sleep(5000);
     }
 }
