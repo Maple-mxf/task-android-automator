@@ -34,7 +34,7 @@ public class DBUtil {
                         where().
                         eq("media_nick", v.media_name).
                         countOf();
-                if (countOf >= v.number || Math.abs(v.number - countOf) <= 5) {
+                if (countOf > 0 && countOf >= v.number || Math.abs(v.number - countOf) <= 5) {
                     v.retry_count = 5;
                     v.status = SubscribeMedia.CrawlerState.FINISH.status;
                     v.number = (int) countOf;

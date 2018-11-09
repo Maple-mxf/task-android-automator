@@ -50,8 +50,7 @@ public class LooseTaskControl extends AbstractWechatAdapter {
         this.executor.shutdownNow();
     }
 
-    public void clearCache() throws Exception {
-//        adb shell pm clear <packagename>
+    public void clearMemory() throws Exception {
         shutdownNow();
         this.setExecutor();
         this.start();

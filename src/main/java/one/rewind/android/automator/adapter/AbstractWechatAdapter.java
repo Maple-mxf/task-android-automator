@@ -293,6 +293,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.update_time = new Date();
             tmp.number = 0;
             tmp.udid = udid;
+            tmp.retry_count = 0;
             tmp.insert_time = new Date();
             tmp.insert();
             return;
@@ -328,6 +329,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
             SubscribeMedia e = new SubscribeMedia();
             e.udid = device.udid;
             e.media_name = mediaName;
+            e.number = 100;
+            e.retry_count = 0;
+            e.status = SubscribeMedia.CrawlerState.NOFINISH.status;
             e.insert();
         }
     }
