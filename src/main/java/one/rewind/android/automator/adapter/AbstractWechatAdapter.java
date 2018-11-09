@@ -3,16 +3,13 @@ package one.rewind.android.automator.adapter;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.FailRecord;
-import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.model.TaskType;
-import one.rewind.android.automator.model.WordsPoint;
+import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.android.automator.util.FileUtil;
+import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.db.DaoManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,6 +28,12 @@ public abstract class AbstractWechatAdapter extends Adapter {
     protected boolean lastPage = false;
 
     protected boolean firstPage = true;
+
+    private int countCollapse = 0;
+
+    public void setCountCollapse() {
+        countCollapse++;
+    }
 
     public void setTaskType(TaskType taskType) {
         this.taskType = taskType;
@@ -372,12 +375,17 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                     subscribeMedia.update();
 
-                    AndroidUtil.closeApp(driver);
+                    setCountCollapse();
+                    if (this.countCollapse % 10 == 0) {
+                        //释放内存
+                        this.clearMemory();
+                    } else {
+                        AndroidUtil.closeApp(driver);
 
-                    Thread.sleep(10000);
+                        Thread.sleep(10000);
 
-                    AndroidUtil.activeWechat(device);
-
+                        AndroidUtil.activeWechat(device);
+                    }
                     digestionCrawler(mediaName, true);
 
                 } catch (Exception e1) {
@@ -414,5 +422,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
+
+    /**
+     * 清空手机缓存
+     *
+     * @throws Exception
+     */
+    public void clearMemory() throws Exception {
+        ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
+        AndroidUtil.activeWechat(this.device);
+    }
 
 }

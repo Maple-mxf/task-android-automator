@@ -7,7 +7,6 @@ import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
-import one.rewind.android.automator.util.ShellUtil;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -47,16 +46,6 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
         super(device);
     }
 
-    /**
-     * 清空手机缓存
-     *
-     * @throws Exception
-     */
-    public void clearMemory() throws Exception {
-        ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
-        AndroidUtil.activeWechat(this.device);
-    }
-
     public void start() throws Exception {
         this.setExecutor();
         Task task = new Task();
@@ -93,6 +82,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                         digestionSubscribe(var, false);
                     }
                     taskType = TaskType.CRAWLER;
+                    device.queue.clear();
                     execute();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -102,15 +92,13 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                     if (device.queue.size() == 0) {
                         initCrawlerQueue();
                     }
-                    device.queue.clear();
-                    device.queue.add("淘迷网");
                     for (String var : device.queue) {
                         lastPage = false;
                         digestionCrawler(var, getRetry());
-//                        AndroidUtil.updateProcess(var, device.udid);
-                        clearMemory();
+                        AndroidUtil.updateProcess(var, device.udid);
                     }
                     taskType = TaskType.SUBSCRIBE;
+                    device.queue.clear();
                     execute();
                 } catch (Exception e) {
                     e.printStackTrace();
