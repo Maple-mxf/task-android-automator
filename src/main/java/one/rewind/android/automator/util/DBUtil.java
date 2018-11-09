@@ -42,6 +42,7 @@ public class DBUtil {
                 } else {
                     v.status = SubscribeMedia.CrawlerState.NOFINISH.status;
                     v.retry_count = 0;
+                    if (v.number == 0) v.number = 100;
                 }
                 v.update();
             } catch (Exception e) {
