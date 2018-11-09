@@ -173,6 +173,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
             if (words.contains("年") && words.contains("月") && words.contains("日") && left <= 80) {
 
                 wordsPoints.add(new WordsPoint((top), left, width, height, words));
+
+                if (wordsPoints.size() >= 6) return wordsPoints;
             }
         }
         return wordsPoints;
@@ -187,7 +189,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     public void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
-                FailRecord record = AndroidUtil.retry(mediaName, device.udid);
+                FailRecord record = AndroidUtil.retry(mediaName);
                 if (record == null) {
                     //当前公众号抓取的文章已经达到100篇以上
                     return;
@@ -216,7 +218,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 if (wordsPoints == null) {
-                    logger.error("链路出现雪崩的情况了！one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");
+                    logger.error("链路出现雪崩的情况了！wordPoints == null ??");
                     throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");
                 } else {
                     //点击计算出来的坐标

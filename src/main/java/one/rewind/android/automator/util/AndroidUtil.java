@@ -212,19 +212,18 @@ public class AndroidUtil {
         }
     }
 
-    public static FailRecord retry(String mediaName, String udid) throws Exception {
+    public static FailRecord retry(String mediaName) throws Exception {
         long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
         FailRecord record = new FailRecord();
         record.finishNum = (int) count;
-        record.udid = udid;
         record.mediaName = mediaName;
         int var = (int) count % 6;
         if (var >= 3) {
-            record.slideNumByPage = (int) (count / 6) + 2;
+            record.slideNumByPage = (int) (count / 6) + 1;
         } else if (count == 0) {
             record.slideNumByPage = 0;
         } else {
-            record.slideNumByPage = (int) (count / 6) + 1;
+            record.slideNumByPage = (int) (count / 6);
         }
         if (record.finishNum < 100) {
             return record;
