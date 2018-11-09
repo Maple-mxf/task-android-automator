@@ -20,10 +20,10 @@ public class FailRecord extends ModelL {
 	/**
 	 * 当前微信公众号的名称
 	 */
-	public String wxPublicName;
+	public String mediaName;
 
 	/**
 	 * 那个设备关注了当前公众号
 	 */
-	public String deviceUdid;
+	public String udid;
 }

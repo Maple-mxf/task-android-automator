@@ -177,7 +177,7 @@ public class APITransport {
 
         for (SubscribeMedia account : accounts) {
             long var = dao1.queryBuilder().where().eq("media_nick", account.media_name).countOf();
-            List<FailRecord> wxPublicName = dao2.queryBuilder().where().eq("wxPublicName", account.media_name).query();
+            List<FailRecord> wxPublicName = dao2.queryBuilder().where().eq("mediaName", account.media_name).query();
             if (var > 50) {
                 account.status = 1;
                 account.update_time = new Date();

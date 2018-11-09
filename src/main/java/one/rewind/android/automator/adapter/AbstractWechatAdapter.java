@@ -184,7 +184,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @param mediaName
      * @throws InterruptedException
      */
-    public void getIntoPublicAccountEssayList(String mediaName, boolean retry) throws AndroidCollapseException {
+    public void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry) {
                 FailRecord record = AndroidUtil.retry(mediaName, device.udid);
@@ -352,7 +352,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
                 return;
             }
-            getIntoPublicAccountEssayList(mediaName, retry);
+            delegateOpenEssay(mediaName, retry);
         } catch (AndroidCollapseException e) {
             e.printStackTrace();
             try {
