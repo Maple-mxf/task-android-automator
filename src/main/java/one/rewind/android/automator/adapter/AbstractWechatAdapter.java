@@ -63,7 +63,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         for (Object v : result) {
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
-            if (words.equals(mediaName)) {
+            if (words.equalsIgnoreCase(mediaName)) {
                 top = b.getInt("top");
                 left = b.getInt("left");
                 return new WordsPoint(top + 15, left, 0, 0, "");
@@ -266,7 +266,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         // B 点公众号
         WebElement publicAccountLink = driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]"));
         publicAccountLink.click();
-        Thread.sleep(2000);
+        Thread.sleep(1000);
 
         // C1 输入框输入搜索信息
         driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
