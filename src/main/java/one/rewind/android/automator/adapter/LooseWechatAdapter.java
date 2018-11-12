@@ -9,6 +9,7 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -73,6 +74,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
         }
 
         private void execute() {
+            setTimes(new Date().getTime());
             device.queue.clear();
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
@@ -177,6 +179,5 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
             return new LooseWechatAdapter(this.device);
         }
     }
-
 
 }

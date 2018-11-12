@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,6 +30,14 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     public void setTaskType(TaskType taskType) {
         this.taskType = taskType;
+    }
+
+    private ThreadLocal<Long> times = new ThreadLocal<>();
+
+    public void setTimes(Long value) {
+        if (times.get() == null) {
+            this.times.set(value);
+        }
     }
 
     public static volatile ExecutorService executor;
@@ -211,7 +220,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 if (wordsPoints == null) {
                     logger.error("链路出现雪崩的情况了！wordPoints == null ??");
-                    throw new AndroidCollapseException("可能是系统崩溃！请检查百度API调用和安卓系统是否崩溃 one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");
+                    throw new AndroidCollapseException("请检查百度API和安卓系统是否崩溃");
                 } else {
                     //点击计算出来的坐标
                     openEssays(wordsPoints);
@@ -318,6 +327,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
     private void saveSubscribeRecord(String mediaName) throws Exception {
+        sleepPolicy();
         long tempCount = DBTab.subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
@@ -337,7 +347,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
      *
      * @param mediaName
      */
-    public void digestionCrawler(String mediaName, boolean retry) {
+    public void digestionCrawler(String mediaName, boolean retry) throws IOException, InterruptedException {
+        sleepPolicy();
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
                 //很可能存在某一个公众号检索不到
@@ -415,4 +426,25 @@ public abstract class AbstractWechatAdapter extends Adapter {
         AndroidUtil.activeWechat(this.device);
     }
 
+
+    //睡眠策略   1000 * 60 * 60  3600000
+    private void sleepPolicy() throws IOException, InterruptedException {
+        if (this.times.get() != null) {
+            long now = new Date().getTime();
+            long tmp = now - times.get();
+
+            if (tmp == 0) return;
+            //时间误差控制在5毫秒中
+            if (tmp % 3600000 <= 10000) {
+                //手机休眠
+                ShellUtil.clickPower(udid);
+                //线程睡眠
+                Thread.sleep(1000 * 60 * 5);
+                //唤醒线程
+                ShellUtil.notifyDevice(udid, device.driver);
+                //重新设置计时器
+                this.setTimes(new Date().getTime());
+            }
+        }
+    }
 }

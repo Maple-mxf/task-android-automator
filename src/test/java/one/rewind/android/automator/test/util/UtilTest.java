@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Date;
 
 /**
  * Create By 2018/10/18
@@ -108,6 +109,24 @@ public class UtilTest {
         ShellUtil.shutdownProcess("ZX1G42BX4R", "com.tencent.mm");
     }
 
+
+    @Test
+    public void testThreadLocal() {
+        ThreadLocal<Long> times = new ThreadLocal<>();
+        times.set(1L);
+        times.set(2L);
+        times.set(5L);
+        Long aLong = times.get();
+        System.out.println(aLong);
+        System.out.println(aLong);
+    }
+
+    @Test
+    public void testLocalDateTime() {
+        Date date = new Date();
+
+        System.out.println(date.getTime());
+    }
 
 
 }
