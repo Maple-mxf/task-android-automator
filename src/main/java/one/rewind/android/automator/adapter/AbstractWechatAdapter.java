@@ -1,7 +1,6 @@
 package one.rewind.android.automator.adapter;
 
 import com.j256.ormlite.dao.Dao;
-import jdk.nashorn.tools.Shell;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
@@ -22,7 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
@@ -220,9 +218,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
             }
             while (!lastPage) {
-                //睡眠策略
-                setCountVal();
-                sleepPolicy();
                 //获取模拟点击的坐标位置
                 //下滑到指定的位置
                 if (firstPage) {
@@ -253,16 +248,24 @@ public abstract class AbstractWechatAdapter extends Adapter {
     private void openEssays(List<WordsPoint> wordsPoints) throws InterruptedException, AndroidCollapseException {
         int neverClickCount = 0;
         for (WordsPoint wordsPoint : wordsPoints) {
+            try {
+                //睡眠策略
+                setCountVal();
+                sleepPolicy();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             if (neverClickCount > 3) {
                 throw new AndroidCollapseException("安卓系统卡住点不动了！");
             }
 
             AndroidUtil.clickPoint(320, wordsPoint.top, 5000, driver);
-
             // 有很大的概率点击不进去
             //所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
             if (this.device.isClickEffect()) {
+
                 System.out.println("文章点进去了....");
+
                 for (int i = 0; i < 2; i++) {
                     AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 500);
                 }

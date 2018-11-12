@@ -28,10 +28,10 @@ import java.util.UUID;
 @SuppressWarnings("JavaDoc")
 public class AndroidUtil {
     /**
-     * @param name
+     * @param mediaName
      * @throws InterruptedException
      */
-    public static boolean enterEssay(String name, AndroidDevice device) throws InterruptedException, InvokingBaiduAPIException {
+    public static boolean enterEssay(String mediaName, AndroidDevice device) throws InterruptedException, InvokingBaiduAPIException {
 
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
@@ -52,7 +52,12 @@ public class AndroidUtil {
         Thread.sleep(200);
 
         // 搜索
-        device.driver.findElement(By.className("android.widget.EditText")).sendKeys(name);
+        device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
+
+        if (!hasSubscribe(mediaName, device)) {
+            return false;
+        }
+
 
         AndroidUtil.clickPoint(720, 150, 0, device.driver);
 
@@ -76,7 +81,40 @@ public class AndroidUtil {
             e.printStackTrace();
             return false;
         }
+    }
 
+    private static boolean hasSubscribe(String mediaName, AndroidDevice device) throws InvokingBaiduAPIException {
+        //检测是否存在公众号
+        String fileName = UUID.randomUUID().toString() + ".png";
+        String path = System.getProperty("user.dir") + "/screen/";
+        AndroidUtil.screenshot(fileName, path, device.driver);
+        JSONObject imageOCR = BaiduAPIUtil.imageOCR(path + fileName);
+        JSONArray var0 = imageOCR.getJSONArray("words_result");
+        for (Object v : var0) {
+            JSONObject var1 = (JSONObject) v;
+            if (var1.getString("words").contains("无结果")) {
+                try {
+                    //标记当前公众号
+                    SubscribeMedia media =
+                            DBTab.subscribeDao.
+                                    queryBuilder().
+                                    where().
+                                    eq("media_name", mediaName).
+                                    and().
+                                    eq("udid", device.udid).
+                                    queryForFirst();
+                    if (media != null) {
+                        media.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+                        media.update_time = new Date();
+                        media.update();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
