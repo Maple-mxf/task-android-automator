@@ -5,10 +5,11 @@ import one.rewind.android.automator.adapter.DefaultWechatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
+import org.apache.commons.lang3.time.DateUtils;
 
 import java.sql.*;
-import java.util.Date;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 
@@ -112,9 +113,11 @@ public class DBUtil {
                 List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
 
                 for (BaiduTokens v : tokens) {
-                    v.count = 0;
-                    v.update_time = new Date();
-                    v.update();
+                    if (!DateUtils.isSameDay(v.update_time, new Date())) {
+                        v.count = 0;
+                        v.update_time = new Date();
+                        v.update();
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -124,10 +127,10 @@ public class DBUtil {
         public void startTimer() {
             Timer timer = new Timer(false);
             TimerTask task = new ResetTokenState();
-            timer.schedule(task, buildDate(), 1000 * 60 * 60 * 24);
+            timer.schedule(task, 1000 * 60);
         }
 
-        Date buildDate() {
+      /*  Date buildDate() {
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.HOUR_OF_DAY, 0);
             calendar.set(Calendar.MINUTE, 0);
@@ -145,6 +148,6 @@ public class DBUtil {
             startDT.setTime(date);
             startDT.add(Calendar.DAY_OF_MONTH, days);
             return startDT.getTime();
-        }
+        }*/
     }
 }
