@@ -74,7 +74,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
         }
 
         private void execute() {
-            setTimes(new Date().getTime());
+            setCountVal();
             device.queue.clear();
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {

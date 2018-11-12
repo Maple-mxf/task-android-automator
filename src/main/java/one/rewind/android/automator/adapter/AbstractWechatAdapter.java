@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter;
 
 import com.j256.ormlite.dao.Dao;
+import jdk.nashorn.tools.Shell;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
@@ -21,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
@@ -34,10 +36,21 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     private ThreadLocal<Long> times = new ThreadLocal<>();
 
-    public void setTimes(Long value) {
-        if (times.get() == null) {
-            this.times.set(value);
+    private ThreadLocal<Integer> countVal = new ThreadLocal<>();
+
+
+    public void setCountVal() {
+        if (countVal.get() != null) {
+            int var = countVal.get();
+            var += 1;
+            countVal.set(var);
+        } else {
+            countVal.set(1);
         }
+    }
+
+    public void setTimes(Long value) {
+        this.times.set(value);
     }
 
     public static volatile ExecutorService executor;
@@ -207,7 +220,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
             }
             while (!lastPage) {
-
+                //睡眠策略
+                sleepPolicy();
+                setCountVal();
                 //获取模拟点击的坐标位置
                 //下滑到指定的位置
                 if (firstPage) {
@@ -327,7 +342,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
     private void saveSubscribeRecord(String mediaName) throws Exception {
-        sleepPolicy();
         long tempCount = DBTab.subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
@@ -348,7 +362,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @param mediaName
      */
     public void digestionCrawler(String mediaName, boolean retry) throws IOException, InterruptedException {
-        sleepPolicy();
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
                 //很可能存在某一个公众号检索不到
@@ -429,21 +442,16 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     //睡眠策略   1000 * 60 * 60  3600000
     private void sleepPolicy() throws IOException, InterruptedException {
-        if (this.times.get() != null) {
-            long now = new Date().getTime();
-            long tmp = now - times.get();
-
-            if (tmp == 0) return;
-            //时间误差控制在5毫秒中
-            if (tmp % 3600000 <= 10000) {
-                //手机休眠
-                ShellUtil.clickPower(udid);
+        if (this.countVal.get() != null) {
+            //抓取50篇文章休息5分钟
+            Integer var = countVal.get();
+            if (var % 50 == 0) {
+                //手机睡眠
+                ShellUtil.clickPower(device.udid);
                 //线程睡眠
                 Thread.sleep(1000 * 60 * 5);
-                //唤醒线程
-                ShellUtil.notifyDevice(udid, device.driver);
-                //重新设置计时器
-                this.setTimes(new Date().getTime());
+                //手机唤醒
+                ShellUtil.notifyDevice(device.udid, device.driver);
             }
         }
     }
