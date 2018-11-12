@@ -8,13 +8,11 @@ import one.rewind.android.automator.adapter.DefaultWechatAdapter;
 import one.rewind.android.automator.manager.DefaultDeviceManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.util.AndroidUtil;
-import one.rewind.android.automator.util.AppInfo;
-import one.rewind.android.automator.util.DBUtil;
-import one.rewind.android.automator.util.MD5Util;
+import one.rewind.android.automator.util.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -22,8 +20,7 @@ import java.util.Stack;
 
 public class WechatAdapterTest {
 
-        String udid = "ZX1G42BX4R";
-//    String udid = "ZX1G423DMM";
+    String udid = "ZX1G42BX4R";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -148,18 +145,18 @@ public class WechatAdapterTest {
     //先将公众号关注  再点击进去抓取文章
 
     @Test
-    public void testGetOnePublicAccountsEssays() throws ClassNotFoundException {
-        Class.forName("one.rewind.android.automator.util.BaiduAPIUtil");
-        adapter.digestionCrawler("海南应急", true);
+    public void testGetOnePublicAccountsEssays() throws IOException, InterruptedException {
+        adapter.digestionCrawler("安农大就创会", true);
     }
 
     @Test
-    public void testGetOnePublicAccountsEssaysByHandlerException() {
+    public void testGetOnePublicAccountsEssaysByHandlerException() throws IOException, InterruptedException {
         adapter.digestionCrawler("万金解盘", true);
     }
+
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeMedia("java技术栈");
+        adapter.subscribeMedia("时代光华");
     }
 
     @Test
@@ -207,8 +204,13 @@ public class WechatAdapterTest {
     }
 
     @Test
-    public void testRemoveWifiProxy(){
+    public void testRemoveWifiProxy() {
         device.removeWifiProxy();
     }
 
+    @Test
+    public void testDeviceSleepAndNotify() throws IOException, InterruptedException {
+        ShellUtil.clickPower(udid);
+        ShellUtil.notifyDevice(udid, device.driver);
+    }
 }
