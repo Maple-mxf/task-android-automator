@@ -53,7 +53,6 @@ public class LooseDeviceManager {
         }
     }
 
-    //初始化设备
     static {
         try {
             DBTab.subscribeDao = DaoManager.getDao(SubscribeMedia.class);
@@ -70,9 +69,6 @@ public class LooseDeviceManager {
         }
     }
 
-    /**
-     * 任务队列初始化放在adapter中,更加便捷可控制
-     */
     public void startManager() throws ClassNotFoundException, SQLException {
 
         Class.forName("one.rewind.android.automator.model.DBTab");
@@ -95,7 +91,6 @@ public class LooseDeviceManager {
                 System.out.println("设备  " + device.udid + " :启动失败!");
             }
         }
-        //启动定时任务
         new DBUtil.ResetTokenState().startTimer();
     }
 }

@@ -11,9 +11,7 @@ import java.util.Date;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- *
- */
+
 public class DBUtil {
 
 
@@ -90,13 +88,6 @@ public class DBUtil {
         }
     }
 
-    /**
-     * 获取指定数量的公众账号
-     *
-     * @param accounts
-     * @param page
-     * @param var
-     */
     public static void obtainFullData(Set<String> accounts, int page, int var) {
         while (accounts.size() <= var) {
             sendAccounts(accounts, page);
@@ -104,12 +95,6 @@ public class DBUtil {
         }
     }
 
-    /**
-     * 当前设备今天订阅了多少公众账号
-     *
-     * @param udid
-     * @return
-     */
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = DBTab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -120,9 +105,6 @@ public class DBUtil {
     }
 
 
-    /**
-     * 定期充值token的状态
-     */
     public static class ResetTokenState extends TimerTask {
         @Override
         public void run() {

@@ -3,3 +3,9 @@
 2：数据库编码统一设置为utf8mb4（防止表情存储出现问题造成事务回滚）
 
 docker run --name mysql5.7 -p 3306:3306 -v /usr/local/mysql/data:/var/lib/mysql -v /usr/local/mysql/conf.d:/etc/mysql/conf.d -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+
+1:手机抓取文章一段之间之后会出现死机状态
+2:可以引入一个概念,白天手机抓文章,晚上手机休息.或者其他更合理的时间分配方案.
+3:设备自动链接,确认wifi连接是正确的
+4:实现手机锁屏,手机输入密码开锁.
+5:

@@ -12,7 +12,6 @@ public class AlertListener implements AlertEventListener {
 
     @Override
     public void beforeAlertAccept(WebDriver driver, Alert alert) {
-
     }
 
     @Override
@@ -21,6 +20,9 @@ public class AlertListener implements AlertEventListener {
         System.out.println("弹框出现的内容是：" + alert.getText());
     }
 
+
+    //nihao
+
     @Override
     public void afterAlertDismiss(WebDriver driver, Alert alert) {
 
@@ -28,7 +30,6 @@ public class AlertListener implements AlertEventListener {
 
     @Override
     public void beforeAlertDismiss(WebDriver driver, Alert alert) {
-
     }
 
     @Override
