@@ -319,6 +319,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.retry_count = 0;
             tmp.insert_time = new Date();
             tmp.insert();
+            //返回到主界面
+            driver.navigate().back();
+            driver.navigate().back();
             return;
         }
         AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
@@ -368,6 +371,19 @@ public abstract class AbstractWechatAdapter extends Adapter {
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
                 //很可能存在某一个公众号检索不到
+                SubscribeMedia media =
+                        DBTab.subscribeDao.
+                                queryBuilder().
+                                where().
+                                eq("media_name", mediaName).
+                                and().
+                                eq("udid", device.udid).
+                                queryForFirst();
+                if (media != null) {
+                    media.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+                    media.update_time = new Date();
+                    media.update();
+                }
                 return;
             }
             delegateOpenEssay(mediaName, retry);
