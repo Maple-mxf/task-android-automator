@@ -221,8 +221,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
             }
             while (!lastPage) {
                 //睡眠策略
-                sleepPolicy();
                 setCountVal();
+                sleepPolicy();
                 //获取模拟点击的坐标位置
                 //下滑到指定的位置
                 if (firstPage) {
