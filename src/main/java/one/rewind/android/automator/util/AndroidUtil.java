@@ -54,10 +54,9 @@ public class AndroidUtil {
         // 搜索
         device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
-        if (!hasSubscribe(mediaName, device)) {
-            return false;
-        }
-
+//        if (!hasSubscribe(mediaName, device)) {
+//            return false;
+//        }
 
         AndroidUtil.clickPoint(720, 150, 0, device.driver);
 
@@ -83,8 +82,8 @@ public class AndroidUtil {
         }
     }
 
+    //检测是否订阅mediaName
     private static boolean hasSubscribe(String mediaName, AndroidDevice device) throws InvokingBaiduAPIException {
-        //检测是否存在公众号
         String fileName = UUID.randomUUID().toString() + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, device.driver);
