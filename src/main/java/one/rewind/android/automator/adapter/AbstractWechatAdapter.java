@@ -364,10 +364,13 @@ public abstract class AbstractWechatAdapter extends Adapter {
      *
      * @param mediaName
      */
-    public void digestionCrawler(String mediaName, boolean retry) throws IOException, InterruptedException {
+    public void digestionCrawler(String mediaName, boolean retry) {
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
                 //很可能存在某一个公众号检索不到
+                for (int i = 0; i < 3; i++) {
+                    driver.navigate().back();
+                }
                 return;
             }
             delegateOpenEssay(mediaName, retry);
@@ -452,7 +455,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 //手机睡眠
                 ShellUtil.clickPower(device.udid);
                 //线程睡眠
-                Thread.sleep(1000 * 60 * 5);
+                Thread.sleep(1000 * 60 * 6);
                 //手机唤醒
                 ShellUtil.notifyDevice(device.udid, device.driver);
             }

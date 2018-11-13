@@ -9,7 +9,6 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

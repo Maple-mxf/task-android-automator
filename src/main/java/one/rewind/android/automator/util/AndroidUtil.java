@@ -54,19 +54,16 @@ public class AndroidUtil {
         // 搜索
         device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
-//        if (!hasSubscribe(mediaName, device)) {
-//            return false;
-//        }
-
         AndroidUtil.clickPoint(720, 150, 0, device.driver);
-
+        System.out.println("代码坐标57行");
         AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
-
+        System.out.println("代码坐标60行");
         try {
             // 进入公众号
             AndroidUtil.clickPoint(720, 360, 500, device.driver);
 
             device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+            System.out.println("代码坐标66行");
 
             Thread.sleep(1000);
 
@@ -77,6 +74,7 @@ public class AndroidUtil {
             Thread.sleep(6000); // TODO 此处时间需要调整
             return true;
         } catch (Exception e) {
+            System.out.println("代码坐标76行");
             e.printStackTrace();
             return false;
         }

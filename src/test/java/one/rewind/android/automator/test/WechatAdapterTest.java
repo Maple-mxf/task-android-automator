@@ -20,7 +20,7 @@ import java.util.Stack;
 
 public class WechatAdapterTest {
 
-    String udid = "ZX1G42BX4R";
+    String udid = "192.168.55.101:5555";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -133,9 +133,9 @@ public class WechatAdapterTest {
         device.setProxyResponseFilter(responseFilter);
 
         // 从AppInfo中选择需要启动的程序
-        AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
+//        AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
 
-        device.initAppiumServiceAndDriver(appInfo);
+//        device.initAppiumServiceAndDriver(appInfo);
 
         adapter = new DefaultWechatAdapter(device);
 
@@ -212,5 +212,10 @@ public class WechatAdapterTest {
     public void testDeviceSleepAndNotify() throws IOException, InterruptedException {
         ShellUtil.clickPower(udid);
         ShellUtil.notifyDevice(udid, device.driver);
+    }
+
+    @Test
+    public void testSendFile(){
+        device.setupWifiProxy();
     }
 }

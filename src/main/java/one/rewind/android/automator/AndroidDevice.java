@@ -187,7 +187,7 @@ public class AndroidDevice {
 
                     execShell(d, "settings", "put", "global", "http_proxy", LOCAL_IP + ":" + proxyPort);
                     execShell(d, "settings", "put", "global", "https_proxy", LOCAL_IP + ":" + proxyPort);
-//					d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
+//					d.push(new File("weixin_1360.apk"), new RemoteFile("/sdcard/_certs/weixin_1360.apk"));
 
                     Thread.sleep(2000);
                 }
