@@ -187,7 +187,7 @@ public class AndroidDevice {
 
                     execShell(d, "settings", "put", "global", "http_proxy", LOCAL_IP + ":" + proxyPort);
                     execShell(d, "settings", "put", "global", "https_proxy", LOCAL_IP + ":" + proxyPort);
-//					d.push(new File("weixin_1360.apk"), new RemoteFile("/sdcard/_certs/weixin_1360.apk"));
+//					d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
 
                     Thread.sleep(2000);
                 }
@@ -430,7 +430,7 @@ public class AndroidDevice {
     public void initApp(int localProxyPort) {
         this.startProxy(localProxyPort);
         this.setupWifiProxy();
-        this.state = AndroidDevice.State.INIT;
+        this.state = State.INIT;
         System.out.println("Starting....Please wait!");
         try {
             RequestFilter requestFilter = (request, contents, messageInfo) -> {

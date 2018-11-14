@@ -94,7 +94,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return null;
     }
 
-    private List<WordsPoint> obtainClickPoints(String mediaName) throws InterruptedException, InvokingBaiduAPIException {
+    private List<WordsPoint> obtainClickPoints(String mediaName) throws InvokingBaiduAPIException {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -106,7 +106,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         } else {
             //异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
             //当前公众号不能继续抓取了
-            AndroidUtil.returnPrevious(driver);
+//            AndroidUtil.returnPrevious(driver);
             return null;
         }
     }
@@ -229,8 +229,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 if (wordsPoints == null) {
-                    logger.error("链路出现雪崩的情况了！wordPoints == null ??");
-                    throw new AndroidCollapseException("请检查百度API和安卓系统是否崩溃");
+                    logger.info("wordsPoints==null 当前公众号{} 到最后一页了！", mediaName);
                 } else {
                     //点击计算出来的坐标
                     openEssays(wordsPoints);

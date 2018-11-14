@@ -1,6 +1,5 @@
 package one.rewind.android.automator.test;
 
-import com.google.common.collect.Sets;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
@@ -8,19 +7,21 @@ import one.rewind.android.automator.adapter.DefaultWechatAdapter;
 import one.rewind.android.automator.manager.DefaultDeviceManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.util.*;
+import one.rewind.android.automator.util.AndroidUtil;
+import one.rewind.android.automator.util.AppInfo;
+import one.rewind.android.automator.util.MD5Util;
+import one.rewind.android.automator.util.ShellUtil;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 
 public class WechatAdapterTest {
 
-    String udid = "192.168.55.101:5555";
+    String udid = "ZX1G42BX4R";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -133,9 +134,9 @@ public class WechatAdapterTest {
         device.setProxyResponseFilter(responseFilter);
 
         // 从AppInfo中选择需要启动的程序
-//        AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
+        AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
 
-//        device.initAppiumServiceAndDriver(appInfo);
+        device.initAppiumServiceAndDriver(appInfo);
 
         adapter = new DefaultWechatAdapter(device);
 
@@ -146,17 +147,17 @@ public class WechatAdapterTest {
 
     @Test
     public void testGetOnePublicAccountsEssays() throws IOException, InterruptedException {
-        adapter.digestionCrawler("安农大就创会", true);
+        adapter.digestionCrawler("保险真谛", true);
     }
 
     @Test
     public void testGetOnePublicAccountsEssaysByHandlerException() throws IOException, InterruptedException {
-        adapter.digestionCrawler("万金解盘", true);
+        adapter.digestionCrawler("京东", false);
     }
 
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeMedia("时代光华");
+        adapter.subscribeMedia("京东");
     }
 
     @Test
@@ -169,11 +170,8 @@ public class WechatAdapterTest {
 
     @Test
     public void testSubscribeAccount() throws Exception {
-        Set<String> strings = Sets.newHashSet();
-        DBUtil.obtainFullData(strings, 11, 20);
-        for (String var : strings) {
-            adapter.digestionSubscribe(var, true);
-        }
+//        adapter.subscribeMedia("阿里巴巴");
+//        adapter.digestionCrawler("阿里巴巴", true);
     }
 
 
@@ -215,7 +213,7 @@ public class WechatAdapterTest {
     }
 
     @Test
-    public void testSendFile(){
+    public void testSendFile() {
         device.setupWifiProxy();
     }
 }

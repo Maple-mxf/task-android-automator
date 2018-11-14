@@ -4,8 +4,8 @@ import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.FailRecord;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.apache.commons.io.FileUtils;
@@ -55,15 +55,12 @@ public class AndroidUtil {
         device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
         AndroidUtil.clickPoint(720, 150, 0, device.driver);
-        System.out.println("代码坐标57行");
         AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
-        System.out.println("代码坐标60行");
         try {
             // 进入公众号
             AndroidUtil.clickPoint(720, 360, 500, device.driver);
 
             device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
-            System.out.println("代码坐标66行");
 
             Thread.sleep(1000);
 
@@ -74,7 +71,16 @@ public class AndroidUtil {
             Thread.sleep(6000); // TODO 此处时间需要调整
             return true;
         } catch (Exception e) {
-            System.out.println("代码坐标76行");
+            try {
+                SubscribeMedia var = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                if (var != null) {
+                    var.update_time = new Date();
+                    var.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+                    var.update();
+                }
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
             e.printStackTrace();
             return false;
         }
