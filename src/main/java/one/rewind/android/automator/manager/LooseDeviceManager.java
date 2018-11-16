@@ -2,6 +2,7 @@ package one.rewind.android.automator.manager;
 
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.LooseWechatAdapter;
+import one.rewind.android.automator.adapter.LooseWechatAdapter2;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -92,4 +93,30 @@ public class LooseDeviceManager {
         }
         new DBUtil.ResetTokenState().startTimer();
     }
+
+    public void startManager2() throws ClassNotFoundException, SQLException {
+
+        Class.forName("one.rewind.android.automator.model.DBTab");
+
+        DBUtil.reset();
+
+        List<AndroidDevice> androidDevices = obtainAvailableDevices();
+
+        for (AndroidDevice device : androidDevices) {
+
+            LooseWechatAdapter2 adapter =
+                    new LooseWechatAdapter2.
+                            Builder().
+                            device(device).
+                            build();
+            try {
+                adapter.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        new DBUtil.ResetTokenState().startTimer();
+    }
+
+
 }

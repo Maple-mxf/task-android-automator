@@ -19,4 +19,16 @@ public class LooseManagerTest {
 
         System.in.read();
     }
+
+    @Test
+    public void testLooseBoot2() throws SQLException, ClassNotFoundException, IOException {
+
+        System.out.println("一键启动!开箱即用.");
+
+        LooseDeviceManager manager = LooseDeviceManager.getInstance();
+
+        manager.startManager2();
+
+        System.in.read();
+    }
 }
