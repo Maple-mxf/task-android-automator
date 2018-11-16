@@ -93,7 +93,7 @@ public class BaiduAPIUtil {
             BaiduTokens result = DBTab.tokenDao.
                     queryBuilder().
                     where().
-                    le("count", 550).
+                    le("count", 500).
                     queryForFirst();
             if (result == null) throw new RuntimeException("当前没有可用的token了");
             var = result;

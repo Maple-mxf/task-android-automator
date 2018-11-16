@@ -91,4 +91,18 @@ public class TimerTest {
         return startDT.getTime();
     }
 
+    @Test
+    public void testInNextDayExecuteTask() throws IOException {
+        Timer timer = new Timer(false);
+
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("hello world");
+            }
+        };
+        timer.schedule(timerTask, new Date(), 2000);
+        System.in.read();
+    }
+
 }

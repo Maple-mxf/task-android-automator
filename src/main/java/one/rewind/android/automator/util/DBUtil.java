@@ -128,7 +128,8 @@ public class DBUtil {
         public void startTimer() {
             Timer timer = new Timer(false);
             TimerTask task = new ResetTokenState();
-            timer.schedule(task, 1000 * 60);
+            Date nextDay = DateUtil.buildDate();
+            timer.schedule(task, nextDay, 1000 * 60 * 60 * 24);
         }
     }
 }
