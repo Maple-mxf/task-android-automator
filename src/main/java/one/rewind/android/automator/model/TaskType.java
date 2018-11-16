@@ -4,7 +4,9 @@ public enum TaskType {
 
     SUBSCRIBE(1),
     CRAWLER(2),
+    FINAL(4),
     WAIT(3);
+
 
     private int type;
 

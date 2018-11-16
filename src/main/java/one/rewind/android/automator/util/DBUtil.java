@@ -26,7 +26,7 @@ public class DBUtil {
         List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();
         for (SubscribeMedia v : accounts) {
             try {
-                if (v.status == 2 || v.status == 1) {
+                if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
                     continue;
                 }
 
@@ -130,25 +130,5 @@ public class DBUtil {
             TimerTask task = new ResetTokenState();
             timer.schedule(task, 1000 * 60);
         }
-
-      /*  Date buildDate() {
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(Calendar.HOUR_OF_DAY, 0);
-            calendar.set(Calendar.MINUTE, 0);
-            calendar.set(Calendar.SECOND, 0);
-            Date time = calendar.getTime();
-
-            if (time.before(new Date())) {
-                return addDay(time, 1);
-            }
-            return time;
-        }
-
-        Date addDay(Date date, int days) {
-            Calendar startDT = Calendar.getInstance();
-            startDT.setTime(date);
-            startDT.add(Calendar.DAY_OF_MONTH, days);
-            return startDT.getTime();
-        }*/
     }
 }

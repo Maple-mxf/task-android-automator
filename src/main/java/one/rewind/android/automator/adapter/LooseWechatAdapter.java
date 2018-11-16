@@ -7,8 +7,10 @@ import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
+import one.rewind.android.automator.util.DateUtil;
 
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -31,7 +33,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                             60,
                             TimeUnit.SECONDS,
                             new SynchronousQueue<>(),
-                            threadFactory(UUID.randomUUID().toString().replace("-", "")
+                            threadFactory("waa-" + UUID.randomUUID().toString().replace("-", "")
                             ));
         }
     }
@@ -49,11 +51,32 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
     }
 
     public void start() throws Exception {
+
+        //采取非递归手段
         this.setExecutor();
-        Task task = new Task();
-        this.taskType = calculateTaskType(this.device.udid);
-        task.setRetry(TaskType.CRAWLER.equals(this.taskType));
-        this.executor.execute(task);
+
+        boolean flag = true;
+
+        while (flag) {
+
+            this.taskType = calculateTaskType(this.device.udid);
+
+            if (TaskType.FINAL.equals(this.taskType)) flag = false;  //当前设备订阅的公众号抓取的文章已经达到了上限
+
+            if (TaskType.WAIT.equals(this.taskType)) {
+                //需要计算啥时候到达明天   到达明天的时候需要重新分配任务
+                Date nextDay = DateUtil.buildDate();
+                Date thisDay = new Date();
+                long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
+                Thread.sleep(waitMills + 1000 * 60 * 5);
+                this.taskType = TaskType.SUBSCRIBE;
+            }
+            Task task = new Task();
+
+            task.setRetry(TaskType.CRAWLER.equals(this.taskType));
+
+            this.executor.execute(task);
+        }
     }
 
 
@@ -83,8 +106,6 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                     for (int i = 0; i < length; i++) {
                         digestionSubscribe(device.queue.poll());
                     }
-                    taskType = TaskType.CRAWLER;
-                    execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -102,14 +123,9 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                             Thread.sleep(1000);
                         }
                     }
-                    taskType = TaskType.SUBSCRIBE;
-                    execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            } else if (TaskType.WAIT.equals(taskType)) {
-                logger.info("当前设备无任务");
-                //动态计算睡眠时间
             }
         }
 
@@ -154,18 +170,24 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
 
         int todaySubscribe = DBUtil.obtainSubscribeNumToday(udid);
 
-        if (allSubscribe > 993 && todaySubscribe >= 40) {
+        if (allSubscribe >= 993) {
+            if (notFinishR.size() == 0) {
+                return TaskType.FINAL;   //当前设备订阅的公众号已经到上限
+            }
             return TaskType.CRAWLER;
-        } else if (allSubscribe < 993 && todaySubscribe >= 40) {
+        } else if (todaySubscribe >= 40) {
+
+            if (notFinishR.size() == 0) {
+                return TaskType.WAIT;
+            }
             return TaskType.CRAWLER;
-        } else if (allSubscribe < 993) {
+        } else {
             if (notFinishR.size() == 0) {
                 return TaskType.SUBSCRIBE;
             } else {
                 return TaskType.CRAWLER;
             }
         }
-        return null;
     }
 
     public static class Builder {
