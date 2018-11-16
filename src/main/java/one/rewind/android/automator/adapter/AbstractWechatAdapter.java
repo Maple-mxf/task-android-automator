@@ -194,7 +194,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 if (wordsPoints == null || wordsPoints.size() == 0) {
-                    logger.info("wordsPoints==null 当前公众号{} 到最后一页了！", mediaName);
+                    if (!lastPage) {
+                        throw new AndroidCollapseException("不是最后一页,wordPoints is Null !");
+                    }
+                    logger.info("公众号{}抓取到最后一页了", mediaName);
                 } else {
                     openEssays(wordsPoints);
                 }
@@ -362,7 +365,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             }
             delegateOpenEssay(mediaName, retry);
         } catch (AndroidCollapseException e) {
-            logger.error("设备{}崩溃了.", device.udid);
+            logger.error("设备{}链路出问题了.", device.udid);
             e.printStackTrace();
             try {
                 //手机睡眠

@@ -30,7 +30,7 @@ public class DefaultDeviceManager {
      * 集合中的所有数据进行关注.
      * 任务指定:  计算每一台设备(一台设备对应一个微信号) ;任务类型的根据每个设备关注的每个号进行动态计算,合理算出当前设备的任务类型
      * <p>
-     * one.rewind.android.automator.manager.DefaultDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
+     * @see one.rewind.android.automator.manager.DefaultDeviceManager#originalAccounts 为空则全部设备分配为数据抓取
      */
     public static BlockingQueue<String> originalAccounts = new LinkedBlockingDeque<>();
 
