@@ -258,7 +258,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 throw new AndroidCollapseException("安卓系统卡住点不动了！");
             }
 
-            AndroidUtil.clickPoint(320, wordsPoint.top, 5000, driver);
+            AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
             // 有很大的概率点击不进去
             //所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
             if (this.device.isClickEffect()) {
@@ -266,7 +266,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 System.out.println("文章点进去了....");
 
                 for (int i = 0; i < 2; i++) {
-                    AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 500);
+                    AndroidUtil.slideToPoint(1413, 2369, 1413, 277, driver, 500);
                 }
                 Thread.sleep(1000);
                 //关闭文章
@@ -419,7 +419,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     public void digestionSubscribe(String mediaName, boolean retry) throws Exception {
         try {
             if (retry) {
-                AndroidUtil.closeApp(driver);
+                AndroidUtil.closeApp(device);
                 AndroidUtil.activeWechat(device);
             }
             subscribeMedia(mediaName);

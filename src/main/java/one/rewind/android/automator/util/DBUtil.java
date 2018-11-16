@@ -29,6 +29,9 @@ public class DBUtil {
                 if (v.status == 2) {
                     continue;
                 }
+                if (v.status == 1) {
+                    continue;
+                }
                 long countOf = DBTab.essayDao.
                         queryBuilder().
                         where().
