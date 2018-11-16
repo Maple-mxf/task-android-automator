@@ -36,8 +36,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
-
-    public void setCountVal() {
+    void setCountVal() {
         if (countVal.get() != null) {
             int var = countVal.get();
             var += 1;
@@ -47,22 +46,18 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-    public void setTimes(Long value) {
-        this.times.set(value);
-    }
-
     public static volatile ExecutorService executor;
 
-    protected TaskType taskType = null;
+    TaskType taskType = null;
 
     public static final int RETRY_COUNT = 5;
 
 
-    public AbstractWechatAdapter(AndroidDevice device) {
+    AbstractWechatAdapter(AndroidDevice device) {
         super(device);
     }
 
-    public WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
+    private WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
 
         String fileName = UUID.randomUUID().toString() + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -200,26 +195,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     private void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
-            if (retry) {
-                FailRecord record = AndroidUtil.retry(mediaName);
-                if (record == null) {
-                    //当前公众号抓取的文章已经达到100篇以上
-                    return;
-                } else {
-                    firstPage = (record.finishNum == 0);
-                    if (!firstPage) {
-                        //下滑到第一页
-                        AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
-                        //向下划指定页数
-                        for (int i = 0; i < record.slideNumByPage; i++) {
-                            AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
-                        }
-                    }
-                }
-            }
+            if (retry)
+                if (!restore(mediaName)) return;
             while (!lastPage) {
-                //获取模拟点击的坐标位置
-                //下滑到指定的位置
                 if (firstPage) {
                     AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
                     firstPage = false;
@@ -231,18 +209,46 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 if (wordsPoints == null) {
                     logger.info("wordsPoints==null 当前公众号{} 到最后一页了！", mediaName);
                 } else {
-                    //点击计算出来的坐标
                     openEssays(wordsPoints);
                 }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            logger.error("=========================当前设备{}已经崩溃了=============================", device.udid);
+            logger.error("=======================当前设备{}已经崩溃了===================", device.udid);
             throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");
         }
     }
 
+
+    private boolean restore(String mediaName) {
+        try {
+            long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+            this.firstPage = (count == 0);
+            if (!this.firstPage) {
+
+                AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
+
+                int var = (int) count % 6;
+                int slideNumByPage;
+
+                if (var == 0) {
+                    slideNumByPage = (int) ((count / 6) + 2);
+                } else if (var <= 3) {
+                    slideNumByPage = (int) (count / 6) + 1;
+                } else {
+                    slideNumByPage = (int) (count / 6) + 2;
+                }
+                for (int i = 0; i < slideNumByPage; i++) {
+                    AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     private void openEssays(List<WordsPoint> wordsPoints) throws InterruptedException, AndroidCollapseException {
         int neverClickCount = 0;
@@ -259,7 +265,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
             }
 
             AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
-            // 有很大的概率点击不进去
             //所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
             if (this.device.isClickEffect()) {
 
@@ -358,15 +363,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-    /**
-     * 针对于在抓取微信公众号文章时候的异常处理   失败无限重试  直到当前公众号的所有文章抓取完成
-     *
-     * @param mediaName
-     */
     public void digestionCrawler(String mediaName, boolean retry) {
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
-                //很可能存在某一个公众号检索不到
+                //搜索不到公众号
                 for (int i = 0; i < 3; i++) {
                     driver.navigate().back();
                 }
@@ -377,31 +377,28 @@ public abstract class AbstractWechatAdapter extends Adapter {
             logger.error("设备{}崩溃了.", device.udid);
             e.printStackTrace();
             try {
-                try {
-                    SubscribeMedia subscribeMedia =
-                            DBTab.subscribeDao.
-                                    queryBuilder().
-                                    where().
-                                    eq("media_name", mediaName).
-                                    and().
-                                    eq("udid", this.device.udid).
-                                    queryForFirst();
+                //手机睡眠
+                AndroidUtil.closeApp(device);
 
-                    if (subscribeMedia == null) return;
-                    if (subscribeMedia.retry_count >= RETRY_COUNT) return;
+                ShellUtil.clickPower(device.udid);
 
-                    subscribeMedia.update_time = new Date();
-                    subscribeMedia.retry_count += 1;
+                ShellUtil.notifyDevice(udid, device.driver);
 
-                    subscribeMedia.update();
+                clearMemory();
 
-                    clearMemory();
+                Thread.sleep(1000 * 60);
 
+                AndroidUtil.activeWechat(this.device);
+
+                SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
+
+                if (media != null) {
+                    media.retry_count += 1;
+                    media.update_time = new Date();
+                    media.update();
                     digestionCrawler(mediaName, true);
-
-                } catch (Exception e1) {
-                    e1.printStackTrace();
                 }
+
             } catch (Exception e1) {
                 e1.printStackTrace();
             }
@@ -441,7 +438,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     private void clearMemory() throws Exception {
         ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
-        AndroidUtil.activeWechat(this.device);
+
     }
 
 

@@ -4,9 +4,9 @@ import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.adapter.AbstractWechatAdapter;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.DBTab;
-import one.rewind.android.automator.model.FailRecord;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
@@ -254,21 +254,59 @@ public class AndroidUtil {
         }
     }
 
-    public static FailRecord retry(String mediaName) throws Exception {
-        long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-        FailRecord record = new FailRecord();
-        record.finishNum = (int) count;
-        record.mediaName = mediaName;
-        int var = (int) count % 6;
-        if (var >= 3) {
-            record.slideNumByPage = (int) (count / 6) + 1;
-        } else if (count == 0) {
-            record.slideNumByPage = 0;
-        } else {
-            record.slideNumByPage = (int) (count / 6);
+    public static SubscribeMedia retry(String mediaName, String udid) throws Exception {
+        SubscribeMedia media = DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
+        if (media == null) {
+            media = new SubscribeMedia();
+            media.update_time = new Date();
+            media.insert_time = new Date();
+            media.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+            media.media_name = mediaName;
+            media.udid = udid;
+            media.number = 0;
+            media.retry_count = 0;
+            media.insert();
+            return null;
         }
-        if (record.finishNum < 100) {
-            return record;
+
+        if (media.status == SubscribeMedia.CrawlerState.NOMEDIANAME.status) {
+            media.retry_count = 0;
+            media.update_time = new Date();
+            media.number = 0;
+            media.update();
+            return null;
+        }
+        long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+        if (media.retry_count >= AbstractWechatAdapter.RETRY_COUNT) {
+            media.update_time = new Date();
+            media.number = (int) count;
+            media.status = SubscribeMedia.CrawlerState.FINISH.status;
+            media.update();
+            return null;
+        }
+
+//        FailRecord record = new FailRecord();
+//        record.finishNum = (int) count;
+//        record.mediaName = mediaName;
+//        int var = (int) count % 6;
+//        if (var >= 3) {
+//            record.slideNumByPage = (int) (count / 6) + 2;
+//        } else if (count == 0) {
+//            record.slideNumByPage = 0;
+//        } else {
+//            record.slideNumByPage = (int) (count / 6) + 1;
+//        }
+
+//        media.number = (int) count;
+
+
+//        if (record.finishNum < media.number) {
+//            return record;
+//        } else {
+//            return null;
+//        }
+        if (count < media.number) {
+            return media;
         } else {
             return null;
         }

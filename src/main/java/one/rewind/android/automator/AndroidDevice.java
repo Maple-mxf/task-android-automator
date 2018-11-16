@@ -37,7 +37,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Queue;
 import java.util.Stack;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * 设备连接信息
@@ -49,7 +49,7 @@ public class AndroidDevice {
     /**
      * 任务队列
      */
-    public Queue<String> queue = new ConcurrentLinkedDeque<>();
+    public Queue<String> queue = new ConcurrentLinkedQueue<>();
 
     private boolean clickEffect;
 

@@ -13,6 +13,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Create By 2018/10/18
@@ -128,5 +130,18 @@ public class UtilTest {
         System.out.println(date.getTime());
     }
 
+    @Test
+    public void testQueue() {
+        Queue<String> queue = new ConcurrentLinkedQueue<>();
+        queue.add("one");
+        queue.add("two");
+        queue.add("three");
+        queue.add("four");
+        int length = queue.size();
+        for (int i = 0; i < length; i++) {
+            System.out.println(queue.poll());
+        }
+        System.out.println(queue.size());
+    }
 
 }

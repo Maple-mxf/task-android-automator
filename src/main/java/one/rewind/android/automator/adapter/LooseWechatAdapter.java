@@ -76,43 +76,40 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
 
         private void execute() {
             setCountVal();
-            device.queue.clear();
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
-                    if (device.queue.size() == 0) {
-                        initSubscribeQueue();
-                    }
-                    for (String var : device.queue) {
-                        digestionSubscribe(var, false);
+                    initSubscribeQueue();
+                    int length = device.queue.size();
+                    for (int i = 0; i < length; i++) {
+                        digestionSubscribe(device.queue.poll(), false);
                     }
                     taskType = TaskType.CRAWLER;
-                    device.queue.clear();
                     execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             } else if (TaskType.CRAWLER.equals(taskType)) {
                 try {
-                    if (device.queue.size() == 0) {
-                        initCrawlerQueue();
-                    }
-                    for (String var : device.queue) {
+                    initCrawlerQueue();
+                    int length = device.queue.size();
+                    for (int i = 0; i < length; i++) {
+                        String mediaName = device.queue.poll();
                         lastPage = false;
-                        digestionCrawler(var, getRetry());
-                        AndroidUtil.updateProcess(var, device.udid);
-                        for (int i = 0; i < 5; i++) {
+                        digestionCrawler(mediaName, getRetry());
+                        AndroidUtil.updateProcess(mediaName, device.udid);
+                        for (int j = 0; j < 5; j++) {
                             driver.navigate().back();
-                            Thread.sleep(500);
+                            Thread.sleep(1000);
                         }
                     }
                     taskType = TaskType.SUBSCRIBE;
-                    device.queue.clear();
                     execute();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             } else if (TaskType.WAIT.equals(taskType)) {
                 logger.info("当前设备无任务");
+                //动态计算睡眠时间
             }
         }
 
