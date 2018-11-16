@@ -1,15 +1,16 @@
 package one.rewind.android.automator.adapter;
 
-import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.*;
+import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.TaskType;
+import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.android.automator.util.FileUtil;
 import one.rewind.android.automator.util.ShellUtil;
-import one.rewind.db.DaoManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
@@ -93,15 +94,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, driver);
         //图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
-        List<WordsPoint> wordsPoints = analysisImage(mediaName, path + fileName);
-        if (wordsPoints != null && wordsPoints.size() > 0) {
-            return wordsPoints;
-        } else {
-            //异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
-            //当前公众号不能继续抓取了
-//            AndroidUtil.returnPrevious(driver);
-            return null;
-        }
+        return analysisImage(mediaName, path + fileName);
     }
 
     /**
@@ -112,7 +105,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @return
      */
     @SuppressWarnings("JavaDoc")
-    protected List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
+    private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         FileUtil.deleteFile(filePath);
         //得到即将要点击的坐标位置
@@ -122,10 +115,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     /**
      * {"words":"My Bastis三种批量插入方式的性能","location":{"top":1305,"left":42,"width":932,"height":78}}
-     * {"words":"找工作交流群(北上广深杭成都重庆", "location":{"top":1676,"left":42,"width":972,"height":72}}
-     * {"words":"南京武汉长沙西安)",            "location":{"top":1758,"left":55,"width":505,"height":72}}
-     * {"words":"从初级程序员到编程大牛,只需要每","location":{"top":2040,"left":40,"width":978,"height":85}}
-     * {"words":"天坚持做这件事情.",           "location":{"top":2130,"left":43,"width":493,"height":71}}
      *
      * @param array
      * @param mediaName
@@ -204,7 +193,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
 
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
-                if (wordsPoints == null) {
+                if (wordsPoints == null || wordsPoints.size() == 0) {
                     logger.info("wordsPoints==null 当前公众号{} 到最后一页了！", mediaName);
                 } else {
                     openEssays(wordsPoints);
@@ -321,25 +310,26 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.retry_count = 0;
             tmp.insert_time = new Date();
             tmp.insert();
-            return;
-        }
-        AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
+            k--;
+        } else {
+            AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
 
-        // 点击订阅
-        try {
-            driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
-                    .click();
-            saveSubscribeRecord(mediaName);
-            Thread.sleep(3000);
-            driver.navigate().back();
-        } catch (Exception e) {
-            //已经订阅了
-            e.printStackTrace();
-            logger.info("Already add public account: {}", mediaName);
-            driver.navigate().back();
-            --k;
+            try {
+                // 点击订阅
+                driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
+                        .click();
+                saveSubscribeRecord(mediaName);
+                Thread.sleep(3000);
+                driver.navigate().back();
+            } catch (Exception e) {
+                //已经订阅了
+                e.printStackTrace();
+                logger.info("Already add public account: {}", mediaName);
+                driver.navigate().back();
+                --k;
+            }
         }
-        Thread.sleep(1500);
+        Thread.sleep(1000);
         for (int i = 0; i < k; i++) {
             driver.navigate().back();
             Thread.sleep(500);
@@ -377,7 +367,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             try {
                 //手机睡眠
                 AndroidUtil.closeApp(device);
-                sleep(1000);
+                sleep(1000 * 60);
                 AndroidUtil.activeWechat(this.device);
 
                 SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
@@ -398,30 +388,18 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
     /**
-     * 订阅公众号重试机制
-     *
      * @param mediaName
-     * @param retry
      */
-    public void digestionSubscribe(String mediaName, boolean retry) throws Exception {
+    public void digestionSubscribe(String mediaName) {
         try {
-            if (retry) {
-                AndroidUtil.closeApp(device);
-                AndroidUtil.activeWechat(device);
-            }
             subscribeMedia(mediaName);
         } catch (Exception e) {
             e.printStackTrace();
-            Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
-            SubscribeMedia forFirst = dao.queryBuilder().where().eq("media_name", mediaName).queryForFirst();
-            if (forFirst == null) {
-                digestionSubscribe(mediaName, true);
-            }
         }
     }
 
 
-    //睡眠策略   1000 * 60 * 6  3600000
+    //睡眠策略
     private void sleepPolicy() throws IOException, InterruptedException {
         if (this.countVal.get() != null) {
             //抓取50篇文章休息5分钟

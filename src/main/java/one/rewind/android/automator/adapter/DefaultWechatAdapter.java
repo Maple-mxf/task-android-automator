@@ -37,7 +37,7 @@ public class DefaultWechatAdapter extends AbstractWechatAdapter {
             if (TaskType.SUBSCRIBE.equals(taskType)) {
                 try {
                     for (String var : device.queue) {
-                        digestionSubscribe(var, false);
+                        digestionSubscribe(var);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -68,6 +68,7 @@ public class DefaultWechatAdapter extends AbstractWechatAdapter {
         submit(future);
         logger.info("任务提交完毕！");
     }
+
     public static List<Future<?>> futures = Lists.newArrayList();
 
     /**

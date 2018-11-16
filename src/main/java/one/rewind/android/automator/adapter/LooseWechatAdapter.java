@@ -81,7 +81,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                     initSubscribeQueue();
                     int length = device.queue.size();
                     for (int i = 0; i < length; i++) {
-                        digestionSubscribe(device.queue.poll(), false);
+                        digestionSubscribe(device.queue.poll());
                     }
                     taskType = TaskType.CRAWLER;
                     execute();
