@@ -26,12 +26,10 @@ public class DBUtil {
         List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();
         for (SubscribeMedia v : accounts) {
             try {
-                if (v.status == 2) {
+                if (v.status == 2 || v.status == 1) {
                     continue;
                 }
-                if (v.status == 1) {
-                    continue;
-                }
+
                 long countOf = DBTab.essayDao.
                         queryBuilder().
                         where().
