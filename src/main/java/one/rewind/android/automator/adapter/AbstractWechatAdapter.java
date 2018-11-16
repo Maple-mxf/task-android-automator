@@ -32,8 +32,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         this.taskType = taskType;
     }
 
-    private ThreadLocal<Long> times = new ThreadLocal<>();
-
     private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
     void setCountVal() {
@@ -379,15 +377,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             try {
                 //手机睡眠
                 AndroidUtil.closeApp(device);
-
-                ShellUtil.clickPower(device.udid);
-
-                ShellUtil.notifyDevice(udid, device.driver);
-
-                clearMemory();
-
-                Thread.sleep(1000 * 60);
-
+                sleep(1000);
                 AndroidUtil.activeWechat(this.device);
 
                 SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
@@ -431,30 +421,23 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
 
-    /**
-     * 清空手机缓存
-     *
-     * @throws Exception
-     */
-    private void clearMemory() throws Exception {
-        ShellUtil.shutdownProcess(this.device.udid, "com.tencent.mm");
-
-    }
-
-
-    //睡眠策略   1000 * 60 * 60  3600000
+    //睡眠策略   1000 * 60 * 6  3600000
     private void sleepPolicy() throws IOException, InterruptedException {
         if (this.countVal.get() != null) {
             //抓取50篇文章休息5分钟
             Integer var = countVal.get();
             if (var % 50 == 0) {
-                //手机睡眠
-                ShellUtil.clickPower(device.udid);
-                //线程睡眠
-                Thread.sleep(1000 * 60 * 6);
-                //手机唤醒
-                ShellUtil.notifyDevice(device.udid, device.driver);
+                sleep(1000 * 60 * 6);
             }
         }
+    }
+
+    private void sleep(long millis) throws IOException, InterruptedException {
+        //手机睡眠
+        ShellUtil.clickPower(device.udid);
+        //线程睡眠
+        Thread.sleep(millis);
+        //手机唤醒
+        ShellUtil.notifyDevice(device.udid, device.driver);
     }
 }

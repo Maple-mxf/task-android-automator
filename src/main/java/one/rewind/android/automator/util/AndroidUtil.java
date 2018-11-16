@@ -17,6 +17,7 @@ import org.openqa.selenium.TakesScreenshot;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.UUID;
@@ -248,7 +249,7 @@ public class AndroidUtil {
             }
         }
         try {
-            ShellUtil.shutdownProcess(device.udid, "com.tencent.mm");
+            clearMemory(device.udid);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -284,27 +285,6 @@ public class AndroidUtil {
             media.update();
             return null;
         }
-
-//        FailRecord record = new FailRecord();
-//        record.finishNum = (int) count;
-//        record.mediaName = mediaName;
-//        int var = (int) count % 6;
-//        if (var >= 3) {
-//            record.slideNumByPage = (int) (count / 6) + 2;
-//        } else if (count == 0) {
-//            record.slideNumByPage = 0;
-//        } else {
-//            record.slideNumByPage = (int) (count / 6) + 1;
-//        }
-
-//        media.number = (int) count;
-
-
-//        if (record.finishNum < media.number) {
-//            return record;
-//        } else {
-//            return null;
-//        }
         if (count < media.number) {
             return media;
         } else {
@@ -351,4 +331,7 @@ public class AndroidUtil {
     }
 
 
+    public static void clearMemory(String udid) throws IOException, InterruptedException {
+        ShellUtil.shutdownProcess(udid, "com.tencent.mm");
+    }
 }
