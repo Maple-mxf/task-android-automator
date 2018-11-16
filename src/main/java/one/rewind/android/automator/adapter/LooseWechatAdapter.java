@@ -24,14 +24,16 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
     private ExecutorService executor;
 
     private void setExecutor() {
-        this.executor =
-                new ThreadPoolExecutor(0,
-                        Integer.MAX_VALUE,
-                        60,
-                        TimeUnit.SECONDS,
-                        new SynchronousQueue<>(),
-                        threadFactory(UUID.randomUUID().toString().replace("-", "")
-                        ));
+        if (this.executor == null) {
+            this.executor =
+                    new ThreadPoolExecutor(0,
+                            Integer.MAX_VALUE,
+                            60,
+                            TimeUnit.SECONDS,
+                            new SynchronousQueue<>(),
+                            threadFactory(UUID.randomUUID().toString().replace("-", "")
+                            ));
+        }
     }
 
     private static ThreadFactory threadFactory(final String name) {

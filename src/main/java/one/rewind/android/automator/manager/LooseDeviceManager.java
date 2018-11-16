@@ -88,7 +88,6 @@ public class LooseDeviceManager {
                 adapter.start();
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("设备  " + device.udid + " :启动失败!");
             }
         }
         new DBUtil.ResetTokenState().startTimer();

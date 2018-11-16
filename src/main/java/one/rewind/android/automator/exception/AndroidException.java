@@ -6,7 +6,7 @@ package one.rewind.android.automator.exception;
  */
 
 public class AndroidException extends Exception {
-	public AndroidException(String message) {
-		super(message);
-	}
+    public AndroidException(String message) {
+        super(message);
+    }
 }
