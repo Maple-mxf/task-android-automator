@@ -85,15 +85,15 @@ public class ShellUtil {
     public static void notifyDevice(String udid, AndroidDriver driver) throws IOException, InterruptedException {
         Runtime runtime = Runtime.getRuntime();
         clickPower(udid);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         //滑动解锁  728 2356  728 228  adb shell -s  input swipe  300 1500 300 200
         String unlockCommand = "adb -s " + udid + " shell input swipe  300 1500 300 200";
         runtime.exec(unlockCommand);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         //输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
         String loginCommand = "adb -s " + udid + " shell input text szqj";
         runtime.exec(loginCommand);
-        Thread.sleep(1000);
+        Thread.sleep(4000);
         //点击确认
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
         Thread.sleep(2000);

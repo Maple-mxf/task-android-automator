@@ -430,7 +430,7 @@ public class AndroidDevice {
     public void initApp(int localProxyPort) {
         this.startProxy(localProxyPort);
         this.setupWifiProxy();
-        this.state = AndroidDevice.State.INIT;
+        this.state = State.INIT;
         System.out.println("Starting....Please wait!");
         try {
             RequestFilter requestFilter = (request, contents, messageInfo) -> {

@@ -94,7 +94,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return null;
     }
 
-    private List<WordsPoint> obtainClickPoints(String mediaName) throws InterruptedException, InvokingBaiduAPIException {
+    private List<WordsPoint> obtainClickPoints(String mediaName) throws InvokingBaiduAPIException {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -106,7 +106,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         } else {
             //异常的具体原因是点击没反应，程序自动点击叉号进行关闭，已经返回到上一页面
             //当前公众号不能继续抓取了
-            AndroidUtil.returnPrevious(driver);
+//            AndroidUtil.returnPrevious(driver);
             return null;
         }
     }
@@ -229,8 +229,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
                 if (wordsPoints == null) {
-                    logger.error("链路出现雪崩的情况了！wordPoints == null ??");
-                    throw new AndroidCollapseException("请检查百度API和安卓系统是否崩溃");
+                    logger.info("wordsPoints==null 当前公众号{} 到最后一页了！", mediaName);
                 } else {
                     //点击计算出来的坐标
                     openEssays(wordsPoints);
@@ -259,7 +258,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 throw new AndroidCollapseException("安卓系统卡住点不动了！");
             }
 
-            AndroidUtil.clickPoint(320, wordsPoint.top, 5000, driver);
+            AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
             // 有很大的概率点击不进去
             //所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
             if (this.device.isClickEffect()) {
@@ -267,7 +266,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 System.out.println("文章点进去了....");
 
                 for (int i = 0; i < 2; i++) {
-                    AndroidUtil.slideToPoint(457, 2369, 457, 277, driver, 500);
+                    AndroidUtil.slideToPoint(1413, 2369, 1413, 277, driver, 500);
                 }
                 Thread.sleep(1000);
                 //关闭文章
@@ -319,9 +318,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.retry_count = 0;
             tmp.insert_time = new Date();
             tmp.insert();
-            //返回到主界面
-            driver.navigate().back();
-            driver.navigate().back();
             return;
         }
         AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
@@ -367,22 +363,12 @@ public abstract class AbstractWechatAdapter extends Adapter {
      *
      * @param mediaName
      */
-    public void digestionCrawler(String mediaName, boolean retry) throws IOException, InterruptedException {
+    public void digestionCrawler(String mediaName, boolean retry) {
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
                 //很可能存在某一个公众号检索不到
-                SubscribeMedia media =
-                        DBTab.subscribeDao.
-                                queryBuilder().
-                                where().
-                                eq("media_name", mediaName).
-                                and().
-                                eq("udid", device.udid).
-                                queryForFirst();
-                if (media != null) {
-                    media.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
-                    media.update_time = new Date();
-                    media.update();
+                for (int i = 0; i < 3; i++) {
+                    driver.navigate().back();
                 }
                 return;
             }
@@ -433,7 +419,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     public void digestionSubscribe(String mediaName, boolean retry) throws Exception {
         try {
             if (retry) {
-                AndroidUtil.closeApp(driver);
+                AndroidUtil.closeApp(device);
                 AndroidUtil.activeWechat(device);
             }
             subscribeMedia(mediaName);
@@ -468,7 +454,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 //手机睡眠
                 ShellUtil.clickPower(device.udid);
                 //线程睡眠
-                Thread.sleep(1000 * 60 * 5);
+                Thread.sleep(1000 * 60 * 6);
                 //手机唤醒
                 ShellUtil.notifyDevice(device.udid, device.driver);
             }

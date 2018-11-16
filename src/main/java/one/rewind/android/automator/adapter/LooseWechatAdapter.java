@@ -9,7 +9,6 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -99,6 +98,10 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                         lastPage = false;
                         digestionCrawler(var, getRetry());
                         AndroidUtil.updateProcess(var, device.udid);
+                        for (int i = 0; i < 5; i++) {
+                            driver.navigate().back();
+                            Thread.sleep(500);
+                        }
                     }
                     taskType = TaskType.SUBSCRIBE;
                     device.queue.clear();
@@ -107,7 +110,7 @@ public class LooseWechatAdapter extends AbstractWechatAdapter {
                     e.printStackTrace();
                 }
             } else if (TaskType.WAIT.equals(taskType)) {
-                System.out.println("当前设备没有可执行的任务");
+                logger.info("当前设备无任务");
             }
         }
 
