@@ -153,17 +153,6 @@ public class AndroidUtil {
     }
 
     /**
-     * 点击返回
-     * 如果是在文章页面点击返回的时候需要判别是否是点击有效   如果无效，则不会点击返回
-     *
-     * @throws InterruptedException
-     */
-    public static void returnPrevious(AndroidDriver driver) throws InterruptedException {
-        driver.findElement(By.xpath("//android.widget.ImageView[contains(@content-desc,'返回')]")).click();
-        Thread.sleep(1000);
-    }
-
-    /**
      * 下滑到指定位置
      *
      * @param startX

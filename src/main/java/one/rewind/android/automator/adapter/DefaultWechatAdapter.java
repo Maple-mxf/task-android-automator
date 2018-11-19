@@ -7,6 +7,7 @@ import one.rewind.android.automator.util.AndroidUtil;
 
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 /**
@@ -14,6 +15,8 @@ import java.util.concurrent.Future;
  * Description: 微信的自动化操作
  */
 public class DefaultWechatAdapter extends AbstractWechatAdapter {
+
+    public static volatile ExecutorService executor;
 
     public DefaultWechatAdapter(AndroidDevice device) {
         super(device);
@@ -81,4 +84,8 @@ public class DefaultWechatAdapter extends AbstractWechatAdapter {
     }
 
 
+    @Override
+    void start() {
+
+    }
 }

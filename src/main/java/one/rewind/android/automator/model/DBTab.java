@@ -20,11 +20,14 @@ public class DBTab {
 
     public static Dao<BaiduTokens, String> tokenDao;
 
+    public static Dao<Media, String> mediaDao;
+
     static {
         try {
             essayDao = DaoManager.getDao(Essays.class);
             subscribeDao = DaoManager.getDao(SubscribeMedia.class);
             tokenDao = DaoManager.getDao(BaiduTokens.class);
+            mediaDao = DaoManager.getDao(Media.class);
         } catch (Exception e) {
             e.printStackTrace();
         }

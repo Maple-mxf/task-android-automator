@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
@@ -45,7 +44,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-    public static volatile ExecutorService executor;
 
     TaskType taskType = null;
 
@@ -174,12 +172,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return wordsPoints;
     }
 
-    /**
-     * 获取公众号的文章列表
-     *
-     * @param mediaName
-     * @throws InterruptedException
-     */
     private void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
         try {
             if (retry)
@@ -462,4 +454,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         //手机唤醒
         ShellUtil.notifyDevice(device.udid, device.driver);
     }
+
+
+    abstract void start();
 }

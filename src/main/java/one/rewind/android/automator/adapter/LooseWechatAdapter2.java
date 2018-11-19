@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter;
 
 import com.google.common.collect.Sets;
+import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
@@ -29,6 +30,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
     private static BlockingQueue<String> subscribeQueue = new LinkedBlockingDeque<>();
 
     static {
+        //必须传入set防止重复
         Set<String> set = Sets.newHashSet();
 
         DBUtil.obtainFullData(set, 10, AndroidUtil.obtainDevices().length * 40);
@@ -49,7 +51,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
         }
     }
 
-    private static ThreadFactory threadFactory(final String name) {
+    private ThreadFactory threadFactory(final String name) {
         return runnable -> {
             Thread result = new Thread(runnable, name);
             result.setDaemon(false);
@@ -57,7 +59,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
         };
     }
 
-    private LooseWechatAdapter2(AndroidDevice device) {
+    public LooseWechatAdapter2(AndroidDevice device) {
         super(device);
     }
 
@@ -172,7 +174,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
     }
 
 
-    private static TaskType calculateTaskType(String udid) throws Exception {
+    private TaskType calculateTaskType(String udid) throws Exception {
 
         long allSubscribe = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
@@ -181,7 +183,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
                 eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
                 query();
 
-        int todaySubscribe = DBUtil.obtainSubscribeNumToday(udid);
+        int todaySubscribe = obtainSubscribeNumToday(udid);
 
         if (allSubscribe >= 993) {
             if (notFinishR.size() == 0) {
@@ -202,19 +204,13 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
             }
         }
     }
-
-    public static class Builder {
-
-        private AndroidDevice device;
-
-        public Builder device(AndroidDevice device) {
-            this.device = device;
-            return this;
-        }
-
-        public LooseWechatAdapter2 build() {
-            return new LooseWechatAdapter2(this.device);
-        }
+    
+    private int obtainSubscribeNumToday(String udid) throws SQLException {
+        GenericRawResults<String[]> results = DBTab.subscribeDao.
+                queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
+                        udid);
+        String[] firstResult = results.getFirstResult();
+        String var = firstResult[0];
+        return Integer.parseInt(var);
     }
-
 }

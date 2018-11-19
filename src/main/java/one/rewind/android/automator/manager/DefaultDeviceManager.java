@@ -19,6 +19,7 @@ import java.util.concurrent.*;
  * Create By 2018/10/19
  * Description   多设备管理
  */
+@Deprecated
 public class DefaultDeviceManager {
 
     public volatile static boolean running = false;
@@ -124,7 +125,6 @@ public class DefaultDeviceManager {
      * 这种情景仅限于在任务队列的size = 0
      *
      * @param device
-     * @see DefaultDeviceManager#originalAccounts
      */
     private void allotFormulateTask(AndroidDevice device) throws SQLException {
         device.setClickEffect(false);
@@ -153,7 +153,7 @@ public class DefaultDeviceManager {
      * @param device
      */
     private void uncertainAllotTask(TaskType taskType, AndroidDevice device) throws SQLException, InterruptedException {
-        DBUtil.reset();
+//        DBUtil.reset();
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         //清空任务队列
         device.queue.clear();

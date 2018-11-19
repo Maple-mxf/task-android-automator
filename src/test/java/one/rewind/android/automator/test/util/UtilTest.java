@@ -1,5 +1,6 @@
 package one.rewind.android.automator.test.util;
 
+import com.google.common.collect.Sets;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.DBTab;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -35,8 +37,8 @@ public class UtilTest {
 
     @Test
     public void testSubscribeNumber() throws SQLException, ClassNotFoundException {
-        int numToday = DBUtil.obtainSubscribeNumToday("ZX1G423DMM");
-        System.out.println(numToday);
+//        int numToday = DBUtil.obtainSubscribeNumToday("ZX1G423DMM");
+//        System.out.println(numToday);
     }
 
     @Test
@@ -142,6 +144,13 @@ public class UtilTest {
             System.out.println(queue.poll());
         }
         System.out.println(queue.size());
+    }
+
+    @Test
+    public void testDBQueryMedia(){
+        Set<String> set = Sets.newHashSet();
+
+        DBUtil.sendAccounts(set,10);
     }
 
 }

@@ -22,7 +22,7 @@ public class DateUtil {
         return time;
     }
 
-    public static Date addDay(Date date, int days) {
+    private static Date addDay(Date date, int days) {
         Calendar startDT = Calendar.getInstance();
         startDT.setTime(date);
         startDT.add(Calendar.DAY_OF_MONTH, days);

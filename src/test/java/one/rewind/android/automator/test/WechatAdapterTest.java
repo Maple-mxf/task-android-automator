@@ -1,11 +1,9 @@
 package one.rewind.android.automator.test;
 
-import com.j256.ormlite.dao.GenericRawResults;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.DefaultWechatAdapter;
-import one.rewind.android.automator.manager.DefaultDeviceManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.Essays;
@@ -17,7 +15,6 @@ import one.rewind.android.automator.util.ShellUtil;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.sound.midi.Soundbank;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -200,9 +197,9 @@ public class WechatAdapterTest {
 
     @Test
     public void testAllotTask() throws InterruptedException {
-        DefaultDeviceManager.originalAccounts.add("菜鸟教程");
-        DefaultDeviceManager.originalAccounts.add("Java技术栈");
-        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
+//        DefaultDeviceManager.originalAccounts.add("菜鸟教程");
+//        DefaultDeviceManager.originalAccounts.add("Java技术栈");
+//        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 //        manager.allotTask(DefaultDeviceManager.TaskType.SUBSCRIBE);
 
     }
