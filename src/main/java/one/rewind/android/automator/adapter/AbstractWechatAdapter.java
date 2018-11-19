@@ -390,6 +390,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
+
+
+
+
+
     /**
      * @param mediaName
      */
