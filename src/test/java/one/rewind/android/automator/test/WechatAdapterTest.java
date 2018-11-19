@@ -1,12 +1,15 @@
 package one.rewind.android.automator.test;
 
+import com.j256.ormlite.dao.GenericRawResults;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.DefaultWechatAdapter;
 import one.rewind.android.automator.manager.DefaultDeviceManager;
 import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.MD5Util;
@@ -14,14 +17,17 @@ import one.rewind.android.automator.util.ShellUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.sound.midi.Soundbank;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Stack;
 
 public class WechatAdapterTest {
 
-    String udid = "ZX1G42BX4R";
+    String udid = "ZX1G323GNB";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -215,5 +221,18 @@ public class WechatAdapterTest {
     @Test
     public void testSendFile() {
         device.setupWifiProxy();
+    }
+
+    @Test
+    public void testUnsubscribeMedia() throws SQLException {
+        Calendar instance = Calendar.getInstance();
+        instance.set(Calendar.HOUR_OF_DAY, 0);
+        instance.set(Calendar.MINUTE, 0);
+        instance.set(Calendar.SECOND, 0);
+        Date time = instance.getTime();
+        List<SubscribeMedia> query = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).and().ge("insert_time", time).query();
+        for (SubscribeMedia media : query) {
+            adapter.unsubscribeMedia(media.media_name);
+        }
     }
 }

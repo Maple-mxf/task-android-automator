@@ -274,6 +274,46 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
+    public void unsubscribeMedia(String mediaName) {
+        try {
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+
+            Thread.sleep(1000);
+
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+
+            Thread.sleep(1000);
+
+            device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
+
+            Thread.sleep(500);
+
+            // 搜索
+            device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
+
+            AndroidUtil.clickPoint(720, 150, 1000, device.driver);
+            AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
+
+            // 进入公众号
+            AndroidUtil.clickPoint(720, 360, 1000, device.driver);
+
+            device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+
+            Thread.sleep(1000);
+
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'取消关注')]")).click();
+            Thread.sleep(1000);
+
+            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'不再关注')]")).click();
+            Thread.sleep(1000);
+        } catch (Exception e) {
+            e.printStackTrace();
+            driver.navigate().back();
+            driver.navigate().back();
+        }
+        driver.navigate().back();
+    }
+
     /**
      * 订阅公众号
      * <p>
@@ -389,10 +429,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
             e.printStackTrace();
         }
     }
-
-
-
-
 
 
     /**

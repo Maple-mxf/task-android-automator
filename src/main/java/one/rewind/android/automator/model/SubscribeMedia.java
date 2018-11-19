@@ -59,6 +59,11 @@ public class SubscribeMedia extends ModelL {
                 ", media_name='" + media_name + '\'' +
                 ", media_id='" + media_id + '\'' +
                 ", status=" + status +
+                ", number=" + number +
+                ", retry_count=" + retry_count +
+                ", id=" + id +
+                ", insert_time=" + insert_time +
+                ", update_time=" + update_time +
                 '}';
     }
 }

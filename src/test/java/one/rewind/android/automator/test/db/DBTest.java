@@ -1,15 +1,13 @@
 package one.rewind.android.automator.test.db;
 
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.*;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
 import org.apache.commons.lang3.time.DateUtils;
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -114,6 +112,20 @@ public class DBTest {
         token1.app_s = "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n";
         token1.count = 0;
         token1.insert();
+    }
+
+    @Test
+    public void testQueryByQuery() throws SQLException {
+        Calendar instance = Calendar.getInstance();
+        instance.set(Calendar.HOUR_OF_DAY, 0);
+        instance.set(Calendar.MINUTE, 0);
+        instance.set(Calendar.SECOND, 0);
+        Date time = instance.getTime();
+
+
+        List<SubscribeMedia> query = DBTab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
+
+        System.out.println(query);
 
     }
 

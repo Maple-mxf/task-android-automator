@@ -50,7 +50,7 @@ public class AndroidUtil {
 
         device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
 
-        Thread.sleep(200);
+        Thread.sleep(500);
 
         // 搜索
         device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
@@ -331,7 +331,7 @@ public class AndroidUtil {
     }
 
 
-    public static void clearMemory(String udid) throws IOException, InterruptedException {
+    private static void clearMemory(String udid) throws IOException, InterruptedException {
         ShellUtil.shutdownProcess(udid, "com.tencent.mm");
     }
 }
