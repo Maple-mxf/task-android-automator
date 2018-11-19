@@ -99,7 +99,7 @@ public class DBUtil {
 
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = DBTab.subscribeDao.
-                queryRaw("select count(id) as number from wechat_subscribe_account where udid = ? and to_days(insert_time) = to_days(NOW())",
+                queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
                         udid);
         String[] firstResult = results.getFirstResult();
         String var = firstResult[0];

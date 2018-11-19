@@ -8,18 +8,6 @@ import java.sql.SQLException;
 
 public class LooseManagerTest {
 
-    @Test
-    @Deprecated
-    public void testLooseBoot() throws SQLException, ClassNotFoundException, IOException {
-
-        System.out.println("一键启动!开箱即用.");
-
-        LooseDeviceManager manager = LooseDeviceManager.getInstance();
-
-        manager.startManager();
-
-        System.in.read();
-    }
 
     @Test
     public void testLooseBoot2() throws SQLException, ClassNotFoundException, IOException {

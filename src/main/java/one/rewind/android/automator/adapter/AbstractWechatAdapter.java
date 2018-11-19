@@ -362,7 +362,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
                         .click();
                 saveSubscribeRecord(mediaName);
-                Thread.sleep(3000);
+                Thread.sleep(5000);
                 driver.navigate().back();
             } catch (Exception e) {
                 //已经订阅了

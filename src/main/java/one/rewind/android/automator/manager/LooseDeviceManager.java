@@ -1,7 +1,6 @@
 package one.rewind.android.automator.manager;
 
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.LooseWechatAdapter;
 import one.rewind.android.automator.adapter.LooseWechatAdapter2;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
@@ -34,24 +33,20 @@ public class LooseDeviceManager {
     private static final int DEFAULT_LOCAL_PROXY_PORT = 48454;
 
     public static LooseDeviceManager getInstance() {
-        synchronized (LooseDeviceManager.class) {
-            if (instance == null) {
-                instance = new LooseDeviceManager();
-            }
-            return instance;
+        if (instance == null) {
+            instance = new LooseDeviceManager();
         }
+        return instance;
     }
 
     private static List<AndroidDevice> obtainAvailableDevices() {
-        synchronized (LooseDeviceManager.class) {
-            List<AndroidDevice> availableDevices = new ArrayList<>();
-            devices.forEach((k, v) -> {
-                if (v.state.equals(AndroidDevice.State.INIT)) {
-                    availableDevices.add(v);
-                }
-            });
-            return availableDevices;
-        }
+        List<AndroidDevice> availableDevices = new ArrayList<>();
+        devices.forEach((k, v) -> {
+            if (v.state.equals(AndroidDevice.State.INIT)) {
+                availableDevices.add(v);
+            }
+        });
+        return availableDevices;
     }
 
     static {
@@ -68,30 +63,6 @@ public class LooseDeviceManager {
             device.initApp(DEFAULT_LOCAL_PROXY_PORT + i);
             devices.put(var[i], device);
         }
-    }
-
-    public void startManager() throws ClassNotFoundException, SQLException {
-
-        Class.forName("one.rewind.android.automator.model.DBTab");
-
-        DBUtil.reset();
-
-        List<AndroidDevice> androidDevices = obtainAvailableDevices();
-
-        for (AndroidDevice device : androidDevices) {
-
-            LooseWechatAdapter adapter =
-                    new LooseWechatAdapter.
-                            Builder().
-                            device(device).
-                            build();
-            try {
-                adapter.start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        new DBUtil.ResetTokenState().startTimer();
     }
 
     public void startManager2() throws ClassNotFoundException, SQLException {

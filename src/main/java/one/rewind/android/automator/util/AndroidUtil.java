@@ -207,7 +207,6 @@ public class AndroidUtil {
         return r.split("device");
     }
 
-
     public static void closeEssay(AndroidDriver driver) throws InterruptedException {
         driver.navigate().back();
         Thread.sleep(1000);

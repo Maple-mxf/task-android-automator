@@ -25,6 +25,17 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
 
     private ExecutorService executor;
 
+    //使用线程安全队列防止订阅重读的公众号
+    private static BlockingQueue<String> subscribeQueue = new LinkedBlockingDeque<>();
+
+    static {
+        Set<String> set = Sets.newHashSet();
+
+        DBUtil.obtainFullData(set, 10, AndroidUtil.obtainDevices().length * 40);
+
+        subscribeQueue.addAll(set);
+    }
+
     private void setExecutor() {
         if (this.executor == null) {
             this.executor =
@@ -79,6 +90,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
             boolean flag = true;
             try {
                 while (flag) {
+
                     //计算任务类型
                     taskType = calculateTaskType(device.udid);
 
@@ -100,38 +112,29 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
 
                     //开始任务
                     if (TaskType.SUBSCRIBE.equals(taskType)) {
-                        try {
-                            initSubscribeQueue();
-                            int length = device.queue.size();
-                            for (int i = 0; i < length; i++) {
-                                digestionSubscribe(device.queue.poll());
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        initSubscribeQueue();
+                        int length = device.queue.size();
+                        for (int i = 0; i < length; i++) {
+                            digestionSubscribe(device.queue.poll());
                         }
                     } else if (TaskType.CRAWLER.equals(taskType)) {
-                        try {
-                            initCrawlerQueue();
-                            int length = device.queue.size();
-                            for (int i = 0; i < length; i++) {
-                                String mediaName = device.queue.poll();
-                                lastPage = false;
-                                digestionCrawler(mediaName, getRetry());
-                                AndroidUtil.updateProcess(mediaName, device.udid);
-                                for (int j = 0; j < 5; j++) {
-                                    driver.navigate().back();
-                                    Thread.sleep(1000);
-                                }
+                        initCrawlerQueue();
+                        int length = device.queue.size();
+                        for (int i = 0; i < length; i++) {
+                            String mediaName = device.queue.poll();
+                            lastPage = false;
+                            digestionCrawler(mediaName, getRetry());
+                            AndroidUtil.updateProcess(mediaName, device.udid);
+                            for (int j = 0; j < 5; j++) {
+                                driver.navigate().back();
+                                Thread.sleep(1000);
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
                         }
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
 
 
@@ -140,9 +143,14 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
             if (numToday >= 40) {
                 taskType = TaskType.WAIT;
             } else {
-                Set<String> mediaNicks = Sets.newHashSet();
-                DBUtil.obtainFullData(mediaNicks, 10, 40 - numToday);
-                device.queue.addAll(mediaNicks);
+                int tmp = 40 - numToday;
+                try {
+                    for (int i = 0; i < tmp; i++) {
+                        device.queue.add(subscribeQueue.take());
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
 
