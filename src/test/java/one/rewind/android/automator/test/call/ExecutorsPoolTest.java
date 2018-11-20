@@ -1,12 +1,11 @@
 package one.rewind.android.automator.test.call;
 
+import com.google.common.util.concurrent.*;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.junit.Test;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.io.IOException;
+import java.util.concurrent.*;
 
 public class ExecutorsPoolTest {
 
@@ -55,16 +54,35 @@ public class ExecutorsPoolTest {
         }
     }
 
+    @Test
+    public void testGuavaCall() throws IOException {
+        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10));
+        ListenableFuture<String> explosion = service.submit(() -> {
+            int a = 1;
 
-    public static void main(String[] args) {
-        ReentrantReadWriteLock var = new ReentrantReadWriteLock();
+            boolean flag = true;
 
-        var.isWriteLocked();
+            while (flag) {
+                System.out.println("i: " + a);
+                a++;
+                if (a == 1000000) {
+                    flag = false;
+                }
+            }
+            return "executed";
+        });
+        Futures.addCallback(explosion, new FutureCallback<String>() {
+            @Override
+            public void onSuccess(@NullableDecl String result) {
+                System.out.println("executed success");
+            }
 
-        var.readLock().tryLock();
-
-        var.writeLock().tryLock();
+            @Override
+            public void onFailure(Throwable t) {
+                t.printStackTrace();
+                System.out.println("executed failed");
+            }
+        }, service);
+        System.in.read();
     }
-
-
 }
