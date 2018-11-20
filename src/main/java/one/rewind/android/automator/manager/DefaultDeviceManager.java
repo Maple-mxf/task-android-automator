@@ -62,9 +62,7 @@ public class DefaultDeviceManager {
         synchronized (DefaultDeviceManager.class) {
             List<AndroidDevice> availableDevices = new ArrayList<>();
             devices.forEach((k, v) -> {
-                if (v.state.equals(AndroidDevice.State.INIT)) {
-                    availableDevices.add(v);
-                }
+                availableDevices.add(v);
             });
             return availableDevices;
         }
@@ -81,7 +79,6 @@ public class DefaultDeviceManager {
         Random random = new Random();
         for (int i = 0; i < var.length; i++) {
             AndroidDevice device = new AndroidDevice(var[i], random.nextInt(50000));
-            device.state = AndroidDevice.State.INIT;
             device.initApp(DEFAULT_LOCAL_PROXY_PORT + i);
             devices.put(var[i], device);
         }

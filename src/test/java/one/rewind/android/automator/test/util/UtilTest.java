@@ -158,4 +158,11 @@ public class UtilTest {
         tmp.remove("1");
     }
 
+    @Test
+    public void testRandom(){
+        Random random = new Random();
+        int s = random.nextInt(50000) % (20000 + 1) + 20000;
+        System.out.println(s);
+    }
+
 }

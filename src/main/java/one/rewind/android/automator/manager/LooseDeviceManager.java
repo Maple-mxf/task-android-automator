@@ -8,7 +8,6 @@ import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
-import one.rewind.db.DaoManager;
 import org.apache.commons.lang3.time.DateUtils;
 
 import java.sql.SQLException;
@@ -21,6 +20,7 @@ import java.util.*;
  * @see DefaultDeviceManager 集中式线程任务分配  放弃此方案
  * @see LooseDeviceManager 分散式线程任务分配
  */
+@Deprecated
 public class LooseDeviceManager {
 
 
@@ -30,16 +30,10 @@ public class LooseDeviceManager {
 
 
     private void init() {
-        try {
-            DBTab.subscribeDao = DaoManager.getDao(SubscribeMedia.class);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         String[] var = AndroidUtil.obtainDevices();
         Random random = new Random();
         for (int i = 0; i < var.length; i++) {
             AndroidDevice device = new AndroidDevice(var[i], random.nextInt(50000));
-            device.state = AndroidDevice.State.INIT;
             device.initApp(DEFAULT_LOCAL_PROXY_PORT + i);
             devices.add(device);
         }

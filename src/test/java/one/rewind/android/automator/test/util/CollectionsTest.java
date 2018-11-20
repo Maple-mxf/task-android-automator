@@ -6,7 +6,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class CollectionsTest {
 
@@ -27,5 +29,18 @@ public class CollectionsTest {
         for (int i = 0; i < length; i++) {
             System.out.println(queue.peek());
         }
+    }
+
+    @Test
+    public void testBlockQueue() throws InterruptedException {
+        BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+
+        queue.take();
+    }
+
+    @Test
+    public void testConcurrentQueue() {
+        Queue<String> queue = new ConcurrentLinkedQueue<>();
+        System.out.println(queue.poll());
     }
 }

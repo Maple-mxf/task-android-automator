@@ -1,6 +1,7 @@
 package one.rewind.android.automator;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.AbstractService;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
@@ -33,18 +34,16 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.util.Date;
-import java.util.List;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * 设备连接信息
  */
-public class AndroidDevice {
+public class AndroidDevice extends AbstractService {
 
-    public static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
+
+    private static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
 
     /**
      * 任务队列
@@ -52,8 +51,6 @@ public class AndroidDevice {
     public Queue<String> queue = new ConcurrentLinkedQueue<>();
 
     private boolean clickEffect;
-
-    public State state = State.RUNNING;
 
     public boolean isClickEffect() {
         return clickEffect;
@@ -63,12 +60,7 @@ public class AndroidDevice {
         this.clickEffect = clickEffect;
     }
 
-    public static String LOCAL_IP;
-
-
-    public enum Flag {
-        Proxy
-    }
+    private static String LOCAL_IP;
 
     // 配置设定
     static {
@@ -77,15 +69,17 @@ public class AndroidDevice {
     }
 
     // 代理相关设定
-    BrowserMobProxy bmProxy;
-    int proxyPort;
+    private BrowserMobProxy bmProxy;
+
+    private int proxyPort;
 
     public String udid;
-    int appiumPort;
+
+    private int appiumPort;
 
     // Appium相关服务对象
     AppiumDriverLocalService service;
-    URL serviceUrl;
+    private URL serviceUrl;
     public AndroidDriver driver; // 本地Driver
     public int height;
     public int width;
@@ -399,38 +393,11 @@ public class AndroidDevice {
     }
 
     /**
-     * 关闭
-     */
-    public void stop() {
-        removeWifiProxy();
-        stopProxy();
-        driver.close();
-        service.stop();
-    }
-
-    /**
-     * 设备状态
-     */
-    public enum State {
-
-        INIT(0),
-        IDLE(4),
-        RUNNING(1),
-        CLOSE(2);
-        private int state;
-
-        State(int state) {
-            this.state = state;
-        }
-    }
-
-    /**
      * 初始化设备
      */
     public void initApp(int localProxyPort) {
         this.startProxy(localProxyPort);
         this.setupWifiProxy();
-        this.state = State.INIT;
         System.out.println("Starting....Please wait!");
         try {
             RequestFilter requestFilter = (request, contents, messageInfo) -> {
@@ -532,5 +499,20 @@ public class AndroidDevice {
         }
     }
 
+    @Override
+    protected void doStart() {
+        Random random = new Random();
+        int var = random.nextInt(50000) % (20000 + 1) + 20000;
+        initApp(var);
+    }
 
+    public void start(){
+        this.doStart();
+    }
+
+    @Override
+    protected void doStop() {
+        stopProxy();
+        driver.close();
+    }
 }
