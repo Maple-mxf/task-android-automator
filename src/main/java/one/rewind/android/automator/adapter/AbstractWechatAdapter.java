@@ -77,7 +77,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
             JSONObject location = b.getJSONObject("location");
-            if (words.equalsIgnoreCase(mediaName)) {
+            if (words.equalsIgnoreCase(mediaName) || words.equalsIgnoreCase("<" + mediaName)) {
                 top = location.getInt("top");
                 left = location.getInt("left");
                 return new WordsPoint(top + 30, left + 30, 0, 0, words);

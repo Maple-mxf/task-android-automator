@@ -223,7 +223,6 @@ public class AndroidUtil {
             String words = v.getString("words");
             if (words.contains("微信没有响应") || words.contains("关闭应用")) {
                 AndroidUtil.clickPoint(517, 1258, 1000, device.driver);
-                AndroidUtil.clickPoint(517, 1258, 1000, device.driver);
                 break;
             }
             if (words.contains("要将其关闭吗") && words.contains("微信无响应")) {
