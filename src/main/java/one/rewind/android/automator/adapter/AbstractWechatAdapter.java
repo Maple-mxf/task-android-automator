@@ -133,7 +133,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             String words = outJSON.getString("words");
 
-            if (words.contains("微信没有响应")) throw new AndroidCollapseException("微信没有响应！");
+            if (words.contains("微信没有响应") || words.contains("全部消息")) throw new AndroidCollapseException("微信没有响应！");
 
             if (words.contains("已无更多")) {
 
