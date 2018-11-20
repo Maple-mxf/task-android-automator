@@ -436,7 +436,12 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
 
-    //睡眠策略
+    /**
+     * 睡眠策略
+     *
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private void sleepPolicy() throws IOException, InterruptedException {
         if (this.countVal.get() != null) {
             //抓取50篇文章休息5分钟

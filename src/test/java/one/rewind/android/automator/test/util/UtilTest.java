@@ -13,9 +13,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Date;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -147,10 +145,17 @@ public class UtilTest {
     }
 
     @Test
-    public void testDBQueryMedia(){
+    public void testDBQueryMedia() {
         Set<String> set = Sets.newHashSet();
 
-        DBUtil.sendAccounts(set,10);
+        DBUtil.sendAccounts(set, 10);
+    }
+
+    @Test
+    public void testList() {
+        List<String> tmp = Arrays.asList(new String[]{"1"});
+        List<String> var = new ArrayList<>(tmp);
+        tmp.remove("1");
     }
 
 }
