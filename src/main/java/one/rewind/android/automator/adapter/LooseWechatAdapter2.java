@@ -125,8 +125,10 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
                         for (int i = 0; i < length; i++) {
                             String mediaName = device.queue.poll();
                             lastPage = false;
-                            digestionCrawler(mediaName, getRetry());
-                            AndroidUtil.updateProcess(mediaName, device.udid);
+                            while (!lastPage) {
+                                digestionCrawler(mediaName, getRetry());
+                            }
+                            updateMediaState(mediaName, udid);
                             for (int j = 0; j < 5; j++) {
                                 driver.navigate().back();
                                 Thread.sleep(1000);
@@ -204,7 +206,7 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
             }
         }
     }
-    
+
     private int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = DBTab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -212,5 +214,29 @@ public class LooseWechatAdapter2 extends AbstractWechatAdapter {
         String[] firstResult = results.getFirstResult();
         String var = firstResult[0];
         return Integer.parseInt(var);
+    }
+
+    private void updateMediaState(String mediaName, String udid) throws Exception {
+        SubscribeMedia account = DBTab.subscribeDao.
+                queryBuilder().
+                where().
+                eq("media_name", mediaName).
+                and().
+                eq("udid", udid).
+                queryForFirst();
+
+        if (account != null) {
+            long countOf = DBTab.essayDao.
+                    queryBuilder().
+                    where().
+                    eq("media_nick", mediaName).
+                    countOf();
+            account.number = (int) countOf;
+            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOMEDIANAME.status : SubscribeMedia.CrawlerState.FINISH.status);
+            account.status = 1;
+            account.update_time = new Date();
+            account.retry_count = 5;
+            account.update();
+        }
     }
 }

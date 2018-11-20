@@ -86,7 +86,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return null;
     }
 
-    private List<WordsPoint> obtainClickPoints(String mediaName) throws InvokingBaiduAPIException {
+    private List<WordsPoint> obtainClickPoints(String mediaName) throws InvokingBaiduAPIException, AndroidCollapseException {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -103,7 +103,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @return
      */
     @SuppressWarnings("JavaDoc")
-    private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException {
+    private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException, AndroidCollapseException {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         FileUtil.deleteFile(filePath);
         //得到即将要点击的坐标位置
@@ -118,7 +118,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @param mediaName
      * @return
      */
-    private List<WordsPoint> analysisWordsPoint(JSONArray array, String mediaName) {
+    private List<WordsPoint> analysisWordsPoint(JSONArray array, String mediaName) throws AndroidCollapseException {
 
         array.remove(0);
 
@@ -132,6 +132,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
             JSONObject inJSON = outJSON.getJSONObject("location");
 
             String words = outJSON.getString("words");
+
+            if (words.contains("微信没有响应")) throw new AndroidCollapseException("微信没有响应！");
 
             if (words.contains("已无更多")) {
 
@@ -402,7 +404,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             try {
                 //手机睡眠
                 AndroidUtil.closeApp(device);
-                sleep(1000 * 60);
+                sleep(1000 * 30);
                 AndroidUtil.activeWechat(this.device);
 
                 SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
@@ -411,7 +413,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     media.retry_count += 1;
                     media.update_time = new Date();
                     media.update();
-                    digestionCrawler(mediaName, true);
+                    if (media.retry_count >= 5) lastPage = true;
                 }
 
             } catch (Exception e1) {
@@ -422,11 +424,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-
     /**
      * @param mediaName
      */
-    public void digestionSubscribe(String mediaName) {
+    void digestionSubscribe(String mediaName) {
         try {
             subscribeMedia(mediaName);
         } catch (Exception e) {
@@ -441,7 +442,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             //抓取50篇文章休息5分钟
             Integer var = countVal.get();
             if (var % 50 == 0) {
-                sleep(1000 * 60 * 6);
+                sleep(1000 * 60 * 3);
             }
         }
     }
@@ -454,7 +455,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         //手机唤醒
         ShellUtil.notifyDevice(device.udid, device.driver);
     }
-
 
     abstract void start();
 }

@@ -4,8 +4,7 @@ import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.Media;
 
-import java.sql.*;
-import java.util.Iterator;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,11 +22,9 @@ public class DBUtil {
 
             List<Media> medias = DBTab.mediaDao.queryBuilder().limit(30).offset((page - 1) * 30).query();
 
-            Iterator<Media> iterator = medias.iterator();
-
-            while (iterator.hasNext()) {
-                if (!collect.contains(iterator.next().nick)) {
-                    accounts.add(iterator.next().nick);
+            for (Media media : medias) {
+                if (!collect.contains(media.nick)) {
+                    accounts.add(media.nick);
                 }
             }
         } catch (Exception e) {
