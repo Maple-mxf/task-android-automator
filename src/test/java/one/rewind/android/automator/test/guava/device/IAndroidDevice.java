@@ -13,6 +13,15 @@ public class IAndroidDevice extends AbstractService {
         //启动设备
         //开启任务    计算任务    任务分配   任务
         //query
+        int i = 0;
+        boolean flag = true;
+        while (flag) {
+            System.out.println("i: " + i);
+            i++;
+            if (i == 100000) {
+                flag = false;
+            }
+        }
     }
 
     @Override
@@ -22,13 +31,7 @@ public class IAndroidDevice extends AbstractService {
     public static void main(String[] args) {
         IAndroidDevice device = new IAndroidDevice();
         device.startAsync();
-        System.out.println(device.state());
-        device.stopAsync();
-        System.out.println(device.state());
-        device.notifyStarted();
     }
-
-
 
 
 }

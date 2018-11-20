@@ -18,6 +18,7 @@ import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.MD5Util;
 import one.rewind.android.automator.util.ShellUtil;
@@ -51,6 +52,8 @@ public class AndroidDevice extends AbstractService {
     public Queue<String> queue = new ConcurrentLinkedQueue<>();
 
     private boolean clickEffect;
+
+    public TaskType taskType = TaskType.SUBSCRIBE;
 
     public boolean isClickEffect() {
         return clickEffect;
@@ -506,7 +509,7 @@ public class AndroidDevice extends AbstractService {
         initApp(var);
     }
 
-    public void start(){
+    public void start() {
         this.doStart();
     }
 

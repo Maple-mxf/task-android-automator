@@ -34,8 +34,9 @@ public class CollectionsTest {
     @Test
     public void testBlockQueue() throws InterruptedException {
         BlockingQueue<String> queue = new LinkedBlockingQueue<>();
-
         queue.take();
+
+        System.out.println("hello world");
     }
 
     @Test
