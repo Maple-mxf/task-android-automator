@@ -2,8 +2,10 @@ package one.rewind.android.automator.test.call;
 
 import org.junit.Test;
 
-import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ExecutorsPoolTest {
@@ -12,20 +14,13 @@ public class ExecutorsPoolTest {
 
     private void setExecutor() {
         if (this.executor == null) {
-            this.executor =
-                    new ThreadPoolExecutor(0,
-                            Integer.MAX_VALUE,
-                            60,
-                            TimeUnit.SECONDS,
-                            new SynchronousQueue<>(),
-                            threadFactory(UUID.randomUUID().toString().replace("-", "")
-                            ));
+            this.executor = Executors.newFixedThreadPool(1, threadFactory());
         }
     }
 
-    private static ThreadFactory threadFactory(final String name) {
+    private static ThreadFactory threadFactory() {
         return runnable -> {
-            Thread result = new Thread(runnable, name);
+            Thread result = new Thread(runnable, "waa");
             result.setDaemon(false);
             return result;
         };
