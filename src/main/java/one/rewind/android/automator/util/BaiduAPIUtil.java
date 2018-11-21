@@ -80,7 +80,16 @@ public class BaiduAPIUtil {
             BaiduTokens token = BaiduAPIUtil.obtainToken();
             String accessToken = BaiduAPIUtil.getAuth(token.app_k, token.app_s);
             String rs = HttpUtil.post(otherHost, accessToken, params);
-            return new JSONObject(rs);
+            JSONObject jsonObject = new JSONObject(rs);
+            if (jsonObject.opt("error_msg") != null) {
+                //线程睡眠
+                //需要计算啥时候到达明天   到达明天的时候需要重新分配任务
+                Date nextDay = DateUtil.buildDate();
+                Date thisDay = new Date();
+                long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
+                Thread.sleep(waitMills + 1000 * 60 * 5);
+            }
+            return jsonObject;
         } catch (Exception e) {
             e.printStackTrace();
             throw new InvokingBaiduAPIException("百度API调用失败！");
@@ -95,7 +104,8 @@ public class BaiduAPIUtil {
                     where().
                     le("count", 500).
                     queryForFirst();
-            if (result == null) throw new RuntimeException("当前没有可用的token了");
+            System.out.println(result.app_k);
+            System.out.println(result.app_s);
             var = result;
             result.count += 1;
             result.update_time = new Date();

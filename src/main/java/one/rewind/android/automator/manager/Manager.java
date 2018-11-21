@@ -1,21 +1,23 @@
 package one.rewind.android.automator.manager;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.LooseWechatAdapter3;
+import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
+import one.rewind.android.automator.util.DateUtil;
+import org.apache.commons.lang3.time.DateUtils;
 
 import java.sql.SQLException;
-import java.util.Date;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -27,7 +29,12 @@ public class Manager {
     /**
      * 存储无任务设备信息 利用建监听者模式实现设备管理
      */
-    private BlockingQueue<LooseWechatAdapter3> idleAdapters = new LinkedBlockingQueue<>(Integer.MAX_VALUE);
+    private BlockingQueue<LooseWechatAdapter3> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
+
+    /**
+     * 存储需要订阅的公众号   使用stack栈  先进后出
+     */
+    private Stack<String> mediaStack = new Stack<>();
 
     /**
      * 所有设备的信息
@@ -50,6 +57,11 @@ public class Manager {
         return manager;
     }
 
+    public void initMediaStack() {
+        Set<String> set = Sets.newHashSet();
+        DBUtil.obtainFullData(set, 20, AndroidUtil.obtainDevices().length * 40);
+    }
+
     /**
      * 初始化设备
      */
@@ -59,24 +71,31 @@ public class Manager {
         for (String aVar : var) {
             AndroidDevice device = new AndroidDevice(aVar, random.nextInt(50000));
             devices.add(device);
-            LooseWechatAdapter3 adapter = new LooseWechatAdapter3(device);
-            idleAdapters.add(adapter);
         }
     }
 
     /**
      * 异步启动设备
      */
-    public void startManager() throws InterruptedException {
+    public void startManager() throws InterruptedException, SQLException {
         init();
+
+        reset();
+
+        initMediaStack();
+
+
         for (AndroidDevice device : devices) {
             device.startAsync();
             idleAdapters.add(new LooseWechatAdapter3(device));
         }
 
+        new ResetTokenState().startTimer(); //开启恢复百度API  token 状态
+
         while (true) {
             //阻塞线程
             LooseWechatAdapter3 adapter = idleAdapters.take();
+            //获取到休闲设备进行任务执行
             execute(adapter);
         }
 
@@ -89,19 +108,18 @@ public class Manager {
             adapter.getDevice().taskType = calculateTaskType(adapter.getDevice().udid);
             //初始化任务队列
             switch (adapter.getDevice().taskType) {
-                case SUBSCRIBE:
+                case SUBSCRIBE: {
                     initSubscribeQueue(adapter.getDevice());
                     break;
-                case CRAWLER:
+                }
+                case CRAWLER: {
                     initCrawlerQueue(adapter.getDevice());
                     break;
-                case WAIT:
-                    //手机睡眠
-                    break;
-                case FINAL:
-                    //手机设备移除
-                    break;
+                }
+                default:
+                    System.out.println("没有匹配的任务类型");
             }
+            adapter.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -113,31 +131,6 @@ public class Manager {
     }
 
 
-    private void updateMediaState(String mediaName, String udid) throws Exception {
-        SubscribeMedia account = DBTab.subscribeDao.
-                queryBuilder().
-                where().
-                eq("media_name", mediaName).
-                and().
-                eq("udid", udid).
-                queryForFirst();
-
-        if (account != null) {
-            long countOf = DBTab.essayDao.
-                    queryBuilder().
-                    where().
-                    eq("media_nick", mediaName).
-                    countOf();
-            account.number = (int) countOf;
-            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOMEDIANAME.status : SubscribeMedia.CrawlerState.FINISH.status);
-            account.status = 1;
-            account.update_time = new Date();
-            account.retry_count = 5;
-            account.update();
-        }
-    }
-
-
     private void initSubscribeQueue(AndroidDevice device) throws SQLException {
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         if (numToday >= 40) {
@@ -146,7 +139,9 @@ public class Manager {
             int tmp = 40 - numToday;
             try {
                 for (int i = 0; i < tmp; i++) {
-
+                    if (!mediaStack.empty()) {
+                        device.queue.add(mediaStack.pop());
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -209,5 +204,68 @@ public class Manager {
         String[] firstResult = results.getFirstResult();
         String var = firstResult[0];
         return Integer.parseInt(var);
+    }
+
+    private void reset() throws SQLException {
+        List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();
+        for (SubscribeMedia v : accounts) {
+            try {
+                if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
+                    continue;
+                }
+
+                long countOf = DBTab.essayDao.
+                        queryBuilder().
+                        where().
+                        eq("media_nick", v.media_name).
+                        countOf();
+                if ((countOf >= v.number || Math.abs(v.number - countOf) <= 5) && countOf > 0) {
+                    v.retry_count = 5;
+                    v.status = SubscribeMedia.CrawlerState.FINISH.status;
+                    v.number = (int) countOf;
+                } else {
+                    v.status = SubscribeMedia.CrawlerState.NOFINISH.status;
+                    v.retry_count = 0;
+                    if (v.number == 0) v.number = 100;
+                }
+                v.update();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    class ResetTokenState extends TimerTask {
+        @Override
+        public void run() {
+            try {
+                List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
+
+                for (BaiduTokens v : tokens) {
+                    if (!DateUtils.isSameDay(v.update_time, new Date())) {
+                        v.count = 0;
+                        v.update_time = new Date();
+                        v.update();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        void startTimer() {
+            Timer timer = new Timer(false);
+            TimerTask task = new ResetTokenState();
+            Date nextDay = DateUtil.buildDate();
+            timer.schedule(task, nextDay, 1000 * 60 * 60 * 24);
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException, SQLException {
+
+        Manager manage = getInstance();
+
+        manage.startManager(); //开启任务执行
     }
 }

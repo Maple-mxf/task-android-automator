@@ -19,6 +19,7 @@ import java.util.*;
  *
  * @see DefaultDeviceManager 集中式线程任务分配  放弃此方案
  * @see LooseDeviceManager 分散式线程任务分配
+ * @see Manager 基于监听器实现
  */
 @Deprecated
 public class LooseDeviceManager {

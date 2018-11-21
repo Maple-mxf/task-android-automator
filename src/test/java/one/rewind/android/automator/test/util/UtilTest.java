@@ -41,7 +41,7 @@ public class UtilTest {
 
     @Test
     public void testBaiduAPI() throws InvokingBaiduAPIException {
-        JSONObject jsonObject = BaiduAPIUtil.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0d69bf67-469f-454f-ae2f-b46f3c14130a.png");
+        JSONObject jsonObject = BaiduAPIUtil.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png");
         System.out.println(jsonObject);
     }
 
@@ -159,10 +159,23 @@ public class UtilTest {
     }
 
     @Test
-    public void testRandom(){
+    public void testRandom() {
         Random random = new Random();
         int s = random.nextInt(50000) % (20000 + 1) + 20000;
         System.out.println(s);
+    }
+
+    @Test
+    public void testSwitch() {
+        int a = 1;
+        switch (a) {
+            case 1:
+                System.out.println("sasdasdsad");
+            case 2:
+                System.out.println("ggggggg");
+            default:
+                System.out.println("hello world");
+        }
     }
 
 }
