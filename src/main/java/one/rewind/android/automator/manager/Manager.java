@@ -13,7 +13,13 @@ import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.DateUtil;
+import one.rewind.io.server.Msg;
 import org.apache.commons.lang3.time.DateUtils;
+import org.json.JSONArray;
+import spark.Request;
+import spark.Response;
+import spark.Route;
+import spark.Spark;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -280,5 +286,19 @@ public class Manager {
         Manager manage = getInstance();
 
         manage.startManager(); //开启任务执行
+
+        Spark.get("/push", manage.pushMedias);
     }
+
+    /**
+     * template:["芋道源码","淘米网"]
+     */
+    private Route pushMedias = (Request req, Response res) -> {
+        String body = req.body();
+        JSONArray array = new JSONArray(body);
+        for (Object v : array) {
+            apiMedias.add((String) v);
+        }
+        return new Msg<>(1);
+    };
 }

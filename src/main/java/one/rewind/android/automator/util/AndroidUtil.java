@@ -5,7 +5,6 @@ import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWechatAdapter;
-import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.apache.commons.io.FileUtils;
@@ -207,8 +206,7 @@ public class AndroidUtil {
      * 关闭App可能会存在一些无法预料的问题   比如手机出来一层透明层  此时closeApp方法调用可能会不起作用
      *
      * @param device
-     * @throws InvokingBaiduAPIException
-     * @throws InterruptedException
+     * @throws Exception
      */
     public static void closeApp(AndroidDevice device) throws Exception {
         //截图
