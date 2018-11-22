@@ -37,9 +37,19 @@ public class Manager {
     private Stack<String> mediaStack = new Stack<>();
 
     /**
+     * API接口传输过来的公众号信息  如果这个队列不为空  优先抓取这个这个队列中的公众号
+     */
+    private Queue<String> apiMedias = Queues.newConcurrentLinkedQueue();
+
+    /**
      * 所有设备的信息
      */
     private List<AndroidDevice> devices = Lists.newArrayList();
+
+    /**
+     * 初始分页参数
+     */
+    private static int startPage = 20;
 
     /**
      * 单例
@@ -57,9 +67,9 @@ public class Manager {
         return manager;
     }
 
-    public void initMediaStack() {
+    private void initMediaStack() {
         Set<String> set = Sets.newHashSet();
-        DBUtil.obtainFullData(set, 20, AndroidUtil.obtainDevices().length * 40);
+        DBUtil.obtainFullData(set, startPage, AndroidUtil.obtainDevices().length * 40);
     }
 
     /**
@@ -140,8 +150,11 @@ public class Manager {
             try {
                 for (int i = 0; i < tmp; i++) {
                     if (!mediaStack.empty()) {
-                        device.queue.add(mediaStack.pop());
+                        //如果没有数据了 先初始化订阅的公众号
+                        startPage += 2;
+                        initMediaStack();
                     }
+                    device.queue.add(mediaStack.pop());
                 }
             } catch (Exception e) {
                 e.printStackTrace();

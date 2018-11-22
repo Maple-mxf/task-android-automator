@@ -17,7 +17,6 @@ import org.openqa.selenium.TakesScreenshot;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.UUID;
@@ -32,13 +31,14 @@ public class AndroidUtil {
      * @param mediaName
      * @throws InterruptedException
      */
-    public static boolean enterEssay(String mediaName, AndroidDevice device) throws InterruptedException, InvokingBaiduAPIException {
+    public static boolean enterEssay(String mediaName, AndroidDevice device) throws InterruptedException {
 
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
         } catch (Exception e) {
             e.printStackTrace();
-            AndroidUtil.closeApp(device);
+            device.driver.closeApp();
+            clearMemory(device.udid);
             AndroidUtil.activeWechat(device);
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
         }
@@ -50,12 +50,13 @@ public class AndroidUtil {
 
         device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
 
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
         // 搜索
         device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
         AndroidUtil.clickPoint(720, 150, 1000, device.driver);
+
         AndroidUtil.clickPoint(1350, 2250, 1000, device.driver);
         try {
             // 进入公众号
@@ -88,7 +89,8 @@ public class AndroidUtil {
     }
 
     //检测是否订阅mediaName
-    private static boolean hasSubscribe(String mediaName, AndroidDevice device) throws InvokingBaiduAPIException {
+    @Deprecated
+    private static boolean hasSubscribe(String mediaName, AndroidDevice device) throws Exception {
         String fileName = UUID.randomUUID().toString() + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, device.driver);
@@ -208,7 +210,7 @@ public class AndroidUtil {
      * @throws InvokingBaiduAPIException
      * @throws InterruptedException
      */
-    public static void closeApp(AndroidDevice device) throws InvokingBaiduAPIException, InterruptedException {
+    public static void closeApp(AndroidDevice device) throws Exception {
         //截图
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
@@ -286,7 +288,7 @@ public class AndroidUtil {
      */
     public static void activeWechat(AndroidDevice device) throws InterruptedException {
         device.startActivity("com.tencent.mm", ".ui.LauncherUI");
-        Thread.sleep(10000);
+        Thread.sleep(5000);
     }
 
     /**
@@ -318,7 +320,11 @@ public class AndroidUtil {
     }
 
 
-    private static void clearMemory(String udid) throws IOException, InterruptedException {
-        ShellUtil.shutdownProcess(udid, "com.tencent.mm");
+    private static void clearMemory(String udid) {
+        try {
+            ShellUtil.shutdownProcess(udid, "com.tencent.mm");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

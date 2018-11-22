@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -71,46 +72,41 @@ public class BaiduAPIUtil {
      * @param filePath
      * @return
      */
-    public static JSONObject imageOCR(String filePath) throws InvokingBaiduAPIException {
-        try {
-            String otherHost = "https://aip.baidubce.com/rest/2.0/ocr/v1/general";
-            byte[] imgData = FileUtil.readFileByBytes(filePath);
-            String imgStr = Base64Util.encode(imgData);
-            String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
-            BaiduTokens token = BaiduAPIUtil.obtainToken();
-            String accessToken = BaiduAPIUtil.getAuth(token.app_k, token.app_s);
-            String rs = HttpUtil.post(otherHost, accessToken, params);
-            JSONObject jsonObject = new JSONObject(rs);
-            if (jsonObject.opt("error_msg") != null) {
-                //线程睡眠
-                //需要计算啥时候到达明天   到达明天的时候需要重新分配任务
-                Date nextDay = DateUtil.buildDate();
-                Date thisDay = new Date();
-                long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
-                Thread.sleep(waitMills + 1000 * 60 * 5);
-            }
-            return jsonObject;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new InvokingBaiduAPIException("百度API调用失败！");
-        }
+    public static JSONObject imageOCR(String filePath) throws Exception {
+        String otherHost = "https://aip.baidubce.com/rest/2.0/ocr/v1/general";
+        byte[] imgData = FileUtil.readFileByBytes(filePath);
+        String imgStr = Base64Util.encode(imgData);
+        String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
+        BaiduTokens token = BaiduAPIUtil.obtainToken();
+        String accessToken = BaiduAPIUtil.getAuth(token.app_k, token.app_s);
+        String rs = HttpUtil.post(otherHost, accessToken, params);
+        return new JSONObject(rs);
+
     }
 
-    public static BaiduTokens obtainToken() throws Exception {
+    public static BaiduTokens obtainToken() throws InvokingBaiduAPIException {
         synchronized (BaiduAPIUtil.class) {
-            BaiduTokens var;
-            BaiduTokens result = DBTab.tokenDao.
-                    queryBuilder().
-                    where().
-                    le("count", 500).
-                    queryForFirst();
-            System.out.println(result.app_k);
-            System.out.println(result.app_s);
-            var = result;
+            BaiduTokens result = null;
+            try {
+                result = DBTab.tokenDao.
+                        queryBuilder().
+                        where().
+                        le("count", 500).
+                        queryForFirst();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            if (result == null) {
+                throw new InvokingBaiduAPIException("当前没有可用的token");
+            }
             result.count += 1;
             result.update_time = new Date();
-            result.update();
-            return var;
+            try {
+                result.update();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return result;
         }
     }
 }

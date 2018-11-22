@@ -40,7 +40,7 @@ public class UtilTest {
     }
 
     @Test
-    public void testBaiduAPI() throws InvokingBaiduAPIException {
+    public void testBaiduAPI() throws Exception {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png");
         System.out.println(jsonObject);
     }
