@@ -3,8 +3,11 @@ package one.rewind.android.automator.adapter;
 import com.google.common.util.concurrent.*;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
+import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.SubscribeMedia;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
@@ -30,7 +33,13 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
                 case CRAWLER: {
                     int size = device.queue.size();
                     for (int i = 0; i < size; i++) {
-                        digestionCrawler(device.queue.poll(), true);
+                        String mediaName = device.queue.poll();
+                        digestionCrawler(mediaName, true);
+
+                        //更新公众号状态
+                        updateMediaState(mediaName, device.udid);
+
+                        //返回到主界面
                     }
                     break;
                 }
@@ -72,5 +81,29 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
                 t.printStackTrace();
             }
         });
+    }
+
+    private void updateMediaState(String mediaName, String udid) throws Exception {
+        SubscribeMedia account = DBTab.subscribeDao.
+                queryBuilder().
+                where().
+                eq("media_name", mediaName).
+                and().
+                eq("udid", udid).
+                queryForFirst();
+
+        if (account != null) {
+            long countOf = DBTab.essayDao.
+                    queryBuilder().
+                    where().
+                    eq("media_nick", mediaName).
+                    countOf();
+            account.number = (int) countOf;
+            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOMEDIANAME.status : SubscribeMedia.CrawlerState.FINISH.status);
+            account.status = 1;
+            account.update_time = new Date();
+            account.retry_count = 5;
+            account.update();
+        }
     }
 }

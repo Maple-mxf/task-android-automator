@@ -11,7 +11,6 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
@@ -83,6 +82,11 @@ public class Manager {
     }
 
 
+    /**
+     * 分配任务
+     *
+     * @param adapter
+     */
     private void execute(LooseWechatAdapter3 adapter) {
         try {
             //计算任务类型
@@ -111,33 +115,14 @@ public class Manager {
     public void addIdleAdapter(LooseWechatAdapter3 adapter) {
         idleAdapters.add(adapter);
     }
+    
 
-
-    private void updateMediaState(String mediaName, String udid) throws Exception {
-        SubscribeMedia account = DBTab.subscribeDao.
-                queryBuilder().
-                where().
-                eq("media_name", mediaName).
-                and().
-                eq("udid", udid).
-                queryForFirst();
-
-        if (account != null) {
-            long countOf = DBTab.essayDao.
-                    queryBuilder().
-                    where().
-                    eq("media_nick", mediaName).
-                    countOf();
-            account.number = (int) countOf;
-            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOMEDIANAME.status : SubscribeMedia.CrawlerState.FINISH.status);
-            account.status = 1;
-            account.update_time = new Date();
-            account.retry_count = 5;
-            account.update();
-        }
-    }
-
-
+    /**
+     * 订阅任务分配
+     *
+     * @param device 设备
+     * @throws SQLException
+     */
     private void initSubscribeQueue(AndroidDevice device) throws SQLException {
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         if (numToday >= 40) {
@@ -154,6 +139,12 @@ public class Manager {
         }
     }
 
+    /**
+     * 从数据库中取数据
+     *
+     * @param device
+     * @throws SQLException
+     */
     private void initCrawlerQueue(AndroidDevice device) throws SQLException {
         List<SubscribeMedia> accounts =
                 DBTab.subscribeDao.
@@ -171,6 +162,13 @@ public class Manager {
     }
 
 
+    /**
+     * 计算任务类型
+     *
+     * @param udid
+     * @return
+     * @throws Exception
+     */
     private TaskType calculateTaskType(String udid) throws Exception {
 
         long allSubscribe = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
@@ -202,6 +200,13 @@ public class Manager {
         }
     }
 
+    /**
+     * 获取当前设备今天订阅了多少公众号
+     *
+     * @param udid
+     * @return
+     * @throws SQLException
+     */
     private int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = DBTab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
