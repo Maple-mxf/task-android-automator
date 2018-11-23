@@ -1,11 +1,11 @@
 package one.rewind.android.automator.test.util;
 
+import one.rewind.android.automator.model.Essays;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Queue;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -43,5 +43,32 @@ public class CollectionsTest {
     public void testConcurrentQueue() {
         Queue<String> queue = new ConcurrentLinkedQueue<>();
         System.out.println(queue.poll());
+    }
+
+    @Test
+    public void testStack() {
+        Stack<String> stack = new Stack<>();
+
+//        stack.push("")
+//        System.out.println(stack.peek());
+
+        System.out.println(stack.pop());
+    }
+
+
+    public void test2() {
+        System.out.println("jjjjjj");
+    }
+
+    public void testMethod(Method method, Object o) throws InvocationTargetException, IllegalAccessException {
+        method.invoke(o, "hjasdasjd");
+    }
+
+
+    public void test1() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+
+        Method method = Essays.class.getMethod("parseContent", String.class);
+
+        this.testMethod(method, new Essays());
     }
 }

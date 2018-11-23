@@ -7,10 +7,7 @@ import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.model.WordsPoint;
-import one.rewind.android.automator.util.AndroidUtil;
-import one.rewind.android.automator.util.BaiduAPIUtil;
-import one.rewind.android.automator.util.FileUtil;
-import one.rewind.android.automator.util.ShellUtil;
+import one.rewind.android.automator.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
@@ -24,9 +21,9 @@ import java.util.UUID;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
-    protected boolean lastPage = false;
+    boolean lastPage = false;
 
-    protected boolean firstPage = true;
+    boolean firstPage = true;
 
     public void setTaskType(TaskType taskType) {
         this.taskType = taskType;
@@ -54,7 +51,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         super(device);
     }
 
-    private WordsPoint accuracySubscribe(String mediaName) throws InvokingBaiduAPIException {
+    private WordsPoint accuracySubscribe(String mediaName) throws Exception {
 
         String fileName = UUID.randomUUID().toString() + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -86,7 +83,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return null;
     }
 
-    private List<WordsPoint> obtainClickPoints(String mediaName) throws InvokingBaiduAPIException, AndroidCollapseException {
+    private List<WordsPoint> obtainClickPoints(String mediaName) throws Exception {
         String filePrefix = UUID.randomUUID().toString();
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
@@ -103,7 +100,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @return
      */
     @SuppressWarnings("JavaDoc")
-    private List<WordsPoint> analysisImage(String mediaName, String filePath) throws InvokingBaiduAPIException, AndroidCollapseException {
+    private List<WordsPoint> analysisImage(String mediaName, String filePath) throws Exception {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         FileUtil.deleteFile(filePath);
         //得到即将要点击的坐标位置
@@ -174,34 +171,27 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return wordsPoints;
     }
 
-    private void delegateOpenEssay(String mediaName, boolean retry) throws AndroidCollapseException {
-        try {
-            if (retry)
-                if (!restore(mediaName)) return;
-            while (!lastPage) {
-                if (firstPage) {
-                    AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
-                    firstPage = false;
-                } else {
-                    AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
+    private void delegateOpenEssay(String mediaName, boolean retry) throws Exception {
+        if (retry)
+            if (!restore(mediaName)) return;
+        while (!lastPage) {
+
+            AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
+
+            List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
+
+            if (wordsPoints == null || wordsPoints.size() == 0) {
+
+                if (!lastPage) {
+                    throw new AndroidCollapseException("不是最后一页,wordPoints is Null !");
                 }
 
-                List<WordsPoint> wordsPoints = obtainClickPoints(mediaName);
-                if (wordsPoints == null || wordsPoints.size() == 0) {
-                    if (!lastPage) {
-                        throw new AndroidCollapseException("不是最后一页,wordPoints is Null !");
-                    }
-                    logger.info("公众号{}抓取到最后一页了", mediaName);
-                } else {
-                    openEssays(wordsPoints);
-                }
+                logger.info("公众号{}抓取到最后一页了", mediaName);
+            } else {
+                openEssays(wordsPoints);
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("=======================当前设备{}已经崩溃了===================", device.udid);
-            throw new AndroidCollapseException("链路出现雪崩的情况了:one.rewind.android.automator.adapter.DefaultWechatAdapter.openEssay");
         }
+
     }
 
 
@@ -214,6 +204,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
 
                 int var = (int) count % 6;
+
                 int slideNumByPage;
 
                 if (var == 0) {
@@ -226,6 +217,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 for (int i = 0; i < slideNumByPage; i++) {
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
                 }
+            } else {
+                AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
+                firstPage = false;
             }
             return true;
         } catch (Exception e) {
@@ -234,26 +228,19 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-    private void openEssays(List<WordsPoint> wordsPoints) throws InterruptedException, AndroidCollapseException {
+    private void openEssays(List<WordsPoint> wordsPoints) throws AndroidCollapseException, InterruptedException {
         int neverClickCount = 0;
         for (WordsPoint wordsPoint : wordsPoints) {
-            try {
-                //睡眠策略
-                setCountVal();
-                sleepPolicy();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            //睡眠策略
+            setCountVal();
+            sleepPolicy();
             if (neverClickCount > 3) {
                 throw new AndroidCollapseException("安卓系统卡住点不动了！");
             }
-
             AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
             //所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
             if (this.device.isClickEffect()) {
-
                 System.out.println("文章点进去了....");
-
                 for (int i = 0; i < 2; i++) {
                     AndroidUtil.slideToPoint(1413, 2369, 1413, 277, driver, 500);
                 }
@@ -265,9 +252,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
             } else {
                 ++neverClickCount;
             }
+
         }
     }
 
+    @Deprecated
     public void unsubscribeMedia(String mediaName) {
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
@@ -398,29 +387,44 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 return;
             }
             delegateOpenEssay(mediaName, retry);
-        } catch (AndroidCollapseException e) {
-            logger.error("设备{}链路出问题了.", device.udid);
-            e.printStackTrace();
-            try {
-                //手机睡眠
-                AndroidUtil.closeApp(device);
-                sleep(1000 * 30);
-                AndroidUtil.activeWechat(this.device);
-
-                SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
-
-                if (media != null) {
-                    media.retry_count += 1;
-                    media.update_time = new Date();
-                    media.update();
-                    if (media.retry_count >= 5) lastPage = true;
-                }
-
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
         } catch (Exception e) {
             e.printStackTrace();
+            if (e instanceof AndroidCollapseException) {
+                logger.error("设备{}链路出问题了.", device.udid);
+                try {
+                    //手机睡眠
+                    AndroidUtil.closeApp(device);
+                    Thread.sleep(1000 * 60 * 3);
+                    AndroidUtil.activeWechat(this.device);
+                    SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
+                    if (media != null) {
+                        media.retry_count += 1;
+                        media.update_time = new Date();
+                        media.update();
+                        if (media.retry_count >= 5) lastPage = true;
+                    }
+
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            } else if (e instanceof InvokingBaiduAPIException) {
+                logger.error("百度API调用失败！");
+                try {
+                    //睡眠到明天
+                    //线程睡眠
+                    //需要计算啥时候到达明天   到达明天的时候需要重新分配任务
+                    Date nextDay = DateUtil.buildDate();
+                    Date thisDay = new Date();
+                    long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
+                    Thread.sleep(waitMills + 1000 * 60 * 5);
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
+            } else if (e instanceof InterruptedException) {
+                logger.error("InterruptedException 线程中断异常！");
+            } else {
+                System.out.println(e);
+            }
         }
     }
 
@@ -439,19 +443,19 @@ public abstract class AbstractWechatAdapter extends Adapter {
     /**
      * 睡眠策略
      *
-     * @throws IOException
      * @throws InterruptedException
      */
-    private void sleepPolicy() throws IOException, InterruptedException {
+    private void sleepPolicy() throws InterruptedException {
         if (this.countVal.get() != null) {
             //抓取50篇文章休息5分钟
             Integer var = countVal.get();
             if (var % 50 == 0) {
-                sleep(1000 * 60 * 3);
+                Thread.sleep(1000 * 60 * 3);
             }
         }
     }
 
+    @Deprecated
     private void sleep(long millis) throws IOException, InterruptedException {
         //手机睡眠
         ShellUtil.clickPower(device.udid);

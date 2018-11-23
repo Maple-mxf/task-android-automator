@@ -1,20 +1,29 @@
 package one.rewind.android.automator.manager;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.LooseWechatAdapter3;
+import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
+import one.rewind.android.automator.util.DateUtil;
+import one.rewind.io.server.Msg;
+import org.apache.commons.lang3.time.DateUtils;
+import org.json.JSONArray;
+import spark.Request;
+import spark.Response;
+import spark.Route;
+import spark.Spark;
 
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -26,12 +35,27 @@ public class Manager {
     /**
      * 存储无任务设备信息 利用建监听者模式实现设备管理
      */
-    private BlockingQueue<LooseWechatAdapter3> idleAdapters = new LinkedBlockingQueue<>(Integer.MAX_VALUE);
+    private BlockingQueue<LooseWechatAdapter3> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
+
+    /**
+     * 存储需要订阅的公众号   使用stack栈  先进后出
+     */
+    private Stack<String> mediaStack = new Stack<>();
+
+    /**
+     * API接口传输过来的公众号信息  如果这个队列不为空  优先抓取这个这个队列中的公众号
+     */
+    private Queue<String> apiMedias = Queues.newConcurrentLinkedQueue();
 
     /**
      * 所有设备的信息
      */
     private List<AndroidDevice> devices = Lists.newArrayList();
+
+    /**
+     * 初始分页参数
+     */
+    private static int startPage = 20;
 
     /**
      * 单例
@@ -49,6 +73,11 @@ public class Manager {
         return manager;
     }
 
+    private void initMediaStack() {
+        Set<String> set = Sets.newHashSet();
+        DBUtil.obtainFullData(set, startPage, AndroidUtil.obtainDevices().length * 40);
+    }
+
     /**
      * 初始化设备
      */
@@ -58,54 +87,55 @@ public class Manager {
         for (String aVar : var) {
             AndroidDevice device = new AndroidDevice(aVar, random.nextInt(50000));
             devices.add(device);
-            LooseWechatAdapter3 adapter = new LooseWechatAdapter3(device);
-            idleAdapters.add(adapter);
         }
     }
 
     /**
      * 异步启动设备
      */
-    public void startManager() throws InterruptedException {
+    public void startManager() throws InterruptedException, SQLException {
         init();
+
+        reset();
+
+        initMediaStack();
+
+
         for (AndroidDevice device : devices) {
             device.startAsync();
             idleAdapters.add(new LooseWechatAdapter3(device));
         }
 
+        new ResetTokenState().startTimer(); //开启恢复百度API  token 状态
+
         while (true) {
             //阻塞线程
             LooseWechatAdapter3 adapter = idleAdapters.take();
+            //获取到休闲设备进行任务执行
             execute(adapter);
         }
 
     }
 
 
-    /**
-     * 分配任务
-     *
-     * @param adapter
-     */
     private void execute(LooseWechatAdapter3 adapter) {
         try {
             //计算任务类型
             adapter.getDevice().taskType = calculateTaskType(adapter.getDevice().udid);
             //初始化任务队列
             switch (adapter.getDevice().taskType) {
-                case SUBSCRIBE:
+                case SUBSCRIBE: {
                     initSubscribeQueue(adapter.getDevice());
                     break;
-                case CRAWLER:
+                }
+                case CRAWLER: {
                     initCrawlerQueue(adapter.getDevice());
                     break;
-                case WAIT:
-                    //手机睡眠
-                    break;
-                case FINAL:
-                    //手机设备移除
-                    break;
+                }
+                default:
+                    System.out.println("没有匹配的任务类型");
             }
+            adapter.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -115,14 +145,8 @@ public class Manager {
     public void addIdleAdapter(LooseWechatAdapter3 adapter) {
         idleAdapters.add(adapter);
     }
-    
 
-    /**
-     * 订阅任务分配
-     *
-     * @param device 设备
-     * @throws SQLException
-     */
+
     private void initSubscribeQueue(AndroidDevice device) throws SQLException {
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         if (numToday >= 40) {
@@ -131,7 +155,12 @@ public class Manager {
             int tmp = 40 - numToday;
             try {
                 for (int i = 0; i < tmp; i++) {
-
+                    if (!mediaStack.empty()) {
+                        //如果没有数据了 先初始化订阅的公众号
+                        startPage += 2;
+                        initMediaStack();
+                    }
+                    device.queue.add(mediaStack.pop());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -139,12 +168,6 @@ public class Manager {
         }
     }
 
-    /**
-     * 从数据库中取数据
-     *
-     * @param device
-     * @throws SQLException
-     */
     private void initCrawlerQueue(AndroidDevice device) throws SQLException {
         List<SubscribeMedia> accounts =
                 DBTab.subscribeDao.
@@ -162,13 +185,6 @@ public class Manager {
     }
 
 
-    /**
-     * 计算任务类型
-     *
-     * @param udid
-     * @return
-     * @throws Exception
-     */
     private TaskType calculateTaskType(String udid) throws Exception {
 
         long allSubscribe = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
@@ -200,13 +216,6 @@ public class Manager {
         }
     }
 
-    /**
-     * 获取当前设备今天订阅了多少公众号
-     *
-     * @param udid
-     * @return
-     * @throws SQLException
-     */
     private int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = DBTab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -215,4 +224,81 @@ public class Manager {
         String var = firstResult[0];
         return Integer.parseInt(var);
     }
+
+    private void reset() throws SQLException {
+        List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();
+        for (SubscribeMedia v : accounts) {
+            try {
+                if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
+                    continue;
+                }
+
+                long countOf = DBTab.essayDao.
+                        queryBuilder().
+                        where().
+                        eq("media_nick", v.media_name).
+                        countOf();
+                if ((countOf >= v.number || Math.abs(v.number - countOf) <= 5) && countOf > 0) {
+                    v.retry_count = 5;
+                    v.status = SubscribeMedia.CrawlerState.FINISH.status;
+                    v.number = (int) countOf;
+                } else {
+                    v.status = SubscribeMedia.CrawlerState.NOFINISH.status;
+                    v.retry_count = 0;
+                    if (v.number == 0) v.number = 100;
+                }
+                v.update();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    class ResetTokenState extends TimerTask {
+        @Override
+        public void run() {
+            try {
+                List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
+
+                for (BaiduTokens v : tokens) {
+                    if (!DateUtils.isSameDay(v.update_time, new Date())) {
+                        v.count = 0;
+                        v.update_time = new Date();
+                        v.update();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        void startTimer() {
+            Timer timer = new Timer(false);
+            TimerTask task = new ResetTokenState();
+            Date nextDay = DateUtil.buildDate();
+            timer.schedule(task, nextDay, 1000 * 60 * 60 * 24);
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException, SQLException {
+
+        Manager manage = getInstance();
+
+        manage.startManager(); //开启任务执行
+
+        Spark.get("/push", manage.pushMedias);
+    }
+
+    /**
+     * template:["芋道源码","淘米网"]
+     */
+    private Route pushMedias = (Request req, Response res) -> {
+        String body = req.body();
+        JSONArray array = new JSONArray(body);
+        for (Object v : array) {
+            apiMedias.add((String) v);
+        }
+        return new Msg<>(1);
+    };
 }

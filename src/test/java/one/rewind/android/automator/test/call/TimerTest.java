@@ -102,7 +102,6 @@ public class TimerTest {
             }
         };
         timer.schedule(timerTask, new Date(), 2000);
-        System.in.read();
     }
 
 }
