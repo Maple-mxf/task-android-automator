@@ -25,6 +25,7 @@ import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import se.vidstige.jadb.JadbConnection;
 import se.vidstige.jadb.JadbDevice;
@@ -460,12 +461,13 @@ public class AndroidDevice extends AbstractService {
                         we.insert_time = new Date();
 
                         we.update_time = new Date();
-
                         we.media_content = we.media_nick;
                         we.platform = "WX";
+                        we.media_id = MD5Util.MD5Encode(we.platform + "-" + we.media_name, "UTF-8");
                         we.platform_id = 1;
                         we.fav_count = 0;
                         we.forward_count = 0;
+                        we.images = new JSONArray(we.parseImages(we.content)).toString();
                         try {
                             we.insert();
                         } catch (Exception e) {
