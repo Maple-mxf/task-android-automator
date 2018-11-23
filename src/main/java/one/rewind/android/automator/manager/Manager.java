@@ -76,6 +76,7 @@ public class Manager {
     private void initMediaStack() {
         Set<String> set = Sets.newHashSet();
         DBUtil.obtainFullData(set, startPage, AndroidUtil.obtainDevices().length * 40);
+        mediaStack.addAll(set);
     }
 
     /**
@@ -160,7 +161,9 @@ public class Manager {
                         startPage += 2;
                         initMediaStack();
                     }
-                    device.queue.add(mediaStack.pop());
+                    if (!mediaStack.empty()) {
+                        device.queue.add(mediaStack.pop());
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
