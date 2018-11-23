@@ -215,7 +215,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     slideNumByPage = (int) (count / 6) + 2;
                 }
                 for (int i = 0; i < slideNumByPage; i++) {
-                    AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1000);
+                    AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1500);
                 }
             } else {
                 AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
