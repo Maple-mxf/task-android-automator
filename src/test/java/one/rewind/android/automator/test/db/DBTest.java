@@ -10,9 +10,10 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.junit.Test;
 
-import java.sql.SQLException;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -117,6 +118,7 @@ public class DBTest {
         token1.insert();
     }
 
+
     @Test
     public void testQueryByQuery() throws SQLException {
         Calendar instance = Calendar.getInstance();
@@ -133,38 +135,60 @@ public class DBTest {
 
     @Test
     public void perfectEssays() throws Exception {
-        Dao<Essays, String> dao = DBTab.essayDao;
-        int page = 2975;
+
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/raw?useSSL=false", "root", "root");
+
+        PreparedStatement ps1 = conn.prepareStatement("select * from essays limit ?,20");
+
+        PreparedStatement ps2 = conn.prepareStatement("update essays set media_id=? and set images=? where id=?");
+
+
+        int page = 0;
         boolean flag = true;
         while (flag) {
-            List<Essays> result = dao.queryBuilder().limit(20).offset((page - 1) * 30).query();
-            for (Essays var : result) {
-                var.media_id = MD5Util.MD5Encode(var.platform + "-" + var.media_nick, "UTF-8");
-                var.update();
-                String content = var.content;
-                Set<String> imgStr = getImgStr(content);
-                JSONArray array = new JSONArray(imgStr);
-                var.images = array.toString();
-                var.update();
+            ps1.setInt(1, page);
+            ResultSet rs = ps1.executeQuery();
+            while (rs.next()) {
+                String id = rs.getString("id");
+                String platform = rs.getString("platform");
+                String media_nick = rs.getString("media_nick");
+                String content = rs.getString("content");
+                String images = new JSONArray(getImgStr(content)).toString();
+                String media_id = MD5Util.MD5Encode(platform + "-" + media_nick, "UTF-8");
+                ps2.setString(1, media_id);
+                ps2.setString(2, images);
+                ps2.setString(3, id);
             }
-
             page++;
             if (page == 2976) {
                 flag = false;
             }
         }
+
+
+//        Dao<Essays, String> dao = DBTab.essayDao;
+
+//        while (flag) {
+//            List<Essays> result = dao.queryBuilder().limit(20).offset((page - 1) * 30).query();
+//            for (Essays var : result) {
+//                var.media_id = MD5Util.MD5Encode(var.platform + "-" + var.media_nick, "UTF-8");
+//                var.update();
+//                String content = var.content;
+//                Set<String> imgStr = getImgStr(content);
+//                JSONArray array = new JSONArray(imgStr);
+//                var.images = array.toString();
+//                var.update();
+//            }
+//
+//            page++;
+//            if (page == 2976) {
+//                flag = false;
+//            }
+//        }
+        conn.close();
     }
 
-    String splitCover(String fullContent) {
-        int start = fullContent.indexOf("<img");
-        String newSub = fullContent.substring(start);
-        int end = newSub.indexOf(">");
-        String tempStr = newSub.substring(0, end);
-        int last = tempStr.indexOf("src=");
-        String lastString = tempStr.substring(last);
-        lastString = lastString.replaceAll("src=\"", "").replaceAll("\"", "");
-        return lastString;
-    }
 
     /**
      * 得到网页中图片的地址
