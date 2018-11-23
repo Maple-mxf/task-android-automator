@@ -143,7 +143,9 @@ public class Manager {
 
 
     public void addIdleAdapter(LooseWechatAdapter3 adapter) {
-        idleAdapters.add(adapter);
+        synchronized (this) {
+            this.idleAdapters.add(adapter);
+        }
     }
 
 
