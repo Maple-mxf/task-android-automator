@@ -141,7 +141,7 @@ public class DBTest {
 
         PreparedStatement ps1 = conn.prepareStatement("select * from essays limit ?,20");
 
-        PreparedStatement ps2 = conn.prepareStatement("update essays set media_id=? and set images=? where id=?");
+        PreparedStatement ps2 = conn.prepareStatement("update essays set media_id=?,set images=? where id=?");
 
 
         int page = 0;
