@@ -16,8 +16,6 @@ import one.rewind.android.automator.util.DateUtil;
 import one.rewind.io.server.Msg;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
-import spark.Request;
-import spark.Response;
 import spark.Route;
 import spark.Spark;
 
@@ -293,14 +291,32 @@ public class Manager {
     }
 
     /**
-     * template:["芋道源码","淘米网"]
+     * template:["芋道源码","淘宝网"]
      */
-    private Route pushMedias = (Request req, Response res) -> {
+    private Route pushMedias = (req, res) -> {
+
         String body = req.body();
+
         JSONArray array = new JSONArray(body);
+
         for (Object v : array) {
             apiMedias.add((String) v);
         }
         return new Msg<>(1);
     };
+
+
+    /**
+     * 如果公众号已经被订阅了,移除队列
+     *
+     * @param media
+     */
+    private void parsingMedia(String media) {
+        try {
+            SubscribeMedia result = DBTab.subscribeDao.queryBuilder().where().eq("media_name", media).queryForFirst();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
 }

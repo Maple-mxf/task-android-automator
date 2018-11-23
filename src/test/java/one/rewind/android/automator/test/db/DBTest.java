@@ -2,6 +2,7 @@ package one.rewind.android.automator.test.db;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.*;
+import one.rewind.android.automator.util.MD5Util;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
 import org.apache.commons.lang3.time.DateUtils;
@@ -126,7 +127,39 @@ public class DBTest {
         List<SubscribeMedia> query = DBTab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
 
         System.out.println(query);
-
     }
+
+    @Test
+    public void perfectEssays() throws Exception {
+        Dao<Essays, String> dao = DBTab.essayDao;
+        int page = 2975;
+        boolean flag = true;
+        while (flag) {
+            List<Essays> result = dao.queryBuilder().limit(20).offset((page - 1) * 30).query();
+            for (Essays var : result) {
+                var.media_id = MD5Util.MD5Encode(var.platform + "-" + var.media_nick, "UTF-8");
+                var.update();
+                String content = var.content;
+
+            }
+
+            page++;
+            if (page == 2976) {
+                flag = false;
+            }
+        }
+    }
+
+    String splitCover(String fullContent) {
+        int start = fullContent.indexOf("<img");
+        String newSub = fullContent.substring(start);
+        int end = newSub.indexOf(">");
+        String tempStr = newSub.substring(0, end);
+        int last = tempStr.indexOf("src=");
+        String lastString = tempStr.substring(last);
+        lastString = lastString.replaceAll("src=\"", "").replaceAll("\"", "");
+        return lastString;
+    }
+
 
 }
