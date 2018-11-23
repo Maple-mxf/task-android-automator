@@ -1,11 +1,13 @@
 package one.rewind.android.automator.test.db;
 
+import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.MD5Util;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
 import org.apache.commons.lang3.time.DateUtils;
+import org.json.JSONArray;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -140,7 +142,10 @@ public class DBTest {
                 var.media_id = MD5Util.MD5Encode(var.platform + "-" + var.media_nick, "UTF-8");
                 var.update();
                 String content = var.content;
-
+                Set<String> imgStr = getImgStr(content);
+                JSONArray array = new JSONArray(imgStr);
+                var.images = array.toString();
+                var.update();
             }
 
             page++;
@@ -164,7 +169,7 @@ public class DBTest {
     /**
      * 得到网页中图片的地址
      */
-    public static Set<String> getImgStr(String htmlStr) {
+    public Set<String> getImgStr(String htmlStr) {
         Set<String> pics = new HashSet<String>();
         String img = "";
         Pattern p_image;
@@ -186,5 +191,11 @@ public class DBTest {
         return pics;
     }
 
-
+    public static void main(String[] args) {
+        Set set = Sets.newHashSet();
+        set.add("ahjsadhasd");
+        set.add("asdadsas");
+        JSONArray array = new JSONArray(set);
+        System.out.println(array);
+    }
 }

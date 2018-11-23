@@ -1,5 +1,6 @@
 package one.rewind.android.automator.model;
 
+import com.google.common.collect.Sets;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -11,6 +12,7 @@ import one.rewind.txt.StringUtil;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -143,5 +145,30 @@ public class Essays extends ModelD {
         }
 
         return this;
+    }
+
+    /**
+     * 得到网页中图片的地址
+     */
+    public Set<String> parseImages(String htmlStr) {
+        Set<String> pics = Sets.newHashSet();
+        String img = "";
+        Pattern p_image;
+        Matcher m_image;
+        // String regEx_img = "<img.*src=(.*?)[^>]*?>"; //图片链接地址
+        String regEx_img = "<img.*src\\s*=\\s*(.*?)[^>]*?>";
+        p_image = Pattern.compile
+                (regEx_img, Pattern.CASE_INSENSITIVE);
+        m_image = p_image.matcher(htmlStr);
+        while (m_image.find()) {
+            // 得到<img />数据
+            img = m_image.group();
+            // 匹配<img>中的src数据
+            Matcher m = Pattern.compile("src\\s*=\\s*\"?(.*?)(\"|>|\\s+)").matcher(img);
+            while (m.find()) {
+                pics.add(m.group(1));
+            }
+        }
+        return pics;
     }
 }
