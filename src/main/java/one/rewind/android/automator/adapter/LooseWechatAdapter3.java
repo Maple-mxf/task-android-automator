@@ -5,6 +5,7 @@ import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
@@ -39,11 +40,9 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
                         }
                         System.out.println("one/rewind/android/automator/adapter/LooseWechatAdapter3.java location: 40 Line !");
                         updateMediaState(var, udid);
-                        // 返回主界面
-                        for (int j = 0; j < 5; j++) {
-                            driver.navigate().back();
-                            Thread.sleep(1000);
-                        }
+
+                        AndroidUtil.clearMemory(device.udid);
+                        AndroidUtil.activeWechat(device);
                     }
                     break;
                 }

@@ -1,5 +1,7 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.collect.Sets;
+import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
@@ -22,6 +24,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
     boolean lastPage = false;
 
     boolean firstPage = true;
+
+    /**
+     * 上一次分析点击坐标记录的集合
+     */
+    private Set<String> previousEssayTitle = Sets.newHashSet();
 
     public void setTaskType(TaskType taskType) {
         this.taskType = taskType;
@@ -93,7 +100,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         String fileName = filePrefix + ".png";
         String path = System.getProperty("user.dir") + "/screen/";
         AndroidUtil.screenshot(fileName, path, driver);
-        //图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
+        // 图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
         return analysisImage(mediaName, path + fileName);
     }
 
@@ -127,13 +134,46 @@ public abstract class AbstractWechatAdapter extends Adapter {
         List<WordsPoint> wordsPoints = new ArrayList<>();
 
         //计算坐标  文章的标题最多有两行  标题过长微信会使用省略号代替掉
-        for (Object o : array) {
+        for (int i = 0; i < array.length(); i++) {
 
-            JSONObject outJSON = (JSONObject) o;
+            JSONObject outJSON = (JSONObject) array.get(i);
 
             JSONObject inJSON = outJSON.getJSONObject("location");
 
             String words = outJSON.getString("words");
+
+            if (Strings.isNullOrEmpty(words)) continue;
+
+            if (previousEssayTitle.size() > 0) {
+
+                if (previousEssayTitle.contains(words)) {
+
+
+                    boolean flag = true;
+
+                    int k = i + 1;
+
+                    while (flag) {
+                        // 如果存在重复记录   删除下一条坐标信息
+                        // JSONArray由于逻辑问题不能删除任何元素  将words可以替换
+                        JSONObject tmpJSON = (JSONObject) array.get(k);
+
+                        String tmpWords1 = tmpJSON.getString("words");
+
+                        if (tmpWords1.contains("年") && tmpWords1.contains("月") && tmpWords1.contains("日")) {
+
+                            flag = false;
+
+                        }
+
+                        // 将内容置换为空字符串  防止在统计坐标时出现重复
+                        tmpJSON.put("words", "");
+                        array.put(k, tmpJSON);
+                        k++;
+                    }
+                    continue;
+                }
+            }
 
             if (words.contains("微信没有响应") || words.contains("全部消息")) throw new AndroidCollapseException("微信没有响应！");
 
@@ -149,8 +189,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     SubscribeMedia var = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                     var.number = (int) (currentEssayNum + wordsPoints.size());
                     var.update();
+
                 } catch (Exception e) {
+
                     e.printStackTrace();
+
                 }
                 System.out.println("是否到最后一页：" + lastPage);
 
@@ -172,10 +215,23 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 if (wordsPoints.size() >= 6) return wordsPoints;
             }
+
         }
+        preserveThePreviousSet(array);
         return wordsPoints;
     }
 
+
+    private void preserveThePreviousSet(JSONArray array) {
+        previousEssayTitle.clear();
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject tmpJSON = (JSONObject) array.get(i);
+            String words = tmpJSON.getString("words");
+            if (!words.contains("年") && !words.contains("月") && !words.contains("日")) {
+                previousEssayTitle.add(words);
+            }
+        }
+    }
 
     private void delegateOpenEssay(String mediaName, boolean retry) throws Exception {
         if (retry)
@@ -214,11 +270,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 int slideNumByPage;
 
                 if (var == 0) {
-                    slideNumByPage = (int) ((count / 6) + 2);
+                    slideNumByPage = (int) ((count / 6) + 3);
                 } else if (var <= 3) {
-                    slideNumByPage = (int) (count / 6) + 1;
-                } else {
                     slideNumByPage = (int) (count / 6) + 2;
+                } else {
+                    slideNumByPage = (int) (count / 6) + 3;
                 }
                 for (int i = 0; i < slideNumByPage; i++) {
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1500);

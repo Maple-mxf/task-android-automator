@@ -28,4 +28,11 @@ public class JSONTest {
         JSONArray objects = new JSONArray("[\"芋道源码\",\"淘米网\"]");
         objects.forEach(System.out::println);
     }
+
+    @Test
+    public void testReplaceJSONObjectV(){
+        JSONObject jsonObject = new JSONObject("{\"words\":\"看看看看\"}");
+        jsonObject.put("words","");
+        System.out.println(jsonObject);
+    }
 }

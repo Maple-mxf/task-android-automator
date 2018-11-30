@@ -3,7 +3,7 @@ package one.rewind.android.automator.test;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.DefaultWechatAdapter;
+import one.rewind.android.automator.adapter.LooseWechatAdapter3;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.Essays;
@@ -24,11 +24,11 @@ import java.util.Stack;
 
 public class WechatAdapterTest {
 
-    String udid = "ZX1G323GNB";
+    String udid = "ZX1G22MMSQ";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
-    DefaultWechatAdapter adapter;
+    LooseWechatAdapter3 adapter;
 
     /**
      * 初始化设备
@@ -141,7 +141,7 @@ public class WechatAdapterTest {
 
         device.initAppiumServiceAndDriver(appInfo);
 
-        adapter = new DefaultWechatAdapter(device);
+        adapter = new LooseWechatAdapter3(device);
 
         Thread.sleep(3000);
     }
@@ -154,8 +154,8 @@ public class WechatAdapterTest {
     }
 
     @Test
-    public void testGetOnePublicAccountsEssaysByHandlerException() throws IOException, InterruptedException {
-        adapter.digestionCrawler("京东", false);
+    public void testGetOnePublicAccountsEssaysByHandlerException() {
+        adapter.digestionCrawler("成安邮政", true);
     }
 
     @Test

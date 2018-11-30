@@ -318,7 +318,7 @@ public class AndroidUtil {
     }
 
 
-    private static void clearMemory(String udid) {
+    public static void clearMemory(String udid) {
         try {
             ShellUtil.shutdownProcess(udid, "com.tencent.mm");
         } catch (Exception e) {
