@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.*;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
@@ -18,9 +19,9 @@ import java.util.concurrent.Executors;
  * Create By 2018/10/10
  * Description: 微信的自动化操作
  */
-public class LooseWechatAdapter3 extends AbstractWechatAdapter {
+public class WechatAdapter extends AbstractWechatAdapter {
 
-    public LooseWechatAdapter3(AndroidDevice device) {
+    public WechatAdapter(AndroidDevice device) {
         super(device);
     }
 
@@ -34,11 +35,12 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
             switch (device.taskType) {
                 case CRAWLER: {
                     for (String var : device.queue) {
-                        lastPage = false;
-                        while (!lastPage) {
+                        lastPage.set(Boolean.FALSE);
+                        previousEssayTitles.set(Sets.newHashSet());
+                        while (!lastPage.get()) {
                             digestionCrawler(var, true);
                         }
-                        System.out.println("one/rewind/android/automator/adapter/LooseWechatAdapter3.java location: 40 Line !");
+                        System.out.println("one/rewind/android/automator/adapter/WechatAdapter.java location: 40 Line !");
                         updateMediaState(var, udid);
 
                         AndroidUtil.clearMemory(device.udid);
@@ -71,7 +73,7 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
 
     @Override
     public void start() {
-        LooseWechatAdapter3 adapter = this;
+        WechatAdapter adapter = this;
         ListenableFuture<Boolean> future = service.submit(new Task());
         Futures.addCallback(future, new FutureCallback<Boolean>() {
             @Override

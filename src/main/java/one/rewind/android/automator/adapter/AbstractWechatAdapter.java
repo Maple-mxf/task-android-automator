@@ -1,13 +1,11 @@
 package one.rewind.android.automator.adapter;
 
-import com.google.common.collect.Sets;
 import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.*;
 import org.json.JSONArray;
@@ -21,18 +19,15 @@ import java.util.*;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
-    boolean lastPage = false;
+    ThreadLocal<Boolean> lastPage = new ThreadLocal<>();
 
-    boolean firstPage = true;
+    ThreadLocal<Boolean> firstPage = new ThreadLocal<>();
 
     /**
      * 上一次分析点击坐标记录的集合
      */
-    private Set<String> previousEssayTitle = Sets.newHashSet();
+    ThreadLocal<Set<String>> previousEssayTitles = new ThreadLocal<>();
 
-    public void setTaskType(TaskType taskType) {
-        this.taskType = taskType;
-    }
 
     private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
@@ -46,8 +41,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-
-    TaskType taskType = null;
 
     public static final int RETRY_COUNT = 5;
 
@@ -144,9 +137,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             if (Strings.isNullOrEmpty(words)) continue;
 
-            if (previousEssayTitle.size() > 0) {
+            if (previousEssayTitles.get().size() > 0) {
 
-                if (previousEssayTitle.contains(words)) {
+                if (previousEssayTitles.get().contains(words)) {
 
 
                     boolean flag = true;
@@ -181,7 +174,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 System.out.println("============================没有更多文章===================================");
 
-                lastPage = true;
+                lastPage.set(Boolean.TRUE);
 
                 try {
                     //计算当前公众号文章数量
@@ -223,12 +216,12 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 
     private void preserveThePreviousSet(JSONArray array) {
-        previousEssayTitle.clear();
+        previousEssayTitles.get().clear();
         for (int i = 0; i < array.length(); i++) {
             JSONObject tmpJSON = (JSONObject) array.get(i);
             String words = tmpJSON.getString("words");
             if (!words.contains("年") && !words.contains("月") && !words.contains("日")) {
-                previousEssayTitle.add(words);
+                previousEssayTitles.get().add(words);
             }
         }
     }
@@ -236,7 +229,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     private void delegateOpenEssay(String mediaName, boolean retry) throws Exception {
         if (retry)
             if (!restore(mediaName)) return;
-        while (!lastPage) {
+        while (!lastPage.get()) {
 
             AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 5000);
 
@@ -244,7 +237,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             if (wordsPoints == null || wordsPoints.size() == 0) {
 
-                if (!lastPage) {
+                if (!lastPage.get()) {
                     throw new AndroidCollapseException("不是最后一页,wordPoints is Null !");
                 }
 
@@ -260,8 +253,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
     private boolean restore(String mediaName) {
         try {
             long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-            this.firstPage = (count == 0);
-            if (!this.firstPage) {
+            this.firstPage.set(count == 0);
+            if (!this.firstPage.get()) {
 
                 AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 1000);
 
@@ -281,7 +274,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
             } else {
                 AndroidUtil.slideToPoint(431, 1250, 431, 455, driver, 0);
-                firstPage = false;
+                firstPage.set(Boolean.FALSE);
             }
             return true;
         } catch (Exception e) {
@@ -442,7 +435,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     public void digestionCrawler(String mediaName, boolean retry) {
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
-                lastPage = true;
+                lastPage.set(Boolean.TRUE);
                 //搜索不到公众号
                 for (int i = 0; i < 3; i++) {
                     driver.navigate().back();
@@ -464,7 +457,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                         media.retry_count += 1;
                         media.update_time = new Date();
                         media.update();
-                        if (media.retry_count >= 5) lastPage = true;
+                        if (media.retry_count >= 5) lastPage.set(Boolean.TRUE);
                     }
 
                 } catch (Exception e1) {
@@ -488,7 +481,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             } else {
 
                 // 如果搜索不到公众号，则会在此处形成死循环
-                lastPage = true;
+                lastPage.set(Boolean.TRUE);
                 e.printStackTrace();
             }
         }

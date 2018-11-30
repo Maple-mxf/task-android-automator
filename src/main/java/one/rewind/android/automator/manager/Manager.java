@@ -5,7 +5,7 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.LooseWechatAdapter3;
+import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.SubscribeMedia;
@@ -33,7 +33,7 @@ public class Manager {
     /**
      * 存储无任务设备信息 利用建监听者模式实现设备管理
      */
-    private BlockingQueue<LooseWechatAdapter3> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
+    private BlockingQueue<WechatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
     /**
      * 存储需要订阅的公众号 使用stack栈  先进后出
@@ -103,14 +103,14 @@ public class Manager {
 
         for (AndroidDevice device : devices) {
             device.startAsync();
-            idleAdapters.add(new LooseWechatAdapter3(device));
+            idleAdapters.add(new WechatAdapter(device));
         }
 
         startTimer(); //开启恢复百度API  token 状态
 
         while (true) {
             //阻塞线程
-            LooseWechatAdapter3 adapter = idleAdapters.take();
+            WechatAdapter adapter = idleAdapters.take();
             //获取到休闲设备进行任务执行
             execute(adapter);
         }
@@ -118,7 +118,7 @@ public class Manager {
     }
 
 
-    private void execute(LooseWechatAdapter3 adapter) {
+    private void execute(WechatAdapter adapter) {
         try {
             //计算任务类型
             adapter.getDevice().taskType = calculateTaskType(adapter.getDevice().udid);
@@ -142,7 +142,7 @@ public class Manager {
     }
 
 
-    public void addIdleAdapter(LooseWechatAdapter3 adapter) {
+    public void addIdleAdapter(WechatAdapter adapter) {
         synchronized (this) {
             this.idleAdapters.add(adapter);
         }

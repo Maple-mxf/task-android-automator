@@ -3,7 +3,7 @@ package one.rewind.android.automator.test;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.LooseWechatAdapter3;
+import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.DBTab;
 import one.rewind.android.automator.model.Essays;
@@ -28,7 +28,7 @@ public class WechatAdapterTest {
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
-    LooseWechatAdapter3 adapter;
+    WechatAdapter adapter;
 
     /**
      * 初始化设备
@@ -141,7 +141,7 @@ public class WechatAdapterTest {
 
         device.initAppiumServiceAndDriver(appInfo);
 
-        adapter = new LooseWechatAdapter3(device);
+        adapter = new WechatAdapter(device);
 
         Thread.sleep(3000);
     }
