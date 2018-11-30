@@ -141,7 +141,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 if (previousEssayTitles.get().contains(words)) {
 
-
                     boolean flag = true;
 
                     int k = i + 1;
@@ -149,6 +148,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     while (flag) {
                         // 如果存在重复记录   删除下一条坐标信息
                         // JSONArray由于逻辑问题不能删除任何元素  将words可以替换
+
+
                         JSONObject tmpJSON = (JSONObject) array.get(k);
 
                         String tmpWords1 = tmpJSON.getString("words");
@@ -163,6 +164,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
                         tmpJSON.put("words", "");
                         array.put(k, tmpJSON);
                         k++;
+                        if (k == array.length()) {
+
+                            break;
+                        }
                     }
                     continue;
                 }

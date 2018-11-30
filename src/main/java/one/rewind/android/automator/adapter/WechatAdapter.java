@@ -35,6 +35,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
             switch (device.taskType) {
                 case CRAWLER: {
                     for (String var : device.queue) {
+
                         lastPage.set(Boolean.FALSE);
                         previousEssayTitles.set(Sets.newHashSet());
                         while (!lastPage.get()) {
@@ -45,6 +46,9 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
                         AndroidUtil.clearMemory(device.udid);
                         AndroidUtil.activeWechat(device);
+
+                        // 避免ThreadLocal出现内存泄漏
+                        previousEssayTitles.remove();
                     }
                     break;
                 }
