@@ -178,4 +178,12 @@ public class UtilTest {
         }
     }
 
+    @Test
+    public void testString1() {
+        String a = "Hello World How Are You !";
+        String s = a.replaceAll(" ", "");
+        System.out.println(s);
+        System.out.println(a);
+    }
+
 }

@@ -1,7 +1,9 @@
 package one.rewind.android.automator.test.util;
 
+import one.rewind.android.automator.util.DateUtil;
 import org.junit.Test;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -39,5 +41,13 @@ public class DateUtilTest {
         startDT.setTime(date);
         startDT.add(Calendar.DAY_OF_MONTH, days);
         return startDT.getTime();
+    }
+
+    @Test
+    public void testGetHour() {
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = DateUtil.addHour(new Date());
+        String format = df.format(date);
+        System.out.println(format);
     }
 }

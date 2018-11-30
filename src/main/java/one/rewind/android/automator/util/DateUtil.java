@@ -28,4 +28,13 @@ public class DateUtil {
         startDT.add(Calendar.DAY_OF_MONTH, 1);
         return startDT.getTime();
     }
+
+    public static Date addHour(Date date) {
+        Calendar startDT = Calendar.getInstance();
+        startDT.setTime(date);
+        startDT.add(Calendar.HOUR_OF_DAY, 5);
+        return startDT.getTime();
+    }
+
+
 }

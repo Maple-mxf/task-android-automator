@@ -286,7 +286,7 @@ public class AndroidUtil {
      */
     public static void activeWechat(AndroidDevice device) throws InterruptedException {
         device.startActivity("com.tencent.mm", ".ui.LauncherUI");
-        Thread.sleep(5000);
+        Thread.sleep(8000);
     }
 
     /**

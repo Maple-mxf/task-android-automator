@@ -1,6 +1,6 @@
 package one.rewind.android.automator.test.db;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.MD5Util;
@@ -215,11 +215,47 @@ public class DBTest {
         return pics;
     }
 
-    public static void main(String[] args) {
-        Set set = Sets.newHashSet();
-        set.add("ahjsadhasd");
-        set.add("asdadsas");
-        JSONArray array = new JSONArray(set);
-        System.out.println(array);
+    public static void main(String[] args) throws ClassNotFoundException, SQLException {
+
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/raw?useSSL=false", "root", "root");
+        conn.setAutoCommit(false);
+
+        PreparedStatement ps1 = conn.prepareStatement("select id from essays  group by id having count(id)>1");
+        PreparedStatement ps2 = conn.prepareStatement("select * from essays where id=?");
+        PreparedStatement ps3 = conn.prepareStatement("delete from essays where id=? and insert_time=?");
+
+        List<String> ids = Lists.newArrayList();
+        ResultSet rs1 = ps1.executeQuery();
+        while (rs1.next()) {
+            ids.add(rs1.getString("id"));
+        }
+
+        int k = 0;
+
+        for (String id : ids) {
+            ps2.setString(1, id);
+
+            //查询出来重复的数据
+            ResultSet result = ps2.executeQuery();
+
+            int i = 0;
+            while (result.next()) {
+                if (i != 0) {
+                    ps3.setString(1, id);
+                    ps3.setDate(2, result.getDate("insert_time"));
+                    int row = ps3.executeUpdate();
+                    System.out.println(row);
+                    System.out.println("k: " + k);
+                    k++;
+                }
+//                System.out.println(result.getString("id"));
+//                System.out.println(result.getString("insert_time"));
+                i++;
+
+            }
+        }
+        conn.commit();
+        conn.close();
     }
 }

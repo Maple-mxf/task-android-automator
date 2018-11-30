@@ -14,10 +14,8 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 
 public abstract class AbstractWechatAdapter extends Adapter {
 
@@ -73,10 +71,17 @@ public abstract class AbstractWechatAdapter extends Adapter {
         for (Object v : result) {
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
+            if (words.startsWith("(")) words = words.replace("(", "");
+            if (words.startsWith(")")) words = words.replace(")", "");
+            words = words.replaceAll(" ", "");
+
             JSONObject location = b.getJSONObject("location");
+            top = location.getInt("top");
+            left = location.getInt("left");
+            if (left <= 50 && words.endsWith(mediaName)) {
+                return new WordsPoint(top + 30, left + 30, 0, 0, words);
+            }
             if (words.equalsIgnoreCase(mediaName) || words.equalsIgnoreCase("<" + mediaName)) {
-                top = location.getInt("top");
-                left = location.getInt("left");
                 return new WordsPoint(top + 30, left + 30, 0, 0, words);
             }
         }
@@ -170,6 +175,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
         return wordsPoints;
     }
+
 
     private void delegateOpenEssay(String mediaName, boolean retry) throws Exception {
         if (retry)
@@ -380,6 +386,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     public void digestionCrawler(String mediaName, boolean retry) {
         try {
             if (!AndroidUtil.enterEssay(mediaName, device)) {
+                lastPage = true;
                 //搜索不到公众号
                 for (int i = 0; i < 3; i++) {
                     driver.navigate().back();
@@ -423,9 +430,13 @@ public abstract class AbstractWechatAdapter extends Adapter {
             } else if (e instanceof InterruptedException) {
                 logger.error("InterruptedException 线程中断异常！");
             } else {
-                System.out.println(e);
+
+                // 如果搜索不到公众号，则会在此处形成死循环
+                lastPage = true;
+                e.printStackTrace();
             }
         }
+
     }
 
     /**
@@ -442,16 +453,29 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     /**
      * 睡眠策略
-     *
-     * @throws InterruptedException
      */
-    private void sleepPolicy() throws InterruptedException {
-        if (this.countVal.get() != null) {
-            //抓取50篇文章休息5分钟
-            Integer var = countVal.get();
-            if (var % 50 == 0) {
-                Thread.sleep(1000 * 60 * 3);
+    private void sleepPolicy() {
+        try {
+            int hour = LocalDateTime.now().getHour();
+            if (hour >= 0 && hour <= 5) {
+                //睡眠到凌晨5点
+                long after = DateUtil.addHour(new Date()).getTime();
+                long now = new Date().getTime();
+                Thread.sleep(after - now);
             }
+
+
+            if (this.countVal.get() != null) {
+                //抓取50篇文章休息5分钟
+                Integer var = countVal.get();
+                if (var % 50 == 0) {
+                    Thread.sleep(1000 * 60 * 3);
+                    sleep(1000 * 60 * 3);
+
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -466,4 +490,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
     abstract void start();
+
+
+    private void check(String words, String mediaName) {
+//        DBTab.essayDao.queryBuilder().where().eq("media_name",mediaName).and().
+    }
 }

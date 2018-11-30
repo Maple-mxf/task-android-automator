@@ -32,15 +32,14 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
 
             switch (device.taskType) {
                 case CRAWLER: {
-                    int size = device.queue.size();
-                    for (int i = 0; i < size; i++) {
-                        String mediaName = device.queue.poll();
-                        digestionCrawler(mediaName, true);
+                    for (String var : device.queue) {
                         lastPage = false;
                         while (!lastPage) {
-                            digestionCrawler(mediaName, true);
+                            digestionCrawler(var, true);
                         }
-                        updateMediaState(mediaName, udid);
+                        System.out.println("one/rewind/android/automator/adapter/LooseWechatAdapter3.java location: 40 Line !");
+                        updateMediaState(var, udid);
+                        // 返回主界面
                         for (int j = 0; j < 5; j++) {
                             driver.navigate().back();
                             Thread.sleep(1000);
@@ -49,9 +48,8 @@ public class LooseWechatAdapter3 extends AbstractWechatAdapter {
                     break;
                 }
                 case SUBSCRIBE: {
-                    int size = device.queue.size();
-                    for (int i = 0; i < size; i++) {
-                        digestionSubscribe(device.queue.poll());
+                    for (String var : device.queue) {
+                        digestionSubscribe(var);
                     }
                     break;
                 }

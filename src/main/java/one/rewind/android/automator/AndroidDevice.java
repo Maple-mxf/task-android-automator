@@ -457,7 +457,6 @@ public class AndroidDevice extends AbstractService {
                             e.printStackTrace();
                         }
                         assert we != null;
-                        we.id = MD5Util.MD5Encode("WX" + we.media_name + we.title, "UTF-8");
                         we.insert_time = new Date();
 
                         we.update_time = new Date();
@@ -468,6 +467,7 @@ public class AndroidDevice extends AbstractService {
                         we.fav_count = 0;
                         we.forward_count = 0;
                         we.images = new JSONArray(we.parseImages(we.content)).toString();
+                        we.id = MD5Util.MD5Encode(we.platform + "-" + we.media_name + we.title, "UTF-8");
                         try {
                             we.insert();
                         } catch (Exception e) {
@@ -479,13 +479,13 @@ public class AndroidDevice extends AbstractService {
                             try {
                                 comments_ = Comments.parseComments(we.src_id, comments_src);
                             } catch (ParseException e) {
-                                e.printStackTrace();
+//                                e.printStackTrace();
                             }
                             comments_.stream().forEach(c -> {
                                 try {
                                     c.insert();
                                 } catch (Exception e) {
-                                    e.printStackTrace();
+//                                    e.printStackTrace();
                                 }
                             });
                         }

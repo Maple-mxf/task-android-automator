@@ -36,7 +36,7 @@ public class Manager {
     private BlockingQueue<LooseWechatAdapter3> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
     /**
-     * 存储需要订阅的公众号   使用stack栈  先进后出
+     * 存储需要订阅的公众号 使用stack栈  先进后出
      */
     private Stack<String> mediaStack = new Stack<>();
 
@@ -93,6 +93,7 @@ public class Manager {
      * 异步启动设备
      */
     public void startManager() throws InterruptedException, SQLException {
+
         init();
 
         reset();
@@ -105,7 +106,7 @@ public class Manager {
             idleAdapters.add(new LooseWechatAdapter3(device));
         }
 
-        new ResetTokenState().startTimer(); //开启恢复百度API  token 状态
+        startTimer(); //开启恢复百度API  token 状态
 
         while (true) {
             //阻塞线程
@@ -258,30 +259,26 @@ public class Manager {
     }
 
 
-    class ResetTokenState extends TimerTask {
-        @Override
-        public void run() {
-            try {
-                List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
-
-                for (BaiduTokens v : tokens) {
-                    if (!DateUtils.isSameDay(v.update_time, new Date())) {
-                        v.count = 0;
-                        v.update_time = new Date();
-                        v.update();
+    private void startTimer() {
+        Timer timer = new Timer(false);
+        Date nextDay = DateUtil.buildDate();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
+                    for (BaiduTokens v : tokens) {
+                        if (!DateUtils.isSameDay(v.update_time, new Date())) {
+                            v.count = 0;
+                            v.update_time = new Date();
+                            v.update();
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }
-
-        void startTimer() {
-            Timer timer = new Timer(false);
-            TimerTask task = new ResetTokenState();
-            Date nextDay = DateUtil.buildDate();
-            timer.schedule(task, nextDay, 1000 * 60 * 60 * 24);
-        }
+        }, nextDay, 1000 * 60 * 60 * 24);
     }
 
     public static void main(String[] args) throws InterruptedException, SQLException {

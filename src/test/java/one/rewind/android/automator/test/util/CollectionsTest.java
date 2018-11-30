@@ -42,8 +42,25 @@ public class CollectionsTest {
     @Test
     public void testConcurrentQueue() {
         Queue<String> queue = new ConcurrentLinkedQueue<>();
-        System.out.println(queue.poll());
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        queue.add("1");
+        System.out.println("size: " + queue.size());
+        int i = 0;
+        for (String var : queue) {
+            System.out.println(var);
+            i++;
+            System.out.println("i: " + i);
+        }
     }
+
 
     @Test
     public void testStack() {
@@ -71,4 +88,6 @@ public class CollectionsTest {
 
         this.testMethod(method, new Essays());
     }
+
+
 }
