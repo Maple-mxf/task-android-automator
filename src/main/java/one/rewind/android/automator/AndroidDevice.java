@@ -471,7 +471,7 @@ public class AndroidDevice extends AbstractService {
                         try {
                             we.insert();
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            logger.error("-----------文章插入失败 重复key！-----------");
                         }
                         if (comments_stack.size() > 0) {
                             String comments_src = comments_stack.pop();
@@ -479,13 +479,14 @@ public class AndroidDevice extends AbstractService {
                             try {
                                 comments_ = Comments.parseComments(we.src_id, comments_src);
                             } catch (ParseException e) {
-//                                e.printStackTrace();
+                                logger.error("----------------------");
                             }
                             comments_.stream().forEach(c -> {
                                 try {
                                     c.insert();
                                 } catch (Exception e) {
 //                                    e.printStackTrace();
+                                    logger.error("----------------评论插入失败！重复key----------------");
                                 }
                             });
                         }

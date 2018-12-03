@@ -109,6 +109,7 @@ public class Manager {
         startTimer(); //开启恢复百度API  token 状态
 
         while (true) {
+
             //阻塞线程
             WechatAdapter adapter = idleAdapters.take();
             //获取到休闲设备进行任务执行

@@ -14,7 +14,6 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.*;
 
 public abstract class AbstractWechatAdapter extends Adapter {
@@ -148,8 +147,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     while (flag) {
                         // 如果存在重复记录   删除下一条坐标信息
                         // JSONArray由于逻辑问题不能删除任何元素  将words可以替换
-
-
                         JSONObject tmpJSON = (JSONObject) array.get(k);
 
                         String tmpWords1 = tmpJSON.getString("words");
@@ -159,15 +156,17 @@ public abstract class AbstractWechatAdapter extends Adapter {
                             flag = false;
 
                         }
-
                         // 将内容置换为空字符串  防止在统计坐标时出现重复
+
                         tmpJSON.put("words", "");
+
                         array.put(k, tmpJSON);
-                        k++;
+
                         if (k == array.length()) {
 
                             break;
                         }
+                        k++;
                     }
                     continue;
                 }
@@ -510,17 +509,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     private void sleepPolicy() {
         try {
-            int hour = LocalDateTime.now().getHour();
-            if (hour >= 0 && hour <= 5) {
-                //睡眠到凌晨5点
-                long after = DateUtil.addHour(new Date()).getTime();
-                long now = new Date().getTime();
-                Thread.sleep(after - now);
-            }
-
-
             if (this.countVal.get() != null) {
-                //抓取50篇文章休息5分钟
+                //  抓取50篇文章休息3分钟
                 Integer var = countVal.get();
                 if (var % 50 == 0) {
                     Thread.sleep(1000 * 60 * 3);
