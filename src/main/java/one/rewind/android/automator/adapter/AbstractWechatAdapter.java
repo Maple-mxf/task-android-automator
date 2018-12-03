@@ -145,6 +145,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     int k = i + 1;
 
                     while (flag) {
+                        if (k > array.length() - 1) {
+
+                            break;
+                        }
                         // 如果存在重复记录   删除下一条坐标信息
                         // JSONArray由于逻辑问题不能删除任何元素  将words可以替换
                         JSONObject tmpJSON = (JSONObject) array.get(k);
@@ -162,10 +166,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                         array.put(k, tmpJSON);
 
-                        if (k == array.length()) {
 
-                            break;
-                        }
                         k++;
                     }
                     continue;
