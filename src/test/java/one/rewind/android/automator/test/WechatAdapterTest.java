@@ -24,7 +24,7 @@ import java.util.Stack;
 
 public class WechatAdapterTest {
 
-    String udid = "ZX1G22MMSQ";
+    String udid = "ZX1G423DMM";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -160,7 +160,7 @@ public class WechatAdapterTest {
 
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeMedia("京东");
+        adapter.subscribeMedia("阿里巴巴");
     }
 
     @Test

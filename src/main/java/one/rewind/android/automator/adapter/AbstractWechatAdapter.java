@@ -371,15 +371,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
         searchButton.click();
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
         // B 点公众号
-        WebElement publicAccountLink = driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]"));
-        publicAccountLink.click();
+        driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
         Thread.sleep(2000);
 
         // C1 输入框输入搜索信息
         driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
+        Thread.sleep(2000);
 
         // C3 点击软键盘的搜索键
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
@@ -475,11 +475,17 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     //线程睡眠
                     //需要计算啥时候到达明天   到达明天的时候需要重新分配任务
                     Date nextDay = DateUtil.buildDate();
+
                     Date thisDay = new Date();
+
                     long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
+
                     Thread.sleep(waitMills + 1000 * 60 * 5);
+
                 } catch (Exception e2) {
+
                     e2.printStackTrace();
+
                 }
             } else if (e instanceof InterruptedException) {
                 logger.error("InterruptedException 线程中断异常！");
@@ -500,7 +506,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
         try {
             subscribeMedia(mediaName);
         } catch (Exception e) {
-            e.printStackTrace();
+
+            logger.error("---------公众号订阅失败！---------");
+            try {
+                AndroidUtil.clearMemory(device.udid);
+                AndroidUtil.activeWechat(device);
+            } catch (Exception e1) {
+                logger.error(e1);
+            }
+
         }
     }
 
