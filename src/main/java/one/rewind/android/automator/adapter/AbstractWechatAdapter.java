@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.collect.Sets;
 import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
@@ -25,7 +26,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     /**
      * 上一次分析点击坐标记录的集合
      */
-    ThreadLocal<Set<String>> previousEssayTitles = new ThreadLocal<>();
+    Set<String> previousEssayTitles = Sets.newHashSet();
 
 
     private ThreadLocal<Integer> countVal = new ThreadLocal<>();
@@ -136,9 +137,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             if (Strings.isNullOrEmpty(words)) continue;
 
-            if (previousEssayTitles.get().size() > 0) {
+            if (previousEssayTitles.size() > 0) {
 
-                if (previousEssayTitles.get().contains(words)) {
+                if (previousEssayTitles.contains(words)) {
 
                     boolean flag = true;
 
@@ -221,12 +222,19 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 
     private void preserveThePreviousSet(JSONArray array) {
-        previousEssayTitles.get().clear();
+
+        previousEssayTitles.clear();
+
         for (int i = 0; i < array.length(); i++) {
+
             JSONObject tmpJSON = (JSONObject) array.get(i);
+
             String words = tmpJSON.getString("words");
+
             if (!words.contains("年") && !words.contains("月") && !words.contains("日")) {
-                previousEssayTitles.get().add(words);
+                if (i != array.length() - 1) {
+                    previousEssayTitles.add(words);
+                }
             }
         }
     }
@@ -268,11 +276,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 int slideNumByPage;
 
                 if (var == 0) {
-                    slideNumByPage = (int) ((count / 6) + 3);
+                    slideNumByPage = (int) ((count / 6) + 2);
                 } else if (var <= 3) {
-                    slideNumByPage = (int) (count / 6) + 2;
+                    slideNumByPage = (int) (count / 6) + 1;
                 } else {
-                    slideNumByPage = (int) (count / 6) + 3;
+                    slideNumByPage = (int) (count / 6) + 2;
                 }
                 for (int i = 0; i < slideNumByPage; i++) {
                     AndroidUtil.slideToPoint(606, 2387, 606, 960, driver, 1500);
@@ -291,6 +299,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     private void openEssays(List<WordsPoint> wordsPoints) throws AndroidCollapseException, InterruptedException {
         int neverClickCount = 0;
         for (WordsPoint wordsPoint : wordsPoints) {
+
             //睡眠策略
             setCountVal();
             sleepPolicy();
@@ -298,6 +307,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 throw new AndroidCollapseException("安卓系统卡住点不动了！");
             }
             AndroidUtil.clickPoint(320, wordsPoint.top, 8000, driver);
+
             //所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
             if (this.device.isClickEffect()) {
                 System.out.println("文章点进去了....");
@@ -367,7 +377,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     public void subscribeMedia(String mediaName) throws Exception {
         if (DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
-        int k = 3;
+
+        AndroidUtil.clearMemory(device.udid);
+        AndroidUtil.activeWechat(device);
+        Thread.sleep(3000);
+
         // A 点搜索
         WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
         searchButton.click();
@@ -396,7 +410,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.retry_count = 0;
             tmp.insert_time = new Date();
             tmp.insert();
-            k--;
         } else {
             AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
 
@@ -412,13 +425,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 e.printStackTrace();
                 logger.info("Already add public account: {}", mediaName);
                 driver.navigate().back();
-                --k;
             }
-        }
-        Thread.sleep(1000);
-        for (int i = 0; i < k; i++) {
-            driver.navigate().back();
-            Thread.sleep(500);
         }
     }
 
@@ -551,6 +558,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
     abstract void start();
 
 
+    @Deprecated
     private void check(String words, String mediaName) {
 //        DBTab.essayDao.queryBuilder().where().eq("media_name",mediaName).and().
     }

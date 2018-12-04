@@ -470,8 +470,8 @@ public class AndroidDevice extends AbstractService {
                         we.id = MD5Util.MD5Encode(we.platform + "-" + we.media_name + we.title, "UTF-8");
                         try {
                             we.insert();
-                        } catch (Exception e) {
-                            logger.error("-----------文章插入失败 重复key！-----------");
+                        } catch (Exception ignored) {
+
                         }
                         if (comments_stack.size() > 0) {
                             String comments_src = comments_stack.pop();

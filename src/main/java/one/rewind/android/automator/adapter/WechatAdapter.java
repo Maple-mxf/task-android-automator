@@ -1,6 +1,5 @@
 package one.rewind.android.automator.adapter;
 
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.*;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
@@ -36,8 +35,10 @@ public class WechatAdapter extends AbstractWechatAdapter {
                 case CRAWLER: {
                     for (String var : device.queue) {
 
+                        //  初始化记录  对应当前公众号
                         lastPage.set(Boolean.FALSE);
-                        previousEssayTitles.set(Sets.newHashSet());
+                        previousEssayTitles.clear();
+
                         while (!lastPage.get()) {
                             digestionCrawler(var, true);
                         }
@@ -46,9 +47,6 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
                         AndroidUtil.clearMemory(device.udid);
                         AndroidUtil.activeWechat(device);
-
-                        // 避免ThreadLocal出现内存泄漏
-                        previousEssayTitles.remove();
                     }
                     break;
                 }
