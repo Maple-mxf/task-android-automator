@@ -3,7 +3,7 @@ package one.rewind.android.automator.test.util;
 import com.google.common.collect.Sets;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -86,7 +86,7 @@ public class UtilTest {
 
     @Test
     public void testMath() throws SQLException {
-        long countOf = DBTab.essayDao.
+        long countOf = Tab.essayDao.
                 queryBuilder().
                 where().
                 eq("media_nick", "云南省驻越南商务代表处").countOf();

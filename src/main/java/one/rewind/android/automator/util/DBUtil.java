@@ -1,7 +1,7 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.Media;
 
 import java.sql.SQLException;
@@ -14,13 +14,13 @@ public class DBUtil {
 
     public static void sendAccounts(Set<String> accounts, int page) {
         try {
-            Set<String> collect = DBTab.subscribeDao.
+            Set<String> collect = Tab.subscribeDao.
                     queryForAll().
                     stream().
                     map(ec -> ec.media_name).
                     collect(Collectors.toSet());
 
-            List<Media> medias = DBTab.mediaDao.queryBuilder().limit(30).offset((page - 1) * 30).query();
+            List<Media> medias = Tab.mediaDao.queryBuilder().limit(30).offset((page - 1) * 30).query();
 
             for (Media media : medias) {
                 if (!collect.contains(media.nick)) {
@@ -40,7 +40,7 @@ public class DBUtil {
     }
 
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
-        GenericRawResults<String[]> results = DBTab.subscribeDao.
+        GenericRawResults<String[]> results = Tab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
                         udid);
         String[] firstResult = results.getFirstResult();

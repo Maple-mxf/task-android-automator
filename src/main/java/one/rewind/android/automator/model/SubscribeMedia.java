@@ -14,7 +14,6 @@ import one.rewind.db.DBName;
 @DatabaseTable(tableName = "wechat_subscribe_account")
 public class SubscribeMedia extends ModelL {
 
-
     @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
     public String udid;
 
@@ -41,8 +40,10 @@ public class SubscribeMedia extends ModelL {
     public enum CrawlerState {
 
         FINISH(1),
-        //表示搜索不到当前公众号
+
+        // 表示搜索不到当前公众号
         NOMEDIANAME(2),
+
         NOFINISH(0);
 
         public int status;

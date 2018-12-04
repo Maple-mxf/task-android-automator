@@ -7,15 +7,19 @@ import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.DateUtil;
+import one.rewind.db.RedissonAdapter;
 import one.rewind.io.server.Msg;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
+import org.redisson.api.RScoredSortedSet;
+import org.redisson.api.RSortedSet;
+import org.redisson.api.RedissonClient;
 import spark.Route;
 import spark.Spark;
 
@@ -29,6 +33,11 @@ import java.util.stream.Collectors;
  * Description:
  */
 public class Manager {
+
+    /**
+     * redis 客户端
+     */
+    private RedissonClient redisClient = RedissonAdapter.redisson;
 
     /**
      * 存储无任务设备信息 利用建监听者模式实现设备管理
@@ -64,7 +73,7 @@ public class Manager {
     private Manager() {
     }
 
-    public static Manager getInstance() {
+    public static Manager me() {
         if (manager == null) {
             manager = new Manager();
         }
@@ -102,19 +111,39 @@ public class Manager {
 
 
         for (AndroidDevice device : devices) {
+
             device.startAsync();
+
             idleAdapters.add(new WechatAdapter(device));
         }
 
-        startTimer(); //开启恢复百度API  token 状态
+        resetOCRToken(); //开启恢复百度API  token 状态
 
         while (true) {
 
-            //阻塞线程
+            // 阻塞线程
+
+            // 需要定期重启appium 重启代理等等
+
+            // 1 杀死当前所有的线程池
+            // 2 停止代理
+            // 3 关闭本地appium
+            // 4 退出当前方法
+            // 5 API接口传递过来的数据持久化
+
+
             WechatAdapter adapter = idleAdapters.take();
-            //获取到休闲设备进行任务执行
+
+            // 获取到休闲设备进行任务执行
             execute(adapter);
         }
+
+    }
+
+
+    // 重启manager
+
+    private void restartMe() {
 
     }
 
@@ -175,7 +204,7 @@ public class Manager {
 
     private void initCrawlerQueue(AndroidDevice device) throws SQLException {
         List<SubscribeMedia> accounts =
-                DBTab.subscribeDao.
+                Tab.subscribeDao.
                         queryBuilder().
                         where().
                         eq("udid", device.udid).
@@ -192,9 +221,9 @@ public class Manager {
 
     private TaskType calculateTaskType(String udid) throws Exception {
 
-        long allSubscribe = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
+        long allSubscribe = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
-        List<SubscribeMedia> notFinishR = DBTab.subscribeDao.queryBuilder().where().
+        List<SubscribeMedia> notFinishR = Tab.subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
                 eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
                 query();
@@ -222,7 +251,7 @@ public class Manager {
     }
 
     private int obtainSubscribeNumToday(String udid) throws SQLException {
-        GenericRawResults<String[]> results = DBTab.subscribeDao.
+        GenericRawResults<String[]> results = Tab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
                         udid);
         String[] firstResult = results.getFirstResult();
@@ -231,14 +260,14 @@ public class Manager {
     }
 
     private void reset() throws SQLException {
-        List<SubscribeMedia> accounts = DBTab.subscribeDao.queryForAll();
+        List<SubscribeMedia> accounts = Tab.subscribeDao.queryForAll();
         for (SubscribeMedia v : accounts) {
             try {
                 if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
                     continue;
                 }
 
-                long countOf = DBTab.essayDao.
+                long countOf = Tab.essayDao.
                         queryBuilder().
                         where().
                         eq("media_nick", v.media_name).
@@ -260,14 +289,16 @@ public class Manager {
     }
 
 
-    private void startTimer() {
+    // reset 百度API token状态
+
+    private void resetOCRToken() {
         Timer timer = new Timer(false);
         Date nextDay = DateUtil.buildDate();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 try {
-                    List<BaiduTokens> tokens = DBTab.tokenDao.queryForAll();
+                    List<BaiduTokens> tokens = Tab.tokenDao.queryForAll();
                     for (BaiduTokens v : tokens) {
                         if (!DateUtils.isSameDay(v.update_time, new Date())) {
                             v.count = 0;
@@ -280,11 +311,13 @@ public class Manager {
                 }
             }
         }, nextDay, 1000 * 60 * 60 * 24);
+
+//        timer.schedule();
     }
 
     public static void main(String[] args) throws InterruptedException, SQLException {
 
-        Manager manage = getInstance();
+        Manager manage = me();
 
         manage.startManager(); //开启任务执行
 
@@ -298,26 +331,62 @@ public class Manager {
 
         String body = req.body();
 
-        JSONArray array = new JSONArray(body);
+        try {
+            JSONArray array = new JSONArray(body);
 
-        for (Object v : array) {
-            apiMedias.add((String) v);
+            for (Object v : array) {
+                apiMedias.add((String) v);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Msg<>(0, "参数不合法");
         }
         return new Msg<>(1);
     };
 
-
     /**
-     * 如果公众号已经被订阅了,移除队列
-     *
-     * @param media
+     * @param array api接口传递的公众号数据
      */
-    private void parsingMedia(String media) {
-        try {
-            SubscribeMedia result = DBTab.subscribeDao.queryBuilder().where().eq("media_name", media).queryForFirst();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private void parseRequestID(JSONArray array) throws SQLException {
 
+        // 请求唯一标示
+        String requestID = WechatAdapter.REQ_SUFFIX + UUID.randomUUID().toString().replaceAll("-", "");
+
+        // 作为临时集合辅助操作业务逻辑
+        RSortedSet<String> tmpSet = redisClient.getSortedSet(requestID + "_tmp");
+
+        for (Object var : array) {
+
+            String tmp = (String) var;
+
+            tmpSet.add(tmp);
+
+            SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
+
+            if (media != null) {
+
+                // media可能是历史任务  也可能当前media的任务已经完成了
+
+                // 使用requestID作为redis的key   value存放一个有序集合  每一个元素的分数作为当前的时间戳
+
+                // 已经完成了任务，将当前的公众号名称存储到redis中
+
+                if (media.status == SubscribeMedia.CrawlerState.FINISH.status || media.status == SubscribeMedia.CrawlerState.NOMEDIANAME.status) {
+
+                    RScoredSortedSet<Object> sortedSet = redisClient.getScoredSortedSet(requestID);
+
+                    // 时间戳作为分数  排序规则
+                    sortedSet.add(new Date().getTime(), media.media_name);
+
+                }
+            } else {
+
+                // 添加到任务队列中    tmp拼接一个字符串作为request标示   tmp$#{requestID}
+                apiMedias.add(tmp + requestID);
+
+                // 插入到数据中作为业务字段辅助操作   java技术栈$req_KgfhazvcbfrteUHjsdf90
+            }
+        }
     }
+
 }

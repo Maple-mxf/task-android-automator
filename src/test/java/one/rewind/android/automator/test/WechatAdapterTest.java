@@ -1,11 +1,12 @@
 package one.rewind.android.automator.test;
 
+import com.google.common.collect.Queues;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -17,14 +18,11 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 
 public class WechatAdapterTest {
 
-    String udid = "ZX1G423DMM";
+    String udid = "ZX1G323GNB";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
@@ -160,7 +158,21 @@ public class WechatAdapterTest {
 
     @Test
     public void subscribe() throws Exception {
-        adapter.subscribeMedia("阿里巴巴");
+        Queue<String> collections = Queues.newConcurrentLinkedQueue();
+
+        collections.add("阿里巴巴");
+        collections.add("今日头条");
+        collections.add("蚂蚁金服");
+        collections.add("抖音");
+        collections.add("菜鸟网络");
+
+        collections.forEach(v -> {
+            try {
+                adapter.subscribeMedia(v);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Test
@@ -199,7 +211,7 @@ public class WechatAdapterTest {
     public void testAllotTask() throws InterruptedException {
 //        DefaultDeviceManager.originalAccounts.add("菜鸟教程");
 //        DefaultDeviceManager.originalAccounts.add("Java技术栈");
-//        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
+//        DefaultDeviceManager manager = DefaultDeviceManager.me();
 //        manager.allotTask(DefaultDeviceManager.TaskType.SUBSCRIBE);
 
     }
@@ -227,9 +239,25 @@ public class WechatAdapterTest {
         instance.set(Calendar.MINUTE, 0);
         instance.set(Calendar.SECOND, 0);
         Date time = instance.getTime();
-        List<SubscribeMedia> query = DBTab.subscribeDao.queryBuilder().where().eq("udid", udid).and().ge("insert_time", time).query();
+        List<SubscribeMedia> query = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).and().ge("insert_time", time).query();
         for (SubscribeMedia media : query) {
             adapter.unsubscribeMedia(media.media_name);
         }
+    }
+
+
+    @Test
+    public void testRealMediaName() {
+        String var = WechatAdapter.realMedia("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
+
+        System.out.println(var);
+    }
+
+    @Test
+    public void testRequestID() {
+        // result： $req_HKDFNMADSFQWTEHFBVM7
+        String var = WechatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
+
+        System.out.println(var);
     }
 }

@@ -5,14 +5,13 @@ import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
 
 import java.io.IOException;
 import java.util.*;
@@ -68,7 +67,10 @@ public abstract class AbstractWechatAdapter extends Adapter {
         int top;
         int left;
 
+        int i = 0;
         for (Object v : result) {
+
+
             JSONObject b = (JSONObject) v;
             String words = b.getString("words");
             if (words.startsWith("(")) words = words.replace("(", "");
@@ -78,12 +80,22 @@ public abstract class AbstractWechatAdapter extends Adapter {
             JSONObject location = b.getJSONObject("location");
             top = location.getInt("top");
             left = location.getInt("left");
+
+            // 第一个成为正确的几率最大
+            // 很有可能是公众号的头像中的文字也被识别了
+
+            if (i == 0) {
+                if (words.endsWith(mediaName)) {
+                    return new WordsPoint(top + 30, left + 30, 0, 0, words);
+                }
+            }
             if (left <= 50 && words.endsWith(mediaName)) {
                 return new WordsPoint(top + 30, left + 30, 0, 0, words);
             }
             if (words.equalsIgnoreCase(mediaName) || words.equalsIgnoreCase("<" + mediaName)) {
                 return new WordsPoint(top + 30, left + 30, 0, 0, words);
             }
+            i++;
         }
         return null;
     }
@@ -184,8 +196,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                 try {
                     //计算当前公众号文章数量
-                    long currentEssayNum = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-                    SubscribeMedia var = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                    long currentEssayNum = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+                    SubscribeMedia var = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                     var.number = (int) (currentEssayNum + wordsPoints.size());
                     var.update();
 
@@ -265,7 +277,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     private boolean restore(String mediaName) {
         try {
-            long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+            long count = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
             this.firstPage.set(count == 0);
             if (!this.firstPage.get()) {
 
@@ -376,20 +388,20 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @throws Exception
      */
     public void subscribeMedia(String mediaName) throws Exception {
-        if (DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
+        if (Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
 
-        AndroidUtil.clearMemory(device.udid);
-        AndroidUtil.activeWechat(device);
+        //重启
+        AndroidUtil.restartWechatAPP(device);
+
         Thread.sleep(3000);
 
         // A 点搜索
-        WebElement searchButton = driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
-        searchButton.click();
-        Thread.sleep(1000);
+        driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]")).click();
+        Thread.sleep(2000);
 
         // B 点公众号
         driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
-        Thread.sleep(2000);
+        Thread.sleep(4000);
 
         // C1 输入框输入搜索信息
         driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
@@ -415,22 +427,18 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             try {
                 // 点击订阅
-                driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]"))
-                        .click();
+                driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
                 saveSubscribeRecord(mediaName);
-                Thread.sleep(5000);
-                driver.navigate().back();
-            } catch (Exception e) {
+                Thread.sleep(3000);
+            } catch (Exception ignore) {
                 //已经订阅了
-                e.printStackTrace();
                 logger.info("Already add public account: {}", mediaName);
-                driver.navigate().back();
             }
         }
     }
 
     private void saveSubscribeRecord(String mediaName) throws Exception {
-        long tempCount = DBTab.subscribeDao.queryBuilder().where()
+        long tempCount = Tab.subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
         if (tempCount == 0) {
@@ -516,8 +524,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             logger.error("---------公众号订阅失败！---------");
             try {
-                AndroidUtil.clearMemory(device.udid);
-                AndroidUtil.activeWechat(device);
+                AndroidUtil.restartWechatAPP(device);
             } catch (Exception e1) {
                 logger.error(e1);
             }
@@ -532,10 +539,14 @@ public abstract class AbstractWechatAdapter extends Adapter {
     private void sleepPolicy() {
         try {
             if (this.countVal.get() != null) {
+
                 //  抓取50篇文章休息3分钟
+
                 Integer var = countVal.get();
                 if (var % 50 == 0) {
                     Thread.sleep(1000 * 60 * 3);
+
+                    // 不推荐的做法
                     sleep(1000 * 60 * 3);
 
                 }
@@ -557,9 +568,5 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
     abstract void start();
 
-
-    @Deprecated
-    private void check(String words, String mediaName) {
-//        DBTab.essayDao.queryBuilder().where().eq("media_name",mediaName).and().
-    }
+    abstract void stop();
 }

@@ -5,7 +5,7 @@ import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWechatAdapter;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
@@ -26,6 +26,15 @@ import java.util.UUID;
  */
 @SuppressWarnings("JavaDoc")
 public class AndroidUtil {
+
+
+    // 重启手机APP
+
+    public static void restartWechatAPP(AndroidDevice device) throws InterruptedException {
+        AndroidUtil.clearMemory(device.udid);
+        AndroidUtil.activeWechat(device);
+    }
+
     /**
      * @param mediaName
      * @throws InterruptedException
@@ -73,7 +82,7 @@ public class AndroidUtil {
             return true;
         } catch (Exception e) {
             try {
-                SubscribeMedia var = DBTab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
+                SubscribeMedia var = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                 if (var != null) {
                     var.update_time = new Date();
                     var.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
@@ -88,6 +97,7 @@ public class AndroidUtil {
     }
 
     //检测是否订阅mediaName
+
     @Deprecated
     private static boolean hasSubscribe(String mediaName, AndroidDevice device) throws Exception {
         String fileName = UUID.randomUUID().toString() + ".png";
@@ -101,7 +111,7 @@ public class AndroidUtil {
                 try {
                     //标记当前公众号
                     SubscribeMedia media =
-                            DBTab.subscribeDao.
+                            Tab.subscribeDao.
                                     queryBuilder().
                                     where().
                                     eq("media_name", mediaName).
@@ -132,6 +142,7 @@ public class AndroidUtil {
         try {
             File screenFile = ((TakesScreenshot) driver)
                     .getScreenshotAs(OutputType.FILE);
+
             FileUtils.copyFile(screenFile, new File(path + fileName));
         } catch (Exception e) {
             e.printStackTrace();
@@ -243,7 +254,7 @@ public class AndroidUtil {
     }
 
     public static SubscribeMedia retry(String mediaName, String udid) throws Exception {
-        SubscribeMedia media = DBTab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
+        SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
         if (media == null) {
             media = new SubscribeMedia();
             media.update_time = new Date();
@@ -264,7 +275,7 @@ public class AndroidUtil {
             media.update();
             return null;
         }
-        long count = DBTab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
+        long count = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
         if (media.retry_count >= AbstractWechatAdapter.RETRY_COUNT) {
             media.update_time = new Date();
             media.number = (int) count;
@@ -294,7 +305,7 @@ public class AndroidUtil {
      */
     public static void updateProcess(String mediaName, String udid) throws Exception {
 
-        SubscribeMedia account = DBTab.subscribeDao.
+        SubscribeMedia account = Tab.subscribeDao.
                 queryBuilder().
                 where().
                 eq("media_name", mediaName).
@@ -303,7 +314,7 @@ public class AndroidUtil {
                 queryForFirst();
 
         if (account != null) {
-            long countOf = DBTab.essayDao.
+            long countOf = Tab.essayDao.
                     queryBuilder().
                     where().
                     eq("media_nick", mediaName).

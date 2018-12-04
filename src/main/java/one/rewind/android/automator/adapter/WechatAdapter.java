@@ -1,9 +1,10 @@
 package one.rewind.android.automator.adapter;
 
 import com.google.common.util.concurrent.*;
+import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
-import one.rewind.android.automator.model.DBTab;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
@@ -19,6 +20,42 @@ import java.util.concurrent.Executors;
  * Description: 微信的自动化操作
  */
 public class WechatAdapter extends AbstractWechatAdapter {
+
+    public static final String REQ_SUFFIX = "$req_";
+
+    // 获取真实的mediaName
+    public static String realMedia(String mediaName) {
+
+        if (!Strings.isNullOrEmpty(mediaName)) {
+            if (mediaName.contains(REQ_SUFFIX)) {
+                // 确认为api接口中传递过来的数据
+                // 字符串处理为正常的字符串
+                int tmpIndex = mediaName.indexOf(REQ_SUFFIX);
+
+                return mediaName.substring(0, tmpIndex);
+            } else {
+                return mediaName;
+            }
+        } else {
+            return mediaName;
+        }
+    }
+
+    // 获取请求ID
+    public static String requestID(String mediaName) {
+
+        if (!Strings.isNullOrEmpty(mediaName)) {
+            if (mediaName.contains(REQ_SUFFIX)) {
+                int tmpIndex = mediaName.indexOf(REQ_SUFFIX);
+                return mediaName.substring(tmpIndex);
+
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
 
     public WechatAdapter(AndroidDevice device) {
         super(device);
@@ -45,13 +82,16 @@ public class WechatAdapter extends AbstractWechatAdapter {
                         System.out.println("one/rewind/android/automator/adapter/WechatAdapter.java location: 40 Line !");
                         updateMediaState(var, udid);
 
-                        AndroidUtil.clearMemory(device.udid);
-                        AndroidUtil.activeWechat(device);
+                        AndroidUtil.restartWechatAPP(device);
                     }
                     break;
                 }
                 case SUBSCRIBE: {
                     for (String var : device.queue) {
+
+                        // 处理数据
+//                        String realMedia = realMedia(var);
+
                         digestionSubscribe(var);
                     }
                     break;
@@ -77,13 +117,14 @@ public class WechatAdapter extends AbstractWechatAdapter {
     public void start() {
         WechatAdapter adapter = this;
         ListenableFuture<Boolean> future = service.submit(new Task());
+
         Futures.addCallback(future, new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(@NullableDecl Boolean result) {
 
                 try {
                     if (Boolean.TRUE.equals(future.get())) {
-                        Manager.getInstance().addIdleAdapter(adapter);
+                        Manager.me().addIdleAdapter(adapter);
                     }
                 } catch (InterruptedException | ExecutionException e) {
                     e.printStackTrace();
@@ -98,8 +139,18 @@ public class WechatAdapter extends AbstractWechatAdapter {
         });
     }
 
+    @Override
+    public void stop() {
+
+        //启动关闭线程池
+        while (true) {
+            service.shutdownNow();
+            if (service.isShutdown()) return;
+        }
+    }
+
     private void updateMediaState(String mediaName, String udid) throws Exception {
-        SubscribeMedia account = DBTab.subscribeDao.
+        SubscribeMedia account = Tab.subscribeDao.
                 queryBuilder().
                 where().
                 eq("media_name", mediaName).
@@ -108,7 +159,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
                 queryForFirst();
 
         if (account != null) {
-            long countOf = DBTab.essayDao.
+            long countOf = Tab.essayDao.
                     queryBuilder().
                     where().
                     eq("media_nick", mediaName).

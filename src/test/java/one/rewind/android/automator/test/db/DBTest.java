@@ -128,7 +128,7 @@ public class DBTest {
         Date time = instance.getTime();
 
 
-        List<SubscribeMedia> query = DBTab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
+        List<SubscribeMedia> query = Tab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
 
         System.out.println(query);
     }
@@ -167,7 +167,7 @@ public class DBTest {
         }
 
 
-//        Dao<Essays, String> dao = DBTab.essayDao;
+//        Dao<Essays, String> dao = Tab.essayDao;
 
 //        while (flag) {
 //            List<Essays> result = dao.queryBuilder().limit(20).offset((page - 1) * 30).query();

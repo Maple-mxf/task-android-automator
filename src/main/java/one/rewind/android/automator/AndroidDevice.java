@@ -18,6 +18,7 @@ import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.MD5Util;
@@ -47,9 +48,7 @@ public class AndroidDevice extends AbstractService {
 
     private static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
 
-    /**
-     * 任务队列
-     */
+    //  任务队列
     public Queue<String> queue = new ConcurrentLinkedQueue<>();
 
     private boolean clickEffect;
@@ -64,6 +63,7 @@ public class AndroidDevice extends AbstractService {
         this.clickEffect = clickEffect;
     }
 
+    // 本地IP
     private static String LOCAL_IP;
 
     // 配置设定
@@ -507,9 +507,7 @@ public class AndroidDevice extends AbstractService {
 
     @Override
     protected void doStart() {
-        Random random = new Random();
-        int var = random.nextInt(50000) % (20000 + 1) + 20000;
-        initApp(var);
+        initApp(Tab.port.getAndIncrement());
     }
 
     public void start() {
