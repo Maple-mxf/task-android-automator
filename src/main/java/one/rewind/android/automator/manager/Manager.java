@@ -7,8 +7,8 @@ import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.TaskType;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -33,6 +33,21 @@ import java.util.stream.Collectors;
  * Description:
  */
 public class Manager {
+
+    /**
+     * is restart
+     * <p>
+     * <p>
+     * manager记录上一次的重启时间，达到阈值重启appium
+     */
+    public static volatile boolean restart = false;
+
+    /**
+     * last restart date
+     * <p>
+     * 上一次的重启时间 ，间隔机制为每隔4小时重启appium   重启appium需要注意  手机不能锁频
+     */
+    private static volatile long lastRestart = new Date().getTime();
 
     /**
      * redis 客户端
@@ -125,7 +140,6 @@ public class Manager {
 
             // 需要定期重启appium 重启代理等等
 
-            // 1 杀死当前所有的线程池
             // 2 停止代理
             // 3 关闭本地appium
             // 4 退出当前方法
@@ -137,14 +151,6 @@ public class Manager {
             // 获取到休闲设备进行任务执行
             execute(adapter);
         }
-
-    }
-
-
-    // 重启manager
-
-    private void restartMe() {
-
     }
 
 
