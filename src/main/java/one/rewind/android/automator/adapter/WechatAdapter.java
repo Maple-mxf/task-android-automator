@@ -30,25 +30,36 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
     class Task implements Callable<Boolean> {
 
+        /**
+         * @return isSuccess
+         * @throws Exception ex
+         * @see Manager#originTaskSet
+         */
         @Override
         public Boolean call() throws Exception {
 
             switch (device.taskType) {
                 case CRAWLER: {
-                    for (String var : device.queue) {
+                    for (String media : device.queue) {
 
                         //  初始化记录  对应当前公众号
                         lastPage.set(Boolean.FALSE);
                         previousEssayTitles.clear();
 
                         while (!lastPage.get()) {
-                            digestionCrawler(var, true);
+                            digestionCrawler(media, true);
                         }
                         System.out.println("one/rewind/android/automator/adapter/WechatAdapter.java location: 40 Line !");
 
                         // 当前公众号任务抓取完成之后需要到redis中进行处理数据
 
-                        updateMediaState(var, udid);
+                        if (Manager.originTaskSet.contains(media)) {
+
+                            // 需要去遍历所有的任务集合
+                            doCallRedis(media);
+                        }
+
+                        updateMediaState(media, udid);
 
                         AndroidUtil.restartWechatAPP(device);
                     }
@@ -73,6 +84,13 @@ public class WechatAdapter extends AbstractWechatAdapter {
                 }
             }
             return true;
+        }
+
+        // 异步通知redis
+
+        private void doCallRedis(String media) {
+
+            // 获取media是哪个请求任务集合中的数据
         }
     }
 

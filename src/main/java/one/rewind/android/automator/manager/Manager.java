@@ -18,6 +18,7 @@ import one.rewind.io.server.Msg;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.redisson.api.RQueue;
+import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import spark.Route;
 import spark.Spark;
@@ -59,7 +60,7 @@ public class Manager {
     /**
      * redis 客户端
      */
-    private RedissonClient redisClient = RedissonAdapter.redisson;
+    private static RedissonClient redisClient = RedissonAdapter.redisson;
 
     /**
      * 存储无任务设备信息 利用建监听者模式实现设备管理
@@ -77,6 +78,13 @@ public class Manager {
      * Thread safe
      */
     public static final List<String> REQUEST_ID_COLLECTION = Lists.newCopyOnWriteArrayList();
+
+    /**
+     * 存储所有的api接口传输过来的公众号信息
+     * <p>
+     * Thread safe
+     */
+    public static RSet<String> originTaskSet = redisClient.getSet("origin_task_set");
 
     /**
      * 所有设备的信息
@@ -194,6 +202,7 @@ public class Manager {
 
 
     private void initSubscribeQueue(AndroidDevice device) throws SQLException {
+
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
         if (numToday >= 40) {
             device.taskType = TaskType.WAIT;
@@ -201,11 +210,9 @@ public class Manager {
             int tmp = 40 - numToday;
             try {
                 // 如果在redis中存在任务  优先获取redis中的任务
-
                 priorityAllotAPITask(device, tmp);
 
                 // 如果redis中的任务没有初始化成功  则换种方式初始化任务队列
-
                 if (device.queue.size() == 0) {
                     for (int i = 0; i < tmp; i++) {
                         if (!mediaStack.empty()) {
@@ -447,30 +454,29 @@ public class Manager {
 
                 String tmp = (String) var;
 
+                originTaskSet.add(tmp);
+
                 SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
 
                 if (media != null) {
 
                     // media可能是历史任务  也可能当前media的任务已经完成了
 
-                    // 使用requestID作为redis的key   value存放一个有序集合  每一个元素的分数作为当前的时间戳
+                    // 使用requestID作为redis的key   value存放一个有序集合
 
                     // 已经完成了任务，将当前的公众号名称存储到redis中
 
                     // media的状态可能是Finish(任务在DB中已经存在且完成) 也可能是NOT_EXIST(不存在)
 
                     if (media.status == SubscribeMedia.State.FINISH.status || media.status == SubscribeMedia.State.NOT_EXIST.status) {
-
                         okRequestQueue.add(media.media_name);
                     }
 
                     // else 处理任务的优先级  --
                 } else {
-
                     notOkRequestQueue.add(tmp);
                 }
             }
-
             return request_id;
         }
     }
