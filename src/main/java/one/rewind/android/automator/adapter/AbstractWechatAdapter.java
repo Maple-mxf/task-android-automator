@@ -447,7 +447,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             e.media_name = mediaName;
             e.number = 100;
             e.retry_count = 0;
-            e.status = SubscribeMedia.CrawlerState.NOFINISH.status;
+            e.status = SubscribeMedia.CrawlerState.NOT_FINISH.status;
             e.insert();
         }
     }

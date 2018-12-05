@@ -515,7 +515,7 @@ public class AndroidDevice extends AbstractService {
             if (!restart) {
                 AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
                 this.initAppiumServiceAndDriver(appInfo);
-            }else{
+            } else {
                 service.start();
             }
             Thread.sleep(3000);
@@ -542,6 +542,7 @@ public class AndroidDevice extends AbstractService {
         if (service.isRunning()) service.stop();
 
         // driver not close
+
     }
 
     public void restartAPPIUM() throws InterruptedException {

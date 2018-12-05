@@ -221,7 +221,7 @@ public class Manager {
                         where().
                         eq("udid", device.udid).
                         and().
-                        eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
+                        eq("status", SubscribeMedia.CrawlerState.NOT_FINISH.status).
                         query();
         if (accounts.size() == 0) {
             device.taskType = TaskType.WAIT;
@@ -237,7 +237,7 @@ public class Manager {
 
         List<SubscribeMedia> notFinishR = Tab.subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
-                eq("status", SubscribeMedia.CrawlerState.NOFINISH.status).
+                eq("status", SubscribeMedia.CrawlerState.NOT_FINISH.status).
                 query();
 
         int todaySubscribe = obtainSubscribeNumToday(udid);
@@ -289,7 +289,7 @@ public class Manager {
                     v.status = SubscribeMedia.CrawlerState.FINISH.status;
                     v.number = (int) countOf;
                 } else {
-                    v.status = SubscribeMedia.CrawlerState.NOFINISH.status;
+                    v.status = SubscribeMedia.CrawlerState.NOT_FINISH.status;
                     v.retry_count = 0;
                     if (v.number == 0) v.number = 100;
                 }
@@ -383,13 +383,14 @@ public class Manager {
 
                 // 已经完成了任务，将当前的公众号名称存储到redis中
 
-                if (media.status == SubscribeMedia.CrawlerState.FINISH.status || media.status == SubscribeMedia.CrawlerState.NOMEDIANAME.status) {
+                // media的状态可能是Finish(任务在DB中已经存在且完成) 也可能是NOT_EXIST(不存在)
+
+                if (media.status == SubscribeMedia.CrawlerState.FINISH.status || media.status == SubscribeMedia.CrawlerState.NOT_EXIST.status) {
 
                     RScoredSortedSet<Object> sortedSet = redisClient.getScoredSortedSet(requestID);
 
                     // 时间戳作为分数  排序规则
                     sortedSet.add(new Date().getTime(), media.media_name);
-
                 }
             } else {
 
@@ -397,6 +398,7 @@ public class Manager {
                 apiMedias.add(tmp + requestID);
 
                 // 插入到数据中作为业务字段辅助操作   java技术栈$req_KgfhazvcbfrteUHjsdf90
+
             }
         }
     }

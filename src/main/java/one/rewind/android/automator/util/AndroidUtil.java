@@ -85,7 +85,7 @@ public class AndroidUtil {
                 SubscribeMedia var = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
                 if (var != null) {
                     var.update_time = new Date();
-                    var.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+                    var.status = SubscribeMedia.CrawlerState.NOT_EXIST.status;
                     var.update();
                 }
             } catch (Exception e1) {
@@ -119,7 +119,7 @@ public class AndroidUtil {
                                     eq("udid", device.udid).
                                     queryForFirst();
                     if (media != null) {
-                        media.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+                        media.status = SubscribeMedia.CrawlerState.NOT_EXIST.status;
                         media.update_time = new Date();
                         media.update();
                     }
@@ -259,7 +259,7 @@ public class AndroidUtil {
             media = new SubscribeMedia();
             media.update_time = new Date();
             media.insert_time = new Date();
-            media.status = SubscribeMedia.CrawlerState.NOMEDIANAME.status;
+            media.status = SubscribeMedia.CrawlerState.NOT_EXIST.status;
             media.media_name = mediaName;
             media.udid = udid;
             media.number = 0;
@@ -268,7 +268,7 @@ public class AndroidUtil {
             return null;
         }
 
-        if (media.status == SubscribeMedia.CrawlerState.NOMEDIANAME.status) {
+        if (media.status == SubscribeMedia.CrawlerState.NOT_EXIST.status) {
             media.retry_count = 0;
             media.update_time = new Date();
             media.number = 0;
@@ -320,7 +320,7 @@ public class AndroidUtil {
                     eq("media_nick", mediaName).
                     countOf();
             account.number = (int) countOf;
-            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOMEDIANAME.status : SubscribeMedia.CrawlerState.FINISH.status);
+            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOT_EXIST.status : SubscribeMedia.CrawlerState.FINISH.status);
             account.status = 1;
             account.update_time = new Date();
             account.retry_count = 5;

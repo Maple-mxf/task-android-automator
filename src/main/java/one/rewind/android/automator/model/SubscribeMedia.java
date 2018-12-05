@@ -42,9 +42,9 @@ public class SubscribeMedia extends ModelL {
         FINISH(1),
 
         // 表示搜索不到当前公众号
-        NOMEDIANAME(2),
+        NOT_EXIST(2),
 
-        NOFINISH(0);
+        NOT_FINISH(0);
 
         public int status;
 

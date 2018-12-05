@@ -174,8 +174,5 @@ public class AndroidDeviceTest {
 
 	}
 
-	public void installCt(){
-
-	}
 }
 
