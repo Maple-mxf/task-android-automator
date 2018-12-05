@@ -201,9 +201,11 @@ public class Manager {
             int tmp = 40 - numToday;
             try {
                 // 如果在redis中存在任务  优先获取redis中的任务
+
                 priorityAllotAPITask(device, tmp);
 
                 // 如果redis中的任务没有初始化成功  则换种方式初始化任务队列
+
                 if (device.queue.size() == 0) {
                     for (int i = 0; i < tmp; i++) {
                         if (!mediaStack.empty()) {
@@ -222,6 +224,12 @@ public class Manager {
         }
     }
 
+    /**
+     * 优先分配redis中存储的API接口的任务公众号  由于redisson的缘故；抛出NullPointException  需要try-catch消化异常继续进行
+     *
+     * @param device 设备实例
+     * @param number 需要初始化任务队列的size
+     */
     private void priorityAllotAPITask(AndroidDevice device, int number) {
 
         synchronized (this) {
@@ -232,15 +240,12 @@ public class Manager {
 
             if (number == 0) return; // 处于等待的状态
 
-            for (int i = 0; i < requestIDs; i++) {
+            for (String tmpName : REQUEST_ID_COLLECTION) {
 
                 // 任务已经分配完毕
                 if (device.queue.size() == number) return;
 
                 // tmpName存储的是已完成的任务集合
-
-                String tmpName = REQUEST_ID_COLLECTION.get(i);
-
                 String realName = exchange(tmpName);
 
                 RQueue<String> taskQueue = redisClient.getQueue(realName);
@@ -470,7 +475,13 @@ public class Manager {
         }
     }
 
-    // 转换redis队列名称
+    /**
+     * 转换redis队列名称  使用有限制，请注意
+     *
+     * @param collectionName
+     * @return
+     */
+    @SuppressWarnings("uncheck")
     public static String exchange(String collectionName) {
         if (collectionName.endsWith("not_finish")) {
             return collectionName.replace("not_finish", "finish");

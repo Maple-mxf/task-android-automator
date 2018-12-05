@@ -12,8 +12,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Create By 2018/10/19
@@ -45,12 +43,7 @@ public class BaiduAPIUtil {
             HttpURLConnection connection = (HttpURLConnection) realUrl.openConnection();
             connection.setRequestMethod("GET");
             connection.connect();
-            // 获取所有响应头字段
-            Map<String, List<String>> map = connection.getHeaderFields();
-            // 遍历所有的响应头字段
-            for (String key : map.keySet()) {
-                System.err.println(key + "--->" + map.get(key));
-            }
+
             // 定义 BufferedReader输入流来读取URL的响应
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             StringBuilder result = new StringBuilder();
@@ -58,11 +51,9 @@ public class BaiduAPIUtil {
             while ((line = in.readLine()) != null) {
                 result.append(line);
             }
-            System.err.println("result:" + result);
             JSONObject jsonObject = new JSONObject(result.toString());
             return jsonObject.getString("access_token");
         } catch (Exception e) {
-            System.err.print("获取token失败！");
             e.printStackTrace(System.err);
         }
         return null;

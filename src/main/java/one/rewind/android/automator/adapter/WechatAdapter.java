@@ -1,11 +1,10 @@
 package one.rewind.android.automator.adapter;
 
 import com.google.common.util.concurrent.*;
-import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
-import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
@@ -22,40 +21,6 @@ import java.util.concurrent.Executors;
 public class WechatAdapter extends AbstractWechatAdapter {
 
     public static final String REQ_SUFFIX = "$req_";
-
-    // 获取真实的mediaName
-    public static String realMedia(String mediaName) {
-
-        if (!Strings.isNullOrEmpty(mediaName)) {
-            if (mediaName.contains(REQ_SUFFIX)) {
-                // 确认为api接口中传递过来的数据
-                // 字符串处理为正常的字符串
-                int tmpIndex = mediaName.indexOf(REQ_SUFFIX);
-
-                return mediaName.substring(0, tmpIndex);
-            } else {
-                return mediaName;
-            }
-        } else {
-            return mediaName;
-        }
-    }
-
-    // 获取请求ID
-    public static String requestID(String mediaName) {
-
-        if (!Strings.isNullOrEmpty(mediaName)) {
-            if (mediaName.contains(REQ_SUFFIX)) {
-                int tmpIndex = mediaName.indexOf(REQ_SUFFIX);
-                return mediaName.substring(tmpIndex);
-
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
 
     public WechatAdapter(AndroidDevice device) {
         super(device);
@@ -80,6 +45,9 @@ public class WechatAdapter extends AbstractWechatAdapter {
                             digestionCrawler(var, true);
                         }
                         System.out.println("one/rewind/android/automator/adapter/WechatAdapter.java location: 40 Line !");
+
+                        // 当前公众号任务抓取完成之后需要到redis中进行处理数据
+
                         updateMediaState(var, udid);
 
                         AndroidUtil.restartWechatAPP(device);
@@ -88,10 +56,6 @@ public class WechatAdapter extends AbstractWechatAdapter {
                 }
                 case SUBSCRIBE: {
                     for (String var : device.queue) {
-
-                        // 处理数据
-//                        String realMedia = realMedia(var);
-
                         digestionSubscribe(var);
                     }
                     break;

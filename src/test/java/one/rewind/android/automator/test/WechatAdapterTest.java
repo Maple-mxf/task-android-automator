@@ -249,16 +249,16 @@ public class WechatAdapterTest {
 
     @Test
     public void testRealMediaName() {
-        String var = WechatAdapter.realMedia("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
-
-        System.out.println(var);
+//        String var = WechatAdapter.realMedia("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
+//
+//        System.out.println(var);
     }
 
     @Test
     public void testRequestID() {
         // result： $req_HKDFNMADSFQWTEHFBVM7
-        String var = WechatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
+//        String var = WechatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
 
-        System.out.println(var);
+//        System.out.println(var);
     }
 }
