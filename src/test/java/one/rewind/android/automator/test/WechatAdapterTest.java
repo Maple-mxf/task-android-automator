@@ -179,13 +179,14 @@ public class WechatAdapterTest {
     public void testActiveApp() throws InterruptedException {
         device.driver.closeApp();
         AndroidUtil.activeWechat(device);
+        //48356
 //        AndroidUtil.enterEssay("Java技术栈", device.driver);
     }
 
 
     @Test
     public void testSubscribeAccount() throws Exception {
-//        adapter.subscribeMedia("阿里巴巴");
+        adapter.digestionSubscribe("阿里巴巴");
 //        adapter.digestionCrawler("阿里巴巴", true);
     }
 

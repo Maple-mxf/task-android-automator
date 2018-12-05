@@ -517,8 +517,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
     /**
      * @param mediaName
      */
-    void digestionSubscribe(String mediaName) {
+    public void digestionSubscribe(String mediaName) {
         try {
+
             subscribeMedia(mediaName);
         } catch (Exception e) {
 
@@ -552,17 +553,18 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
             }
         } catch (Exception e) {
+
             e.printStackTrace();
         }
     }
 
     @Deprecated
     private void sleep(long millis) throws IOException, InterruptedException {
-        //手机睡眠
+        // 手机睡眠
         ShellUtil.clickPower(device.udid);
-        //线程睡眠
+        // 线程睡眠
         Thread.sleep(millis);
-        //手机唤醒
+        // 手机唤醒
         ShellUtil.notifyDevice(device.udid, device.driver);
     }
 

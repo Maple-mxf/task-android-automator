@@ -39,13 +39,19 @@ public class Manager {
      * <p>
      * <p>
      * manager记录上一次的重启时间，达到阈值重启appium
+     *
+     * @see AndroidDevice#isLock
      */
     public static volatile boolean restart = false;
 
     /**
      * last restart date
      * <p>
-     * 上一次的重启时间 ，间隔机制为每隔4小时重启appium   重启appium需要注意  手机不能锁频
+     * 上一次的重启时间 ，间隔机制为每隔4小时重启appium   重启appium需要注意  手机不能锁屏
+     * <p>
+     * 锁频会造成appium重启失败
+     *
+     * @see AndroidDevice#isLock
      */
     private static volatile long lastRestart = new Date().getTime();
 

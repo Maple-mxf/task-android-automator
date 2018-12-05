@@ -16,6 +16,7 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import one.rewind.android.automator.manager.Manager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.Tab;
@@ -53,6 +54,14 @@ public class AndroidDevice extends AbstractService {
 
     private boolean clickEffect;
 
+    /**
+     * 是否锁屏  防止appium重启失败
+     *
+     * @see Manager#restart
+     * @see Manager#lastRestart
+     */
+    public boolean isLock = false;
+
     public TaskType taskType = TaskType.SUBSCRIBE;
 
     public boolean isClickEffect() {
@@ -69,6 +78,7 @@ public class AndroidDevice extends AbstractService {
     // 配置设定
     static {
         LOCAL_IP = NetworkUtil.getLocalIp();
+
         logger.info("Local IP: {}", LOCAL_IP);
     }
 
@@ -83,9 +93,14 @@ public class AndroidDevice extends AbstractService {
 
     // Appium相关服务对象
     AppiumDriverLocalService service;
+
+
     private URL serviceUrl;
+
     public AndroidDriver driver; // 本地Driver
+
     public int height;
+
     public int width;
 
     /**
@@ -399,10 +414,12 @@ public class AndroidDevice extends AbstractService {
     /**
      * 初始化设备
      */
-    public void initApp(int localProxyPort) {
-        this.startProxy(localProxyPort);
-        this.setupWifiProxy();
-        System.out.println("Starting....Please wait!");
+    public void initApp(int localProxyPort, boolean restart) {
+        if (!restart) {
+            this.startProxy(localProxyPort);
+            this.setupWifiProxy();
+            System.out.println("Starting....Please wait!");
+        }
         try {
             RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
@@ -485,7 +502,6 @@ public class AndroidDevice extends AbstractService {
                                 try {
                                     c.insert();
                                 } catch (Exception e) {
-//                                    e.printStackTrace();
                                     logger.error("----------------评论插入失败！重复key----------------");
                                 }
                             });
@@ -496,8 +512,12 @@ public class AndroidDevice extends AbstractService {
             this.setProxyRequestFilter(requestFilter);
             this.setProxyResponseFilter(responseFilter);
 
-            AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
-            this.initAppiumServiceAndDriver(appInfo);
+            if (!restart) {
+                AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
+                this.initAppiumServiceAndDriver(appInfo);
+            }else{
+                service.start();
+            }
             Thread.sleep(3000);
 
         } catch (Exception e) {
@@ -507,7 +527,7 @@ public class AndroidDevice extends AbstractService {
 
     @Override
     protected void doStart() {
-        initApp(Tab.port.getAndIncrement());
+        initApp(Tab.port.getAndIncrement(), false);
     }
 
     public void start() {
@@ -516,7 +536,20 @@ public class AndroidDevice extends AbstractService {
 
     @Override
     protected void doStop() {
-        stopProxy();
-        driver.close();
+
+
+        // 停止service运行
+        if (service.isRunning()) service.stop();
+
+        // driver not close
+    }
+
+    public void restartAPPIUM() throws InterruptedException {
+
+        doStop();
+
+        Thread.sleep(10000);
+
+        initApp(48356, true);
     }
 }
