@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.*;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.manager.Manager;
@@ -8,6 +9,7 @@ import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.redisson.api.RSet;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
@@ -33,7 +35,6 @@ public class WechatAdapter extends AbstractWechatAdapter {
         /**
          * @return isSuccess
          * @throws Exception ex
-         * @see Manager#originTaskSet
          */
         @Override
         public Boolean call() throws Exception {
@@ -44,6 +45,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
                         //  初始化记录  对应当前公众号
                         lastPage.set(Boolean.FALSE);
+
                         previousEssayTitles.clear();
 
                         while (!lastPage.get()) {
@@ -53,21 +55,16 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
                         // 当前公众号任务抓取完成之后需要到redis中进行处理数据
 
-                        if (Manager.originTaskSet.contains(media)) {
-
-                            // 需要去遍历所有的任务集合
-                            doCallRedis(media);
-                        }
-
-                        updateMediaState(media, udid);
+                        // 异步通知redis
+                        doCallRedisAndChangeState(media);
 
                         AndroidUtil.restartWechatAPP(device);
                     }
                     break;
                 }
                 case SUBSCRIBE: {
-                    for (String var : device.queue) {
-                        digestionSubscribe(var);
+                    for (String media : device.queue) {
+                        digestionSubscribe(media);
                     }
                     break;
                 }
@@ -86,11 +83,51 @@ public class WechatAdapter extends AbstractWechatAdapter {
             return true;
         }
 
-        // 异步通知redis
 
-        private void doCallRedis(String media) {
+        private void doCallRedisAndChangeState(String mediaName) throws Exception {
 
-            // 获取media是哪个请求任务集合中的数据
+
+            SubscribeMedia media = Tab.subscribeDao.
+                    queryBuilder().
+                    where().
+                    eq("media_name", mediaName).
+                    and().
+                    eq("udid", udid).
+                    queryForFirst();
+
+
+            if (media != null) {
+
+                if (!Strings.isNullOrEmpty(media.request_id)) {
+                    doCallRedis(media);
+                }
+
+                long countOf = Tab.essayDao.
+                        queryBuilder().
+                        where().
+                        eq("media_nick", mediaName).
+                        countOf();
+                media.number = (int) countOf;
+                media.status = (countOf == 0 ? SubscribeMedia.State.NOT_EXIST.status : SubscribeMedia.State.FINISH.status);
+                media.status = 1;
+                media.update_time = new Date();
+                media.retry_count = 5;
+                media.update();
+            }
+        }
+
+        // 消息通知
+
+        private void doCallRedis(SubscribeMedia media) {
+
+            String requestID = media.request_id;
+
+            // 获取到已完成的队列  此时不会出现NullPointException
+            requestID += "_finish";
+
+            RSet<Object> var = Manager.redisClient.getSet(requestID);
+
+            var.add(media.media_name);
         }
     }
 
@@ -130,29 +167,4 @@ public class WechatAdapter extends AbstractWechatAdapter {
             if (service.isShutdown()) return;
         }
     }
-
-    private void updateMediaState(String mediaName, String udid) throws Exception {
-        SubscribeMedia account = Tab.subscribeDao.
-                queryBuilder().
-                where().
-                eq("media_name", mediaName).
-                and().
-                eq("udid", udid).
-                queryForFirst();
-
-        if (account != null) {
-            long countOf = Tab.essayDao.
-                    queryBuilder().
-                    where().
-                    eq("media_nick", mediaName).
-                    countOf();
-            account.number = (int) countOf;
-            account.status = (countOf == 0 ? SubscribeMedia.State.NOT_EXIST.status : SubscribeMedia.State.FINISH.status);
-            account.status = 1;
-            account.update_time = new Date();
-            account.retry_count = 5;
-            account.update();
-        }
-    }
-
 }

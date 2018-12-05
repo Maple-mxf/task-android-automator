@@ -379,6 +379,25 @@ public abstract class AbstractWechatAdapter extends Adapter {
         driver.navigate().back();
     }
 
+    // 还原media
+    static String realMedia(String media) {
+
+        if (media.contains(WechatAdapter.REQ_SUFFIX)) {
+            int index = media.indexOf(WechatAdapter.REQ_SUFFIX);
+            return media.substring(0, index);
+        }
+        return media;
+    }
+
+    static String requestID(String media) {
+        if (media.contains(WechatAdapter.REQ_SUFFIX)) {
+            int index = media.indexOf(WechatAdapter.REQ_SUFFIX);
+            return media.substring(index);
+        }
+        return null;
+    }
+
+
     /**
      * 订阅公众号
      * <p>
@@ -388,6 +407,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
      * @throws Exception
      */
     public void subscribeMedia(String mediaName) throws Exception {
+
+        String requestID = requestID(mediaName);
+
+        mediaName = realMedia(mediaName);
+
         if (Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
 
         //重启
@@ -428,7 +452,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             try {
                 // 点击订阅
                 driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
-                saveSubscribeRecord(mediaName);
+                saveSubscribeRecord(mediaName, requestID);
                 Thread.sleep(3000);
             } catch (Exception ignore) {
                 //已经订阅了
@@ -437,7 +461,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
-    private void saveSubscribeRecord(String mediaName) throws Exception {
+    private void saveSubscribeRecord(String mediaName, String requestID) throws Exception {
         long tempCount = Tab.subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
@@ -448,6 +472,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             e.number = 100;
             e.retry_count = 0;
             e.status = SubscribeMedia.State.NOT_FINISH.status;
+            e.request_id = requestID;
             e.insert();
         }
     }

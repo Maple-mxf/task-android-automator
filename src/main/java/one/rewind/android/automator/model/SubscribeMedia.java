@@ -36,6 +36,9 @@ public class SubscribeMedia extends ModelL {
     @DatabaseField(dataType = DataType.INTEGER)
     public int retry_count;
 
+    @DatabaseField(dataType = DataType.STRING)
+    public String request_id;
+
 
     public enum State {
 

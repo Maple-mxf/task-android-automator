@@ -15,6 +15,7 @@ import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.io.server.Msg;
+import one.rewind.json.JSON;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.redisson.api.RQueue;
@@ -60,7 +61,7 @@ public class Manager {
     /**
      * redis 客户端
      */
-    private static RedissonClient redisClient = RedissonAdapter.redisson;
+    public static RedissonClient redisClient = RedissonAdapter.redisson;
 
     /**
      * 存储无任务设备信息 利用建监听者模式实现设备管理
@@ -79,12 +80,6 @@ public class Manager {
      */
     public static final List<String> REQUEST_ID_COLLECTION = Lists.newCopyOnWriteArrayList();
 
-    /**
-     * 存储所有的api接口传输过来的公众号信息
-     * <p>
-     * Thread safe
-     */
-    public static RSet<String> originTaskSet = redisClient.getSet("origin_task_set");
 
     /**
      * 所有设备的信息
@@ -403,7 +398,14 @@ public class Manager {
 
         manage.startManager(); //开启任务执行
 
-        Spark.get("/push", manage.pushMedias);
+        // 接受任务
+        Spark.post("/push", manage.pushMedias);
+
+        // 获取已完成的数据
+        Spark.post("/medias", manage.medias);
+
+        // 获取真实文章数据
+//        Spark
     }
 
     /**
@@ -428,6 +430,40 @@ public class Manager {
         }
 
     };
+
+
+    /**
+     * By requestID obtain finish medias
+     */
+    private Route medias = (req, res) -> {
+
+        String request_id = req.params("request_id");
+
+        RSet<Object> result = redisClient.getSet(request_id);
+
+
+        return new Msg<>(1, result);
+    };
+
+
+    /**
+     * By media name obtain essays data
+     */
+    private Route essays = (req, res) -> {
+
+        String body = req.body();
+
+        JSONArray medias = JSON.fromJson(body, JSONArray.class);
+
+        //medias is an array
+
+        List<String> ids = Lists.newArrayList();
+
+//        Tab.essayDao.queryBuilder()
+
+        return null;
+    };
+
 
     /**
      * @param array api接口传递的公众号数据
@@ -454,8 +490,6 @@ public class Manager {
 
                 String tmp = (String) var;
 
-                originTaskSet.add(tmp);
-
                 SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
 
                 if (media != null) {
@@ -474,7 +508,11 @@ public class Manager {
 
                     // else 处理任务的优先级  --
                 } else {
-                    notOkRequestQueue.add(tmp);
+
+                    // 针对于tmp进行处理  将tmp进行字符串包装 req_id
+
+                    // 订阅成功后 存储数据库req_id
+                    notOkRequestQueue.add(tmp + request_id);
                 }
             }
             return request_id;
