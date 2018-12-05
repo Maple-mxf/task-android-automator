@@ -37,7 +37,7 @@ public class SubscribeMedia extends ModelL {
     public int retry_count;
 
 
-    public enum CrawlerState {
+    public enum State {
 
         FINISH(1),
 
@@ -48,7 +48,7 @@ public class SubscribeMedia extends ModelL {
 
         public int status;
 
-        CrawlerState(int status) {
+        State(int status) {
             this.status = status;
         }
     }

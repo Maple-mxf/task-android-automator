@@ -17,12 +17,12 @@ import one.rewind.db.RedissonAdapter;
 import one.rewind.io.server.Msg;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
-import org.redisson.api.RScoredSortedSet;
-import org.redisson.api.RSortedSet;
+import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 import spark.Route;
 import spark.Spark;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
  * Create By 2018/11/20
  * Description:
  */
+@ThreadSafe
 public class Manager {
 
     /**
@@ -71,9 +72,11 @@ public class Manager {
     private Stack<String> mediaStack = new Stack<>();
 
     /**
-     * API接口传输过来的公众号信息  如果这个队列不为空  优先抓取这个这个队列中的公众号
+     * 存储请求ID   对应redis中的数据
+     * <p>
+     * Thread safe
      */
-    private Queue<String> apiMedias = Queues.newConcurrentLinkedQueue();
+    public static final List<String> REQUEST_ID_COLLECTION = Lists.newCopyOnWriteArrayList();
 
     /**
      * 所有设备的信息
@@ -119,17 +122,17 @@ public class Manager {
         }
     }
 
-    /**
-     * 异步启动设备
-     */
     public void startManager() throws InterruptedException, SQLException {
 
+
+        // 初始化设备
         init();
 
+        // 重置数据库数据
         reset();
 
+        // 初始化
         initMediaStack();
-
 
         for (AndroidDevice device : devices) {
 
@@ -150,7 +153,6 @@ public class Manager {
             // 3 关闭本地appium
             // 4 退出当前方法
             // 5 API接口传递过来的数据持久化
-
 
             WechatAdapter adapter = idleAdapters.take();
 
@@ -198,18 +200,74 @@ public class Manager {
         } else {
             int tmp = 40 - numToday;
             try {
-                for (int i = 0; i < tmp; i++) {
-                    if (!mediaStack.empty()) {
-                        //如果没有数据了 先初始化订阅的公众号
-                        startPage += 2;
-                        initMediaStack();
-                    }
-                    if (!mediaStack.empty()) {
-                        device.queue.add(mediaStack.pop());
+                // 如果在redis中存在任务  优先获取redis中的任务
+                priorityAllotAPITask(device, tmp);
+
+                // 如果redis中的任务没有初始化成功  则换种方式初始化任务队列
+                if (device.queue.size() == 0) {
+                    for (int i = 0; i < tmp; i++) {
+                        if (!mediaStack.empty()) {
+                            // 如果没有数据了 先初始化订阅的公众号
+                            startPage += 2;
+                            initMediaStack();
+                        }
+                        if (!mediaStack.empty()) {
+                            device.queue.add(mediaStack.pop());
+                        }
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    private void priorityAllotAPITask(AndroidDevice device, int number) {
+
+        synchronized (this) {
+
+            int requestIDs = REQUEST_ID_COLLECTION.size();
+
+            if (requestIDs == 0) return;
+
+            if (number == 0) return; // 处于等待的状态
+
+            for (int i = 0; i < requestIDs; i++) {
+
+                // 任务已经分配完毕
+                if (device.queue.size() == number) return;
+
+                // tmpName存储的是已完成的任务集合
+
+                String tmpName = REQUEST_ID_COLLECTION.get(i);
+
+                String realName = exchange(tmpName);
+
+                RQueue<String> taskQueue = redisClient.getQueue(realName);
+
+                int tmpSize = taskQueue.size();
+
+                // 继续进行下一个任务集合
+
+                if (tmpSize == 0) continue;
+
+                // 计算device还需要多少个公众号任务
+                int var1 = number - device.queue.size();
+
+                int var2;
+
+                if (tmpSize > var1) {
+
+                    var2 = var1;
+
+                } else {
+                    var2 = tmpSize;
+
+                }
+                // 任务添加
+                for (int j = 0; j < var2; j++) {
+                    device.queue.add(taskQueue.poll());
+                }
             }
         }
     }
@@ -221,7 +279,7 @@ public class Manager {
                         where().
                         eq("udid", device.udid).
                         and().
-                        eq("status", SubscribeMedia.CrawlerState.NOT_FINISH.status).
+                        eq("status", SubscribeMedia.State.NOT_FINISH.status).
                         query();
         if (accounts.size() == 0) {
             device.taskType = TaskType.WAIT;
@@ -237,7 +295,7 @@ public class Manager {
 
         List<SubscribeMedia> notFinishR = Tab.subscribeDao.queryBuilder().where().
                 eq("udid", udid).and().
-                eq("status", SubscribeMedia.CrawlerState.NOT_FINISH.status).
+                eq("status", SubscribeMedia.State.NOT_FINISH.status).
                 query();
 
         int todaySubscribe = obtainSubscribeNumToday(udid);
@@ -286,10 +344,10 @@ public class Manager {
                         countOf();
                 if ((countOf >= v.number || Math.abs(v.number - countOf) <= 5) && countOf > 0) {
                     v.retry_count = 5;
-                    v.status = SubscribeMedia.CrawlerState.FINISH.status;
+                    v.status = SubscribeMedia.State.FINISH.status;
                     v.number = (int) countOf;
                 } else {
-                    v.status = SubscribeMedia.CrawlerState.NOT_FINISH.status;
+                    v.status = SubscribeMedia.State.NOT_FINISH.status;
                     v.retry_count = 0;
                     if (v.number == 0) v.number = 100;
                 }
@@ -346,61 +404,79 @@ public class Manager {
         try {
             JSONArray array = new JSONArray(body);
 
-            for (Object v : array) {
-                apiMedias.add((String) v);
-            }
+            String requestID = parseRequestID(array);
+
+            // 将请求ID存储在内存集合中
+            REQUEST_ID_COLLECTION.add(requestID);
+
+            return new Msg<>(1, requestID);
         } catch (Exception e) {
             e.printStackTrace();
             return new Msg<>(0, "参数不合法");
         }
-        return new Msg<>(1);
+
     };
 
     /**
      * @param array api接口传递的公众号数据
      */
-    private void parseRequestID(JSONArray array) throws SQLException {
+    private String parseRequestID(JSONArray array) throws SQLException {
 
-        // 请求唯一标示
-        String requestID = WechatAdapter.REQ_SUFFIX + UUID.randomUUID().toString().replaceAll("-", "");
+        synchronized (this) {
 
-        // 作为临时集合辅助操作业务逻辑
-        RSortedSet<String> tmpSet = redisClient.getSortedSet(requestID + "_tmp");
+            String request_id = WechatAdapter.REQ_SUFFIX + DateUtil.timestamp();
 
-        for (Object var : array) {
+            // 请求唯一标示 16K parse wechat adapter
+            String requestID_$Finish = request_id + "_finish";
 
-            String tmp = (String) var;
+            // 没有完成任务的唯一请求
+            String requestID_$Not_Finish = requestID_$Finish.replace("finish", "not_finish");
 
-            tmpSet.add(tmp);
+            // 已完成任务的集合
+            RQueue<String> okRequestQueue = redisClient.getQueue(requestID_$Finish);
 
-            SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
+            // 未完成任务的集合
+            RQueue<String> notOkRequestQueue = redisClient.getQueue(requestID_$Not_Finish);
 
-            if (media != null) {
+            for (Object var : array) {
 
-                // media可能是历史任务  也可能当前media的任务已经完成了
+                String tmp = (String) var;
 
-                // 使用requestID作为redis的key   value存放一个有序集合  每一个元素的分数作为当前的时间戳
+                SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
 
-                // 已经完成了任务，将当前的公众号名称存储到redis中
+                if (media != null) {
 
-                // media的状态可能是Finish(任务在DB中已经存在且完成) 也可能是NOT_EXIST(不存在)
+                    // media可能是历史任务  也可能当前media的任务已经完成了
 
-                if (media.status == SubscribeMedia.CrawlerState.FINISH.status || media.status == SubscribeMedia.CrawlerState.NOT_EXIST.status) {
+                    // 使用requestID作为redis的key   value存放一个有序集合  每一个元素的分数作为当前的时间戳
 
-                    RScoredSortedSet<Object> sortedSet = redisClient.getScoredSortedSet(requestID);
+                    // 已经完成了任务，将当前的公众号名称存储到redis中
 
-                    // 时间戳作为分数  排序规则
-                    sortedSet.add(new Date().getTime(), media.media_name);
+                    // media的状态可能是Finish(任务在DB中已经存在且完成) 也可能是NOT_EXIST(不存在)
+
+                    if (media.status == SubscribeMedia.State.FINISH.status || media.status == SubscribeMedia.State.NOT_EXIST.status) {
+
+                        okRequestQueue.add(media.media_name);
+                    }
+
+                    // else 处理任务的优先级  --
+                } else {
+
+                    notOkRequestQueue.add(tmp);
                 }
-            } else {
-
-                // 添加到任务队列中    tmp拼接一个字符串作为request标示   tmp$#{requestID}
-                apiMedias.add(tmp + requestID);
-
-                // 插入到数据中作为业务字段辅助操作   java技术栈$req_KgfhazvcbfrteUHjsdf90
-
             }
+
+            return request_id;
         }
     }
 
+    // 转换redis队列名称
+    public static String exchange(String collectionName) {
+        if (collectionName.endsWith("not_finish")) {
+            return collectionName.replace("not_finish", "finish");
+        } else if (collectionName.endsWith("finish")) {
+            return collectionName.replace("finish", "not_finish");
+        }
+        return collectionName;
+    }
 }

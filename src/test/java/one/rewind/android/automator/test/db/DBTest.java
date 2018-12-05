@@ -75,7 +75,7 @@ public class DBTest {
 
         System.out.println(subscribeMedia);
 
-        subscribeMedia.status = SubscribeMedia.CrawlerState.FINISH.status;
+        subscribeMedia.status = SubscribeMedia.State.FINISH.status;
 
         System.out.println(subscribeMedia);
 

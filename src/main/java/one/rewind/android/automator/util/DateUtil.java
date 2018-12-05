@@ -1,5 +1,7 @@
 package one.rewind.android.automator.util;
 
+import org.apache.commons.lang3.time.DateFormatUtils;
+
 import java.util.Calendar;
 import java.util.Date;
 
@@ -36,5 +38,9 @@ public class DateUtil {
         return startDT.getTime();
     }
 
+
+    public static String timestamp() {
+        return DateFormatUtils.format(new Date(), "yyyyMMddHHmmssSSS");
+    }
 
 }

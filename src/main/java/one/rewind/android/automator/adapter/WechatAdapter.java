@@ -165,7 +165,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
                     eq("media_nick", mediaName).
                     countOf();
             account.number = (int) countOf;
-            account.status = (countOf == 0 ? SubscribeMedia.CrawlerState.NOT_EXIST.status : SubscribeMedia.CrawlerState.FINISH.status);
+            account.status = (countOf == 0 ? SubscribeMedia.State.NOT_EXIST.status : SubscribeMedia.State.FINISH.status);
             account.status = 1;
             account.update_time = new Date();
             account.retry_count = 5;

@@ -55,7 +55,6 @@ public class CollectionsTest {
         System.out.println("size: " + queue.size());
         int i = 0;
         for (String var : queue) {
-            System.out.println(var);
             i++;
             System.out.println("i: " + i);
         }
@@ -88,6 +87,8 @@ public class CollectionsTest {
 
         this.testMethod(method, new Essays());
     }
+
+
 
 
 }
