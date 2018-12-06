@@ -586,11 +586,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
     @Deprecated
     private void sleep(long millis) throws IOException, InterruptedException {
         // 手机睡眠
-        ShellUtil.clickPower(device.udid);
+//        ShellUtil.clickPower(device.udid);
         // 线程睡眠
         Thread.sleep(millis);
         // 手机唤醒
-        ShellUtil.notifyDevice(device.udid, device.driver);
+//        ShellUtil.notifyDevice(device.udid, device.driver);
     }
 
     abstract void start();

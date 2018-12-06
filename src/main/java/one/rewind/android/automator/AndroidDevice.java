@@ -414,12 +414,10 @@ public class AndroidDevice extends AbstractService {
     /**
      * 初始化设备
      */
-    public void initApp(int localProxyPort, boolean restart) {
-        if (!restart) {
-            this.startProxy(localProxyPort);
-            this.setupWifiProxy();
-            System.out.println("Starting....Please wait!");
-        }
+    public void initApp(int localProxyPort) {
+        this.startProxy(localProxyPort);
+        this.setupWifiProxy();
+        System.out.println("Starting....Please wait!");
         try {
             RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
@@ -512,12 +510,8 @@ public class AndroidDevice extends AbstractService {
             this.setProxyRequestFilter(requestFilter);
             this.setProxyResponseFilter(responseFilter);
 
-            if (!restart) {
-                AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
-                this.initAppiumServiceAndDriver(appInfo);
-            } else {
-                service.start();
-            }
+            AppInfo appInfo = AppInfo.get(AppInfo.Defaults.WeChat);
+            this.initAppiumServiceAndDriver(appInfo);
             Thread.sleep(3000);
 
         } catch (Exception e) {
@@ -527,7 +521,7 @@ public class AndroidDevice extends AbstractService {
 
     @Override
     protected void doStart() {
-        initApp(Tab.port.getAndIncrement(), false);
+        initApp(Tab.port.getAndIncrement());
     }
 
     public void start() {
@@ -551,6 +545,6 @@ public class AndroidDevice extends AbstractService {
 
         Thread.sleep(10000);
 
-        initApp(48356, true);
+//        initApp(48356, true);
     }
 }

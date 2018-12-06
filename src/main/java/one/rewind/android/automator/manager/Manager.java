@@ -205,7 +205,7 @@ public class Manager {
             int tmp = 40 - numToday;
             try {
                 // 如果在redis中存在任务  优先获取redis中的任务
-                priorityAllotAPITask(device, tmp);
+//                priorityAllotAPITask(device, tmp);
 
                 // 如果redis中的任务没有初始化成功  则换种方式初始化任务队列
                 if (device.queue.size() == 0) {
