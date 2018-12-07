@@ -14,6 +14,7 @@ public class ManagerTest {
 
     @Test
     public void testInitDevice() throws InterruptedException, SQLException {
+
         Manager manager = Manager.me();
 
         manager.startManager();

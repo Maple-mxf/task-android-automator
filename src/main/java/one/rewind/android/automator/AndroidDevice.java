@@ -91,6 +91,8 @@ public class AndroidDevice extends AbstractService {
 
     private int appiumPort;
 
+    public int localProxyPort;
+
     // Appium相关服务对象
     AppiumDriverLocalService service;
 
@@ -104,13 +106,14 @@ public class AndroidDevice extends AbstractService {
     public int width;
 
     /**
-     * @param udid       设备udid
-     * @param appiumPort
+     * @param udid 设备udid
      * @throws Exception
      */
-    public AndroidDevice(String udid, int appiumPort) {
+    public AndroidDevice(String udid) {
         this.udid = udid;
-        this.appiumPort = appiumPort;
+        this.appiumPort = Tab.appiumPort.getAndIncrement();
+        this.proxyPort = Tab.proxyPort.getAndIncrement();
+        this.localProxyPort = Tab.localProxyPort.getAndIncrement();
     }
 
     /**
@@ -148,7 +151,7 @@ public class AndroidDevice extends AbstractService {
         bmProxy.start(port);
         proxyPort = bmProxy.getPort();
 
-        logger.info("Proxy started @port {}", proxyPort);
+        logger.info("Proxy started @proxyPort {}", proxyPort);
     }
 
     /**
@@ -333,7 +336,8 @@ public class AndroidDevice extends AbstractService {
         service = new AppiumServiceBuilder()
                 .withCapabilities(serviceCapabilities)
                 .usingPort(appiumPort)
-                .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+                .withArgument(GeneralServerFlag.LOG_LEVEL, "error")
+//                .withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")
                 //.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")
                 .build();
 
@@ -414,7 +418,7 @@ public class AndroidDevice extends AbstractService {
     /**
      * 初始化设备
      */
-    public void initApp(int localProxyPort) {
+    public void initApp() {
         this.startProxy(localProxyPort);
         this.setupWifiProxy();
         System.out.println("Starting....Please wait!");
@@ -521,7 +525,7 @@ public class AndroidDevice extends AbstractService {
 
     @Override
     protected void doStart() {
-        initApp(Tab.port.getAndIncrement());
+        initApp();
     }
 
     public void start() {
@@ -545,6 +549,6 @@ public class AndroidDevice extends AbstractService {
 
         Thread.sleep(10000);
 
-//        initApp(48356, true);
+        initApp();
     }
 }

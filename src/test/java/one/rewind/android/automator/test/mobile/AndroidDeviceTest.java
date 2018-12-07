@@ -28,7 +28,7 @@ public class AndroidDeviceTest {
 	@Before
 	public void setup() throws Exception {
 
-		device = new AndroidDevice(udid, appiumPort);
+		device = new AndroidDevice(udid);
 		device.removeWifiProxy();
 
 		// 从AppInfo中选择需要启动的程序

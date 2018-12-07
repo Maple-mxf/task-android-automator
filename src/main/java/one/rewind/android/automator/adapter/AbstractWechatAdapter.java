@@ -5,15 +5,17 @@ import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.WordsPoint;
-import one.rewind.android.automator.util.*;
+import one.rewind.android.automator.util.AndroidUtil;
+import one.rewind.android.automator.util.BaiduAPIUtil;
+import one.rewind.android.automator.util.DateUtil;
+import one.rewind.android.automator.util.FileUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
 
-import java.io.IOException;
 import java.util.*;
 
 public abstract class AbstractWechatAdapter extends Adapter {
@@ -338,6 +340,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
         }
     }
 
+
     @Deprecated
     public void unsubscribeMedia(String mediaName) {
         try {
@@ -544,6 +547,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     public void digestionSubscribe(String mediaName) {
         try {
+//            device.restartAPPIUM();
 
             subscribeMedia(mediaName);
         } catch (Exception e) {
@@ -584,9 +588,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
     }
 
     @Deprecated
-    private void sleep(long millis) throws IOException, InterruptedException {
+    private void sleep(long millis) throws InterruptedException {
         // 手机睡眠
-//        ShellUtil.clickPower(device.udid);
+//
         // 线程睡眠
         Thread.sleep(millis);
         // 手机唤醒

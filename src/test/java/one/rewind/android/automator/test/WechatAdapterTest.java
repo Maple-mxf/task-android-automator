@@ -36,7 +36,7 @@ public class WechatAdapterTest {
     @Before
     public void setup() throws Exception {
 
-        device = new AndroidDevice(udid, appiumPort);
+        device = new AndroidDevice(udid);
 
         //device.removeWifiProxy();
         device.startProxy(localProxyPort);
@@ -260,5 +260,11 @@ public class WechatAdapterTest {
 //        String var = WechatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
 
 //        System.out.println(var);
+    }
+
+    public static void main(String[] args) {
+        while (true){
+            System.out.println("knasdas");
+        }
     }
 }

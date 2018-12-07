@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.GenericRawResults;
+import com.j256.ormlite.field.DataType;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
@@ -21,6 +22,8 @@ import org.json.JSONArray;
 import org.redisson.api.RQueue;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Route;
 import spark.Spark;
 
@@ -36,6 +39,8 @@ import java.util.stream.Collectors;
  */
 @ThreadSafe
 public class Manager {
+
+    Logger logger = LoggerFactory.getLogger(Manager.class);
 
     /**
      * is restart
@@ -118,9 +123,8 @@ public class Manager {
      */
     private void init() {
         String[] var = AndroidUtil.obtainDevices();
-        Random random = new Random();
         for (String aVar : var) {
-            AndroidDevice device = new AndroidDevice(aVar, random.nextInt(50000));
+            AndroidDevice device = new AndroidDevice(aVar);
             devices.add(device);
         }
     }
@@ -205,7 +209,7 @@ public class Manager {
             int tmp = 40 - numToday;
             try {
                 // 如果在redis中存在任务  优先获取redis中的任务
-//                priorityAllotAPITask(device, tmp);
+                priorityAllotAPITask(device, tmp);
 
                 // 如果redis中的任务没有初始化成功  则换种方式初始化任务队列
                 if (device.queue.size() == 0) {
@@ -234,13 +238,12 @@ public class Manager {
      */
     private void priorityAllotAPITask(AndroidDevice device, int number) {
 
+        int requestIDs = REQUEST_ID_COLLECTION.size();
+
+        if (requestIDs == 0) return;
+
+        if (number == 0) return; // 处于等待的状态
         synchronized (this) {
-
-            int requestIDs = REQUEST_ID_COLLECTION.size();
-
-            if (requestIDs == 0) return;
-
-            if (number == 0) return; // 处于等待的状态
 
             for (String tmpName : REQUEST_ID_COLLECTION) {
 
@@ -322,6 +325,8 @@ public class Manager {
             if (notFinishR.size() == 0) {
                 return TaskType.SUBSCRIBE;
             } else {
+                // 优先分配接口任务
+                if (REQUEST_ID_COLLECTION.size() > 0) return TaskType.SUBSCRIBE;
                 return TaskType.CRAWLER;
             }
         }
@@ -395,9 +400,6 @@ public class Manager {
     public static void main(String[] args) throws InterruptedException, SQLException {
 
         Manager manage = me();
-
-        manage.startManager(); //开启任务执行
-
         // 接受任务
         Spark.post("/push", manage.pushMedias);
 
@@ -405,7 +407,9 @@ public class Manager {
         Spark.post("/medias", manage.medias);
 
         // 获取真实文章数据
-//        Spark
+        Spark.post("/essays", manage.essays);
+
+        manage.startManager(); //开启任务执行
     }
 
     /**
@@ -413,9 +417,12 @@ public class Manager {
      */
     private Route pushMedias = (req, res) -> {
 
+        logger.info("push medias");
+
         String body = req.body();
 
         try {
+
             JSONArray array = new JSONArray(body);
 
             String requestID = parseRequestID(array);
@@ -448,6 +455,7 @@ public class Manager {
 
     /**
      * By media name obtain essays data
+     * template:["芋道源码","淘宝网"]
      */
     private Route essays = (req, res) -> {
 
@@ -455,20 +463,28 @@ public class Manager {
 
         JSONArray medias = JSON.fromJson(body, JSONArray.class);
 
-        //medias is an array
-
         List<String> ids = Lists.newArrayList();
 
-//        Tab.essayDao.queryBuilder()
+        for (Object tmp : medias) {
+            String mediaName = (String) tmp;
+            DataType[] types = {DataType.STRING};
+            GenericRawResults<Object[]> results = Tab.essayDao.queryRaw("select id from essays where media_nick = ?", types, mediaName);
 
-        return null;
+            // ids
+            List<Object[]> var = results.getResults();
+
+            for (Object[] var2 : var) {
+                ids.add((String) var2[0]);
+            }
+        }
+        return new Msg<>(1, ids);
     };
 
 
     /**
      * @param array api接口传递的公众号数据
      */
-    private String parseRequestID(JSONArray array) throws SQLException {
+    private String parseRequestID(JSONArray array) throws Exception {
 
         synchronized (this) {
 
@@ -505,8 +521,12 @@ public class Manager {
                     if (media.status == SubscribeMedia.State.FINISH.status || media.status == SubscribeMedia.State.NOT_EXIST.status) {
                         okRequestQueue.add(media.media_name);
                     }
-
                     // else 处理任务的优先级  --
+                    else {
+                        // 将media进行更新
+                        media.request_id = request_id;
+                        media.update();
+                    }
                 } else {
 
                     // 针对于tmp进行处理  将tmp进行字符串包装 req_id

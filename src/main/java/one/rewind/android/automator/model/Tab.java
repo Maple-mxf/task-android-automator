@@ -24,9 +24,17 @@ public class Tab {
 
     public static Dao<Media, String> mediaDao;
 
+    public static final String REQUESTS = "crawler-requests";
+
+    public static final String REQUEST_ID_PREFIX = "req_id_";
+
     // 本地appium端口  为了不使得端口冲突   port自增
 
-    public static AtomicInteger port = new AtomicInteger(50000);
+    public static AtomicInteger proxyPort = new AtomicInteger(50000);
+
+    public static AtomicInteger appiumPort = new AtomicInteger(42756);
+
+    public static AtomicInteger localProxyPort = new AtomicInteger(45000);
 
     static {
         try {
