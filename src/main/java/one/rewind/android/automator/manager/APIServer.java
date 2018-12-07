@@ -1,6 +1,8 @@
 package one.rewind.android.automator.manager;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.DateUtil;
@@ -8,6 +10,7 @@ import one.rewind.db.RedissonAdapter;
 import one.rewind.io.server.Msg;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.redisson.api.RList;
 import org.redisson.api.RQueue;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
@@ -16,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import spark.Route;
 import spark.Spark;
 
+import java.util.List;
 import java.util.Set;
 
 /*
@@ -47,6 +51,8 @@ public class APIServer {
 
         // 二：根据req_id拿到已完成的任务
 
+        Spark.post("/medias", medias);
+
 
     }
 
@@ -62,7 +68,7 @@ public class APIServer {
 
         JSONObject result = new JSONObject(body);
 
-        JSONArray mediasArray = result.getJSONArray("push");
+        JSONArray mediasArray = result.getJSONArray("medias");
 
         if (mediasArray == null || mediasArray.length() == 0) return new Msg<>(0, "请检查您的参数！");
 
@@ -79,9 +85,9 @@ public class APIServer {
         // 创建完成的任务集合
         String okTaskQueue = requestID + "_Finish";
 
-        RSet<Object> noOKSet = redissonClient.getSet(noOkTaskQueue);
+        RList<String> noOKList = redissonClient.getList(noOkTaskQueue);
 
-        RSet<Object> okSet = redissonClient.getSet(okTaskQueue);
+        RList<String> okList = redissonClient.getList(okTaskQueue);
 
         // 公众号添加到redis集合中
         for (Object tmpVar : mediasArray) {
@@ -103,7 +109,7 @@ public class APIServer {
 
                     logger.info("公众号{}加入okSet,状态为:{}", media.media_name, media.status);
 
-                    okSet.add(media.media_name);
+                    okList.add(media.media_name);
                 } else {
 
                     // status: 0 未完成   但是已经订阅
@@ -111,11 +117,11 @@ public class APIServer {
                     media.request_id = requestID;
                     media.update();
                 }
+            } else {
+                // noOKSet   media_name + requestID   阿里巴巴+req_idasdsadas
+                noOKList.add(tmp + requestID);
+                logger.info("公众号{}加入notOkSet", tmp);
             }
-
-            // noOKSet
-            noOKSet.add(tmp);
-            logger.info("公众号{}加入notOkSet", tmp);
         }
 
         return new Msg<>(1, requestID);
@@ -136,9 +142,12 @@ public class APIServer {
         JSONObject requestJSON = new JSONObject(req.body());
         String request_id = requestJSON.getString("request_id");
 
-        RSet<String> result = redissonClient.getSet(request_id);
+        String setName = request_id + "_Finish";
+        RSet<String> result = redissonClient.getSet(setName);
 
         if (!result.isExists()) return new Msg<>(0, "请求不存在，请检查您的参数！");
+
+        if (result.size() == 0) return new Msg<>(1, "任务还未完成，请耐心等待！");
 
         Set<String> var = result.readAll();
 
@@ -152,7 +161,19 @@ public class APIServer {
      * template: {"medias":["阿里巴巴","阿里妈妈","支付宝","蚂蚁金服"]}
      */
     public static Route essays = (req, resp) -> {
-        return null;
+
+        JSONObject jsonObject = new JSONObject(req.body());
+
+        JSONArray medias = jsonObject.getJSONArray("medias");
+
+        List<Essays> rs = Lists.newArrayList();
+
+        for (Object media : medias) {
+            String mediaName = (String) media;
+            List<Essays> tmpEssays = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).query();
+            rs.addAll(tmpEssays);
+        }
+        return new Msg<>(1, rs);
     };
 
 }

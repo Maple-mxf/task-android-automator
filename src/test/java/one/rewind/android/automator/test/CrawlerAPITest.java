@@ -1,13 +1,14 @@
 package one.rewind.android.automator.test;
 
-import com.google.common.collect.Lists;
-import one.rewind.io.requester.task.Task;
-import org.json.JSONObject;
+import com.google.common.collect.Maps;
+import one.rewind.android.automator.model.Essays;
+import one.rewind.android.automator.model.Tab;
+import one.rewind.json.JSON;
 import org.junit.Test;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Create By 2018/12/6
@@ -16,24 +17,14 @@ import java.util.List;
 public class CrawlerAPITest {
 
     @Test
-    public void testPushMedias() throws MalformedURLException, URISyntaxException {
+    public void testPushMedias() throws SQLException {
+        List<Essays> essays = Tab.essayDao.queryBuilder().offset(2).limit(1).query();
 
-        List<String> medias = Lists.newArrayList();
+        Map<String, Object> json = Maps.newHashMap();
+        json.put("essays", essays);
 
-        medias.add("阿里巴巴");
+        String toJson = JSON.toJson(json);
 
-        String jsonStr = JSONObject.valueToString(medias);
-
-
-        Task task = new Task("http://127.0.0.1:4567/push", jsonStr);
-
-        Task.Response response = task.getResponse();
-
-        String text = response.getText();
-
-        JSONObject o = new JSONObject(text);
-
-        System.out.println(o);
-
+        System.out.println(toJson);
     }
 }

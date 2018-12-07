@@ -9,7 +9,8 @@ import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
-import org.redisson.api.RSet;
+import org.redisson.api.RList;
+import org.redisson.api.RQueue;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
@@ -21,8 +22,6 @@ import java.util.concurrent.Executors;
  * Description: 微信的自动化操作
  */
 public class WechatAdapter extends AbstractWechatAdapter {
-
-    public static final String REQ_SUFFIX = "$req_";
 
     public WechatAdapter(AndroidDevice device) {
         super(device);
@@ -121,13 +120,21 @@ public class WechatAdapter extends AbstractWechatAdapter {
         private void doCallRedis(SubscribeMedia media) {
 
             String requestID = media.request_id;
-
             // 获取到已完成的队列  此时不会出现NullPointException
-            requestID += "_finish";
+            String okList = requestID + Tab.REQUEST_ID_PREFIX + Tab.OK_TASK_PROCESS_SUFFIX;
 
-            RSet<Object> var = Manager.redisClient.getSet(requestID);
-
+            RList<Object> var = Manager.redisClient.getList(okList);
             var.add(media.media_name);
+
+            // 删除notFinish集合的元素
+            String noOkList = requestID + Tab.REQUEST_ID_PREFIX + Tab.NO_OK_TASK_PROCESS_SUFFIX;
+            RList<Object> var0 = Manager.redisClient.getList(noOkList);
+            var0.remove(media.media_name);
+
+            //删除requestID
+            RQueue<Object> var2 = Manager.redisClient.getQueue(Tab.REQUESTS);
+
+            var2.remove(requestID);
         }
     }
 

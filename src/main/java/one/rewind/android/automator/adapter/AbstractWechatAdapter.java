@@ -382,19 +382,20 @@ public abstract class AbstractWechatAdapter extends Adapter {
         driver.navigate().back();
     }
 
-    // 还原media
+    // 转换成公众号名称
     static String realMedia(String media) {
 
-        if (media.contains(WechatAdapter.REQ_SUFFIX)) {
-            int index = media.indexOf(WechatAdapter.REQ_SUFFIX);
+        if (media.contains(Tab.REQUEST_ID_PREFIX)) {
+            int index = media.indexOf(Tab.REQUEST_ID_PREFIX);
             return media.substring(0, index);
         }
         return media;
     }
 
+    // 转换成requestID
     static String requestID(String media) {
-        if (media.contains(WechatAdapter.REQ_SUFFIX)) {
-            int index = media.indexOf(WechatAdapter.REQ_SUFFIX);
+        if (media.contains(Tab.REQUEST_ID_PREFIX)) {
+            int index = media.indexOf(Tab.REQUEST_ID_PREFIX);
             return media.substring(index);
         }
         return null;
@@ -448,6 +449,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.udid = udid;
             tmp.retry_count = 0;
             tmp.insert_time = new Date();
+            tmp.request_id = requestID;
+            // 异步通知redis任务不存在
             tmp.insert();
         } else {
             AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
@@ -458,7 +461,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 saveSubscribeRecord(mediaName, requestID);
                 Thread.sleep(3000);
             } catch (Exception ignore) {
-                //已经订阅了
+                // 已经订阅了
                 logger.info("Already add public account: {}", mediaName);
             }
         }
@@ -547,7 +550,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     public void digestionSubscribe(String mediaName) {
         try {
-//            device.restartAPPIUM();
 
             subscribeMedia(mediaName);
         } catch (Exception e) {

@@ -26,7 +26,11 @@ public class Tab {
 
     public static final String REQUESTS = "crawler-requests";
 
-    public static final String REQUEST_ID_PREFIX = "req_id_";
+    public static final String REQUEST_ID_PREFIX = "req_id";
+
+    public static final String NO_OK_TASK_PROCESS_SUFFIX = "_NOT_Finish";
+    public static final String OK_TASK_PROCESS_SUFFIX = "_Finish";
+
 
     // 本地appium端口  为了不使得端口冲突   port自增
 

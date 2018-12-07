@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.GenericRawResults;
-import com.j256.ormlite.field.DataType;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
@@ -15,17 +14,12 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.db.RedissonAdapter;
-import one.rewind.io.server.Msg;
-import one.rewind.json.JSON;
 import org.apache.commons.lang3.time.DateUtils;
-import org.json.JSONArray;
+import org.redisson.api.RList;
 import org.redisson.api.RQueue;
-import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import spark.Route;
-import spark.Spark;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.sql.SQLException;
@@ -238,27 +232,25 @@ public class Manager {
      */
     private void priorityAllotAPITask(AndroidDevice device, int number) {
 
-        int requestIDs = REQUEST_ID_COLLECTION.size();
+        RQueue<String> requests = redisClient.getQueue(Tab.REQUESTS);
 
-        if (requestIDs == 0) return;
+        if (!requests.isExists() || requests.size() == 0 || number == 0) return;   // 最近没有任务  number == 0 当前设备处于等待的状态
 
-        if (number == 0) return; // 处于等待的状态
         synchronized (this) {
 
-            for (String tmpName : REQUEST_ID_COLLECTION) {
+            for (String requestID : requests) {
 
                 // 任务已经分配完毕
                 if (device.queue.size() == number) return;
 
-                // tmpName存储的是已完成的任务集合
-                String realName = exchange(tmpName);
+                // realName存储的是未完成任务的数据
+                String realName = requestID + Tab.NO_OK_TASK_PROCESS_SUFFIX;
 
-                RQueue<String> taskQueue = redisClient.getQueue(realName);
+                RList<String> taskList = redisClient.getList(realName);
 
-                int tmpSize = taskQueue.size();
+                int tmpSize = taskList.size();
 
                 // 继续进行下一个任务集合
-
                 if (tmpSize == 0) continue;
 
                 // 计算device还需要多少个公众号任务
@@ -269,14 +261,13 @@ public class Manager {
                 if (tmpSize > var1) {
 
                     var2 = var1;
-
                 } else {
                     var2 = tmpSize;
-
                 }
+                List<String> medias = taskList.readAll();
                 // 任务添加
                 for (int j = 0; j < var2; j++) {
-                    device.queue.add(taskQueue.poll());
+                    device.queue.add(medias.get(j));
                 }
             }
         }
@@ -400,144 +391,10 @@ public class Manager {
     public static void main(String[] args) throws InterruptedException, SQLException {
 
         Manager manage = me();
-        // 接受任务
-        Spark.post("/push", manage.pushMedias);
-
-        // 获取已完成的数据
-        Spark.post("/medias", manage.medias);
-
-        // 获取真实文章数据
-        Spark.post("/essays", manage.essays);
 
         manage.startManager(); //开启任务执行
     }
 
-    /**
-     * template:["芋道源码","淘宝网"]
-     */
-    private Route pushMedias = (req, res) -> {
-
-        logger.info("push medias");
-
-        String body = req.body();
-
-        try {
-
-            JSONArray array = new JSONArray(body);
-
-            String requestID = parseRequestID(array);
-
-            // 将请求ID存储在内存集合中
-            REQUEST_ID_COLLECTION.add(requestID);
-
-            return new Msg<>(1, requestID);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new Msg<>(0, "参数不合法");
-        }
-
-    };
-
-
-    /**
-     * By requestID obtain finish medias
-     */
-    private Route medias = (req, res) -> {
-
-        String request_id = req.params("request_id");
-
-        RSet<Object> result = redisClient.getSet(request_id);
-
-
-        return new Msg<>(1, result);
-    };
-
-
-    /**
-     * By media name obtain essays data
-     * template:["芋道源码","淘宝网"]
-     */
-    private Route essays = (req, res) -> {
-
-        String body = req.body();
-
-        JSONArray medias = JSON.fromJson(body, JSONArray.class);
-
-        List<String> ids = Lists.newArrayList();
-
-        for (Object tmp : medias) {
-            String mediaName = (String) tmp;
-            DataType[] types = {DataType.STRING};
-            GenericRawResults<Object[]> results = Tab.essayDao.queryRaw("select id from essays where media_nick = ?", types, mediaName);
-
-            // ids
-            List<Object[]> var = results.getResults();
-
-            for (Object[] var2 : var) {
-                ids.add((String) var2[0]);
-            }
-        }
-        return new Msg<>(1, ids);
-    };
-
-
-    /**
-     * @param array api接口传递的公众号数据
-     */
-    private String parseRequestID(JSONArray array) throws Exception {
-
-        synchronized (this) {
-
-            String request_id = WechatAdapter.REQ_SUFFIX + DateUtil.timestamp();
-
-            // 请求唯一标示 16K parse wechat adapter
-            String requestID_$Finish = request_id + "_finish";
-
-            // 没有完成任务的唯一请求
-            String requestID_$Not_Finish = requestID_$Finish.replace("finish", "not_finish");
-
-            // 已完成任务的集合
-            RQueue<String> okRequestQueue = redisClient.getQueue(requestID_$Finish);
-
-            // 未完成任务的集合
-            RQueue<String> notOkRequestQueue = redisClient.getQueue(requestID_$Not_Finish);
-
-            for (Object var : array) {
-
-                String tmp = (String) var;
-
-                SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
-
-                if (media != null) {
-
-                    // media可能是历史任务  也可能当前media的任务已经完成了
-
-                    // 使用requestID作为redis的key   value存放一个有序集合
-
-                    // 已经完成了任务，将当前的公众号名称存储到redis中
-
-                    // media的状态可能是Finish(任务在DB中已经存在且完成) 也可能是NOT_EXIST(不存在)
-
-                    if (media.status == SubscribeMedia.State.FINISH.status || media.status == SubscribeMedia.State.NOT_EXIST.status) {
-                        okRequestQueue.add(media.media_name);
-                    }
-                    // else 处理任务的优先级  --
-                    else {
-                        // 将media进行更新
-                        media.request_id = request_id;
-                        media.update();
-                    }
-                } else {
-
-                    // 针对于tmp进行处理  将tmp进行字符串包装 req_id
-
-                    // 订阅成功后 存储数据库req_id
-                    notOkRequestQueue.add(tmp + request_id);
-                }
-            }
-            return request_id;
-        }
-    }
 
     /**
      * 转换redis队列名称  使用有限制，请注意
@@ -554,4 +411,5 @@ public class Manager {
         }
         return collectionName;
     }
+
 }
