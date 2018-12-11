@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class DBUtil {
 
     public static void sendAccounts(Set<String> accounts, int page) {

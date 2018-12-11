@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * http 工具类
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class HttpUtil {
 

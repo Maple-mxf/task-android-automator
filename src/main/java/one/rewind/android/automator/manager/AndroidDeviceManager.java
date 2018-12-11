@@ -34,8 +34,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 /**
- * Create By 2018/11/20
- * Description
+ * @author maxuefeng[m17793873123@163.com]
  */
 @ThreadSafe
 public class AndroidDeviceManager {

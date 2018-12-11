@@ -4,8 +4,7 @@ package one.rewind.android.automator.util;
 import java.util.concurrent.*;
 
 /**
- * Create By  2018/10/18
- * Description  线程管理
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class ThreadPoolProxy {
 	ThreadPoolExecutor mThreadPoolExecutor;

@@ -3,8 +3,7 @@ package one.rewind.android.automator.util;
 import java.security.MessageDigest;
 
 /**
- * Create By  2018/10/23
- * Description:
+ * @author maxuefeng[m17793873123@163.com]
  */
 
 public class MD5Util {

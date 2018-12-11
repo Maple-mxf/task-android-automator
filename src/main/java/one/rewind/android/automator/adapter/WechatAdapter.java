@@ -21,8 +21,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 /**
- * Create By 2018/10/10
- * Description: 微信的自动化操作
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class WechatAdapter extends AbstractWechatAdapter {
 

@@ -3,7 +3,7 @@ package one.rewind.android.automator.util;
 import java.io.*;
 
 /**
- * 文件读取工具类
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class FileUtil {
 

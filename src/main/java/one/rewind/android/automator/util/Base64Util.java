@@ -1,7 +1,7 @@
 package one.rewind.android.automator.util;
 
 /**
- * Base64 工具类
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class Base64Util {
 	private static final char last2byte = (char) Integer.parseInt("00000011", 2);

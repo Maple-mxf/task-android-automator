@@ -7,8 +7,7 @@ import one.rewind.data.raw.model.base.ModelL;
 import one.rewind.db.DBName;
 
 /**
- * Create By  2018/10/20
- * Description 订阅公众号
+ * @author maxuefeng[m17793873123@163.com]
  */
 @DBName(value = "raw")
 @DatabaseTable(tableName = "wechat_subscribe_account")

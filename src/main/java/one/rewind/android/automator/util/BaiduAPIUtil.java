@@ -14,8 +14,7 @@ import java.sql.SQLException;
 import java.util.Date;
 
 /**
- * Create By 2018/10/19
- * Description:
+ * @author maxuefeng[m17793873123@163.com]
  */
 @SuppressWarnings("JavaDoc")
 public class BaiduAPIUtil {

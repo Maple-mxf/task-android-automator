@@ -21,8 +21,7 @@ import java.util.Date;
 import java.util.UUID;
 
 /**
- * Create By 2018/10/15
- * Description   操作安卓常用方法
+ * @author maxuefeng[m17793873123@163.com]
  */
 @SuppressWarnings("JavaDoc")
 public class AndroidUtil {

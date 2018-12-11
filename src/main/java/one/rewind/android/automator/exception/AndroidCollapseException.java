@@ -1,7 +1,7 @@
 package one.rewind.android.automator.exception;
 
 /**
- * 描述：安卓系统崩溃异常
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class AndroidCollapseException extends AndroidException {
 
