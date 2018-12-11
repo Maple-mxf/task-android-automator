@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 @ThreadSafe
 public class AndroidDeviceManager {
 
-    static Logger logger = LoggerFactory.getLogger(APIServer.class);
+    private static Logger logger = LoggerFactory.getLogger(AndroidDeviceManager.class);
 
     /**
      * is restart
@@ -152,13 +152,8 @@ public class AndroidDeviceManager {
 
         while (true) {
 
-            // 阻塞线程
-
             // 需要定期重启appium 重启代理等等
-
-            // 2 停止代理
             // 3 关闭本地appium
-            // 4 退出当前方法
             // 5 API接口传递过来的数据持久化
 
             WechatAdapter adapter = idleAdapters.take();
@@ -343,7 +338,7 @@ public class AndroidDeviceManager {
         for (SubscribeMedia v : accounts) {
             try {
                 if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
-                    continue;
+                    if (v.number != 0) continue;
                 }
 
                 long countOf = Tab.essayDao.
@@ -411,6 +406,12 @@ public class AndroidDeviceManager {
         Spark.post("/push", push);
     }
 
+    /*
+     * 存储未完成请求ID集合 requests {n requestID}  完成之后删除此requestID
+     * 存储完成任务公众号的集合   requestID_Finish
+     * 存储未完成任务公众号集合   requestID_Not_Finish
+     */
+
     private static Route push = (req, resp) -> {
 
         String body = req.body();
@@ -419,7 +420,7 @@ public class AndroidDeviceManager {
 
         JSONObject result = new JSONObject(body);
 
-        JSONArray mediasArray = result.getJSONArray("medias");
+        JSONArray mediasArray = result.getJSONArray("media");
 
         if (mediasArray == null || mediasArray.length() == 0) return new Msg<>(0, "请检查您的参数！");
 
@@ -474,7 +475,6 @@ public class AndroidDeviceManager {
                 logger.info("公众号{}加入notOkSet", tmp);
             }
         }
-
         return new Msg<>(1, requestID);
     };
 }

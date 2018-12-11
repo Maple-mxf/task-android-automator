@@ -89,8 +89,6 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
 
         private void doCallRedisAndChangeState(String mediaName) throws Exception {
-
-
             SubscribeMedia media = Tab.subscribeDao.
                     queryBuilder().
                     where().
@@ -125,21 +123,13 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
         // publish subscribe
         private void doCallRedis(SubscribeMedia media) {
-
             String requestID = media.request_id;
-
             // topic name :requestIDk
             RTopic<Object> topic = client.getTopic(requestID);
 
             long k = topic.publish(media.media_name);
 
             System.out.println("发布完毕！k: " + k);
-
-            //    过时的操作  获取到已完成的队列  此时不会出现NullPointException
-//            String okList = requestID + Tab.REQUEST_ID_PREFIX + Tab.OK_TASK_PROCESS_SUFFIX;
-//
-//            RList<Object> var = AndroidDeviceManager.redisClient.getList(okList);
-//            var.add(media.media_name);
 
             // 删除notFinish集合的元素
             String noOkList = requestID + Tab.REQUEST_ID_PREFIX + Tab.NO_OK_TASK_PROCESS_SUFFIX;
