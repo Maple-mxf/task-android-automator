@@ -1,5 +1,6 @@
 package one.rewind.android.automator.manager;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -14,12 +15,17 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.db.RedissonAdapter;
+import one.rewind.io.server.Msg;
 import org.apache.commons.lang3.time.DateUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.redisson.api.RList;
 import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import spark.Route;
+import spark.Spark;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.sql.SQLException;
@@ -29,12 +35,12 @@ import java.util.stream.Collectors;
 
 /**
  * Create By 2018/11/20
- * Description:
+ * Description
  */
 @ThreadSafe
-public class Manager {
+public class AndroidDeviceManager {
 
-    Logger logger = LoggerFactory.getLogger(Manager.class);
+    static Logger logger = LoggerFactory.getLogger(APIServer.class);
 
     /**
      * is restart
@@ -93,15 +99,15 @@ public class Manager {
     /**
      * 单例
      */
-    private static Manager manager;
+    private static AndroidDeviceManager manager;
 
 
-    private Manager() {
+    private AndroidDeviceManager() {
     }
 
-    public static Manager me() {
+    public static AndroidDeviceManager me() {
         if (manager == null) {
-            manager = new Manager();
+            manager = new AndroidDeviceManager();
         }
         return manager;
     }
@@ -385,31 +391,90 @@ public class Manager {
             }
         }, nextDay, 1000 * 60 * 60 * 24);
 
-//        timer.schedule();
-    }
-
-    public static void main(String[] args) throws InterruptedException, SQLException {
-
-        Manager manage = me();
-
-        manage.startManager(); //开启任务执行
     }
 
 
-    /**
-     * 转换redis队列名称  使用有限制，请注意
-     *
-     * @param collectionName
-     * @return
-     */
-    @SuppressWarnings("uncheck")
-    public static String exchange(String collectionName) {
-        if (collectionName.endsWith("not_finish")) {
-            return collectionName.replace("not_finish", "finish");
-        } else if (collectionName.endsWith("finish")) {
-            return collectionName.replace("finish", "not_finish");
+    public static void main(String[] args) {
+
+        new Thread(() -> {
+
+            try {
+                AndroidDeviceManager manage = me();
+                manage.startManager(); //开启任务执行
+            } catch (InterruptedException | SQLException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        Spark.port(8080);
+
+        Spark.post("/push", push);
+    }
+
+    private static Route push = (req, resp) -> {
+
+        String body = req.body();
+
+        if (Strings.isNullOrEmpty(body)) return new Msg<>(0, "请检查您的参数！");
+
+        JSONObject result = new JSONObject(body);
+
+        JSONArray mediasArray = result.getJSONArray("medias");
+
+        if (mediasArray == null || mediasArray.length() == 0) return new Msg<>(0, "请检查您的参数！");
+
+        String requestID = Tab.REQUEST_ID_PREFIX + DateUtil.timestamp();
+
+        RQueue<Object> request = redisClient.getQueue(Tab.REQUESTS);
+
+        // 添加请求集合
+        request.add(requestID);
+
+        // 创建未完成任务集合
+        String noOkTaskQueue = requestID + "_Not_Finish";
+
+        // 创建完成的任务集合
+        String okTaskQueue = requestID + "_Finish";
+
+        RList<String> noOKList = redisClient.getList(noOkTaskQueue);
+
+        RList<String> okList = redisClient.getList(okTaskQueue);
+
+        // 公众号添加到redis集合中
+        for (Object tmpVar : mediasArray) {
+
+            String tmp = (String) tmpVar;
+
+            SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
+            if (media != null) {
+
+                // media可能是历史任务  也可能当前media的任务已经完成了
+
+                // 使用requestID作为redis的key   value存放一个有序集合
+
+                // 已经完成了任务，将当前的公众号名称存储到redis中
+
+                // media的状态可能是Finish(任务在DB中已经存在且完成) 也可能是NOT_EXIST(不存在)
+
+                if (media.status == SubscribeMedia.State.FINISH.status || media.status == SubscribeMedia.State.NOT_EXIST.status) {
+
+                    logger.info("公众号{}加入okSet,状态为:{}", media.media_name, media.status);
+
+                    okList.add(media.media_name);
+                } else {
+
+                    // status: 0 未完成   但是已经订阅
+                    logger.info("公众号{}已经订阅！任务尚未完成，状态为{}", media.media_name, media.status);
+                    media.request_id = requestID;
+                    media.update();
+                }
+            } else {
+                // noOKSet   media_name + requestID   阿里巴巴+req_idasdsadas
+                noOKList.add(tmp + requestID);
+                logger.info("公众号{}加入notOkSet", tmp);
+            }
         }
-        return collectionName;
-    }
 
+        return new Msg<>(1, requestID);
+    };
 }

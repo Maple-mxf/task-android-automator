@@ -1,8 +1,6 @@
 package one.rewind.android.automator.manager;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.DateUtil;
@@ -12,31 +10,24 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.redisson.api.RList;
 import org.redisson.api.RQueue;
-import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Route;
 import spark.Spark;
 
-import java.util.List;
-import java.util.Set;
-
 /*
  * 存储未完成请求ID集合 requests {n requestID}  完成之后删除此requestID
  * 存储完成任务公众号的集合   requestID_Finish
  * 存储未完成任务公众号集合   requestID_Not_Finish
- *
- *
- *
  */
 
-
+@Deprecated
 public class APIServer {
 
     static Logger logger = LoggerFactory.getLogger(APIServer.class);
 
-    public static RedissonClient redissonClient = RedissonAdapter.redisson;
+    public static RedissonClient redisClient = RedissonAdapter.redisson;
 
 
     private APIServer() {
@@ -48,12 +39,6 @@ public class APIServer {
 
         // 一： 公众号任务保存
         Spark.post("/push", push);
-
-        // 二：根据req_id拿到已完成的任务
-
-        Spark.post("/medias", medias);
-
-
     }
 
 
@@ -62,6 +47,7 @@ public class APIServer {
     // 3 响应用户数据
 
     private static Route push = (req, resp) -> {
+
         String body = req.body();
 
         if (Strings.isNullOrEmpty(body)) return new Msg<>(0, "请检查您的参数！");
@@ -74,7 +60,7 @@ public class APIServer {
 
         String requestID = Tab.REQUEST_ID_PREFIX + DateUtil.timestamp();
 
-        RQueue<Object> request = redissonClient.getQueue(Tab.REQUESTS);
+        RQueue<Object> request = redisClient.getQueue(Tab.REQUESTS);
 
         // 添加请求集合
         request.add(requestID);
@@ -85,9 +71,9 @@ public class APIServer {
         // 创建完成的任务集合
         String okTaskQueue = requestID + "_Finish";
 
-        RList<String> noOKList = redissonClient.getList(noOkTaskQueue);
+        RList<String> noOKList = redisClient.getList(noOkTaskQueue);
 
-        RList<String> okList = redissonClient.getList(okTaskQueue);
+        RList<String> okList = redisClient.getList(okTaskQueue);
 
         // 公众号添加到redis集合中
         for (Object tmpVar : mediasArray) {
@@ -126,56 +112,6 @@ public class APIServer {
 
         return new Msg<>(1, requestID);
     };
-
-
-    // 1 任务完成 删除requests中的requestID
-    // 2 删除未完成任务的集合
-    // 3 完成任务的集合不需要动
-
-
-    /**
-     * 根据requestID获取已经完成的任务
-     * <p>
-     * template {"request_id":"req_id_20181207161440726"}
-     */
-    public static Route medias = (req, resp) -> {
-        JSONObject requestJSON = new JSONObject(req.body());
-        String request_id = requestJSON.getString("request_id");
-
-        String setName = request_id + "_Finish";
-        RSet<String> result = redissonClient.getSet(setName);
-
-        if (!result.isExists()) return new Msg<>(0, "请求不存在，请检查您的参数！");
-
-        if (result.size() == 0) return new Msg<>(1, "任务还未完成，请耐心等待！");
-
-        Set<String> var = result.readAll();
-
-        return new Msg<>(0, var);
-    };
-
-
-    /**
-     * 根据media获取到文章数据
-     * <p>
-     * template: {"medias":["阿里巴巴","阿里妈妈","支付宝","蚂蚁金服"]}
-     */
-    public static Route essays = (req, resp) -> {
-
-        JSONObject jsonObject = new JSONObject(req.body());
-
-        JSONArray medias = jsonObject.getJSONArray("medias");
-
-        List<Essays> rs = Lists.newArrayList();
-
-        for (Object media : medias) {
-            String mediaName = (String) media;
-            List<Essays> tmpEssays = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).query();
-            rs.addAll(tmpEssays);
-        }
-        return new Msg<>(1, rs);
-    };
-
 }
 
 

@@ -16,7 +16,7 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
-import one.rewind.android.automator.manager.Manager;
+import one.rewind.android.automator.manager.AndroidDeviceManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.Tab;
@@ -57,8 +57,8 @@ public class AndroidDevice extends AbstractService {
     /**
      * 是否锁屏  防止appium重启失败
      *
-     * @see Manager#restart
-     * @see Manager#lastRestart
+     * @see AndroidDeviceManager#restart
+     * @see AndroidDeviceManager#lastRestart
      */
     public boolean isLock = false;
 
@@ -460,7 +460,6 @@ public class AndroidDevice extends AbstractService {
                     }
                     if (content_stack.size() > 0) {
                         this.setClickEffect(true);
-                        System.out.println("有内容了");
                         String content_src = content_stack.pop();
                         Essays we = null;
                         try {

@@ -54,7 +54,7 @@ public class BaiduAPIUtil {
             JSONObject jsonObject = new JSONObject(result.toString());
             return jsonObject.getString("access_token");
         } catch (Exception e) {
-            e.printStackTrace(System.err);
+            e.printStackTrace();
         }
         return null;
     }

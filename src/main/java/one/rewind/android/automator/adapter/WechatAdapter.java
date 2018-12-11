@@ -3,14 +3,17 @@ package one.rewind.android.automator.adapter;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.*;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.manager.Manager;
+import one.rewind.android.automator.manager.AndroidDeviceManager;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
+import one.rewind.db.RedissonAdapter;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.redisson.api.RList;
 import org.redisson.api.RQueue;
+import org.redisson.api.RTopic;
+import org.redisson.api.RedissonClient;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
@@ -22,6 +25,8 @@ import java.util.concurrent.Executors;
  * Description: 微信的自动化操作
  */
 public class WechatAdapter extends AbstractWechatAdapter {
+
+    private static final RedissonClient client = RedissonAdapter.redisson;
 
     public WechatAdapter(AndroidDevice device) {
         super(device);
@@ -115,24 +120,34 @@ public class WechatAdapter extends AbstractWechatAdapter {
             }
         }
 
-        // 消息通知
 
+        // 利用redis的消息发布订阅实现消息通知
+
+        // publish subscribe
         private void doCallRedis(SubscribeMedia media) {
 
             String requestID = media.request_id;
-            // 获取到已完成的队列  此时不会出现NullPointException
-            String okList = requestID + Tab.REQUEST_ID_PREFIX + Tab.OK_TASK_PROCESS_SUFFIX;
 
-            RList<Object> var = Manager.redisClient.getList(okList);
-            var.add(media.media_name);
+            // topic name :requestIDk
+            RTopic<Object> topic = client.getTopic(requestID);
+
+            long k = topic.publish(media.media_name);
+
+            System.out.println("发布完毕！k: " + k);
+
+            //    过时的操作  获取到已完成的队列  此时不会出现NullPointException
+//            String okList = requestID + Tab.REQUEST_ID_PREFIX + Tab.OK_TASK_PROCESS_SUFFIX;
+//
+//            RList<Object> var = AndroidDeviceManager.redisClient.getList(okList);
+//            var.add(media.media_name);
 
             // 删除notFinish集合的元素
             String noOkList = requestID + Tab.REQUEST_ID_PREFIX + Tab.NO_OK_TASK_PROCESS_SUFFIX;
-            RList<Object> var0 = Manager.redisClient.getList(noOkList);
+            RList<Object> var0 = AndroidDeviceManager.redisClient.getList(noOkList);
             var0.remove(media.media_name);
 
             //删除requestID
-            RQueue<Object> var2 = Manager.redisClient.getQueue(Tab.REQUESTS);
+            RQueue<Object> var2 = AndroidDeviceManager.redisClient.getQueue(Tab.REQUESTS);
 
             var2.remove(requestID);
         }
@@ -150,7 +165,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
                 try {
                     if (Boolean.TRUE.equals(future.get())) {
-                        Manager.me().addIdleAdapter(adapter);
+                        AndroidDeviceManager.me().addIdleAdapter(adapter);
                     }
                 } catch (InterruptedException | ExecutionException e) {
                     e.printStackTrace();

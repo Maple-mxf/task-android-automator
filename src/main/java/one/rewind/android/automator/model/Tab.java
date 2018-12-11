@@ -29,6 +29,7 @@ public class Tab {
     public static final String REQUEST_ID_PREFIX = "req_id";
 
     public static final String NO_OK_TASK_PROCESS_SUFFIX = "_NOT_Finish";
+
     public static final String OK_TASK_PROCESS_SUFFIX = "_Finish";
 
 
