@@ -1,6 +1,7 @@
 package one.rewind.android.automator.test;
 
 import com.google.common.collect.Queues;
+import io.netty.handler.codec.http.HttpHeaders;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
@@ -48,6 +49,17 @@ public class WechatAdapterTest {
         RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
             String url = messageInfo.getOriginalUrl();
+
+            HttpHeaders headers = request.headers();
+
+            List<Map.Entry<String, String>> entryList = headers.entries();
+
+            System.out.println("Headers;Please Wait...");
+            entryList.forEach(entry -> {
+                System.out.println("key:" + entry.getKey());
+                System.out.println("value:" + entry.getValue());
+            });
+
 
             if (url.contains("https://mp.weixin.qq.com/s"))
                 System.out.println(" . " + url);
@@ -147,8 +159,8 @@ public class WechatAdapterTest {
     //先将公众号关注  再点击进去抓取文章
 
     @Test
-    public void testGetOnePublicAccountsEssays() throws IOException, InterruptedException {
-        adapter.digestionCrawler("保险真谛", true);
+    public void testGetOnePublicAccountsEssays() {
+        adapter.digestionCrawler("阿里巴巴", true);
     }
 
     @Test
@@ -157,7 +169,7 @@ public class WechatAdapterTest {
     }
 
     @Test
-    public void subscribe() throws Exception {
+    public void subscribe() {
         Queue<String> collections = Queues.newConcurrentLinkedQueue();
 
         collections.add("阿里巴巴");
@@ -262,9 +274,9 @@ public class WechatAdapterTest {
 //        System.out.println(var);
     }
 
-    public static void main(String[] args) {
-        while (true){
-            System.out.println("knasdas");
-        }
+    @Test
+    public void testGetEssays() {
+        adapter.digestionCrawler("阿里巴巴", true);
     }
+
 }

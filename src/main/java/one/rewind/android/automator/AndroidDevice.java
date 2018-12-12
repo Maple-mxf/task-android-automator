@@ -425,10 +425,11 @@ public class AndroidDevice extends AbstractService {
         try {
             RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
-                String url = messageInfo.getOriginalUrl();
+//                String url = messageInfo.getOriginalUrl();
 
-                if (url.contains("https://mp.weixin.qq.com/s"))
-                    System.out.println(" . " + url);
+//                if (url.contains("https://mp.weixin.qq.com/s")) {
+//                    System.out.println(" . " + url);
+//                }
                 return null;
             };
             Stack<String> content_stack = new Stack<>();
@@ -443,19 +444,19 @@ public class AndroidDevice extends AbstractService {
                     // 正文
                     if (url.contains("https://mp.weixin.qq.com/s")) {
                         this.setClickEffect(true);
-                        System.err.println(" : " + url);
+//                        System.err.println(" : " + url);
                         content_stack.push(contents.getTextContents());
                     }
                     // 统计信息
                     else if (url.contains("getappmsgext")) {
                         this.setClickEffect(true);
-                        System.err.println(" :: " + url);
+//                        System.err.println(" :: " + url);
                         stats_stack.push(contents.getTextContents());
                     }
                     // 评论信息
                     else if (url.contains("appmsg_comment?action=getcomment")) {
                         this.setClickEffect(true);
-                        System.err.println(" ::: " + url);
+//                        System.err.println(" ::: " + url);
                         comments_stack.push(contents.getTextContents());
                     }
                     if (content_stack.size() > 0) {
@@ -472,7 +473,8 @@ public class AndroidDevice extends AbstractService {
                                 we.like_count = 0;
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+//                            e.printStackTrace();
+                            logger.error("文章解析失败！");
                         }
                         assert we != null;
                         we.insert_time = new Date();

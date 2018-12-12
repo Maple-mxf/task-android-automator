@@ -29,7 +29,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     Set<String> previousEssayTitles = Sets.newHashSet();
 
-
     private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
     void setCountVal() {
@@ -44,7 +43,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 
     public static final int RETRY_COUNT = 5;
-
 
     AbstractWechatAdapter(AndroidDevice device) {
         super(device);
@@ -84,7 +82,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             left = location.getInt("left");
 
             // 第一个成为正确的几率最大
-            // 很有可能是公众号的头像中的文字也被识别了
+            // 很有可能是公众号的头像中的文字也被识别了    去除前三个JSON数据，第三个数据也是此处的第一个数据，第一条数据命中率针对于mediaName是最高的
 
             if (i == 0) {
                 if (words.endsWith(mediaName)) {
@@ -122,7 +120,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
     private List<WordsPoint> analysisImage(String mediaName, String filePath) throws Exception {
         JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
         FileUtil.deleteFile(filePath);
-        //得到即将要点击的坐标位置
         return analysisWordsPoint(jsonObject.getJSONArray("words_result"), mediaName);
 
     }
@@ -181,7 +178,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
                         array.put(k, tmpJSON);
 
-
                         k++;
                     }
                     continue;
@@ -234,6 +230,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
         return wordsPoints;
     }
 
+
+    // 记录上一次的图像识别的结果
 
     private void preserveThePreviousSet(JSONArray array) {
 

@@ -49,6 +49,7 @@ public class AndroidDeviceManager {
      *
      * @see AndroidDevice#isLock
      */
+    @Deprecated
     public static volatile boolean restart = false;
 
     /**
@@ -60,6 +61,7 @@ public class AndroidDeviceManager {
      *
      * @see AndroidDevice#isLock
      */
+    @Deprecated
     private static volatile long lastRestart = new Date().getTime();
 
     /**
@@ -99,7 +101,6 @@ public class AndroidDeviceManager {
      * 单例
      */
     private static AndroidDeviceManager manager;
-
 
     private AndroidDeviceManager() {
     }

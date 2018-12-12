@@ -10,6 +10,7 @@ public class IAndroidDevice extends AbstractService {
 
     @Override
     protected void doStart() {
+
         //启动设备
         //开启任务    计算任务    任务分配   任务
         //query

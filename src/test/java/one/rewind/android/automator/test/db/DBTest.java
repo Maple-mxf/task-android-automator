@@ -255,7 +255,9 @@ public class DBTest {
 
             }
         }
+
         conn.commit();
         conn.close();
     }
+
 }

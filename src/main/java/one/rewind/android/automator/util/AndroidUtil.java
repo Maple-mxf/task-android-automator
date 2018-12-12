@@ -38,13 +38,12 @@ public class AndroidUtil {
      * @param mediaName
      * @throws InterruptedException
      */
-    public static boolean enterEssay(String mediaName, AndroidDevice device) throws InterruptedException {
+    public static boolean enterEssay(String mediaName, AndroidDevice device) throws Exception {
 
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
         } catch (Exception e) {
-            e.printStackTrace();
-            device.driver.closeApp();
+            closeApp(device);
             clearMemory(device.udid);
             AndroidUtil.activeWechat(device);
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
@@ -182,6 +181,8 @@ public class AndroidUtil {
         }
     }
 
+    // 设备处于offline移除当前的设备
+
     public static String[] obtainDevices() {
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
@@ -218,34 +219,34 @@ public class AndroidUtil {
      * @param device
      * @throws Exception
      */
-    public static void closeApp(AndroidDevice device) throws Exception {
-        //截图
-        String filePrefix = UUID.randomUUID().toString();
-        String fileName = filePrefix + ".png";
-        String path = System.getProperty("user.dir") + "/screen/";
-        AndroidUtil.screenshot(fileName, path, device.driver);
-        JSONObject jsonObject = BaiduAPIUtil.imageOCR(path + fileName);
-        JSONArray array = (JSONArray) jsonObject.get("words_result");
-        for (Object o : array) {
-
-            JSONObject v = (JSONObject) o;
-
-            String words = v.getString("words");
-            if (words.contains("微信没有响应") || words.contains("关闭应用")) {
-                AndroidUtil.clickPoint(517, 1258, 1000, device.driver);
-                break;
-            }
-            if (words.contains("要将其关闭吗") && words.contains("微信无响应")) {
-                //点击确定  这个截图和上面的截图是有点不太一样的
-                AndroidUtil.clickPoint(1196, 1324, 1000, device.driver);
-                break;
-            }
-            if (words.contains("系统繁忙") && words.contains("请稍后再试")) {
-                AndroidUtil.clickPoint(1110, 1342, 5000, device.driver);
-                break;
-            }
-        }
+    public static void closeApp(AndroidDevice device) {
         try {
+            //截图
+            String filePrefix = UUID.randomUUID().toString();
+            String fileName = filePrefix + ".png";
+            String path = System.getProperty("user.dir") + "/screen/";
+            AndroidUtil.screenshot(fileName, path, device.driver);
+            JSONObject jsonObject = BaiduAPIUtil.imageOCR(path + fileName);
+            JSONArray array = (JSONArray) jsonObject.get("words_result");
+            for (Object o : array) {
+
+                JSONObject v = (JSONObject) o;
+
+                String words = v.getString("words");
+                if (words.contains("微信没有响应") || words.contains("关闭应用")) {
+                    AndroidUtil.clickPoint(517, 1258, 1000, device.driver);
+                    break;
+                }
+                if (words.contains("要将其关闭吗") && words.contains("微信无响应")) {
+                    //点击确定  这个截图和上面的截图是有点不太一样的
+                    AndroidUtil.clickPoint(1196, 1324, 1000, device.driver);
+                    break;
+                }
+                if (words.contains("系统繁忙") && words.contains("请稍后再试")) {
+                    AndroidUtil.clickPoint(1110, 1342, 5000, device.driver);
+                    break;
+                }
+            }
             clearMemory(device.udid);
         } catch (Exception e) {
             e.printStackTrace();
