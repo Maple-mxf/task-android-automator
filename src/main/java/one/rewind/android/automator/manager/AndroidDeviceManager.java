@@ -338,7 +338,9 @@ public class AndroidDeviceManager {
         for (SubscribeMedia v : accounts) {
             try {
                 if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
-                    if (v.number != 0) continue;
+//                    if (v.number != 0) continue;
+                    // 有些公众号一片文章也没有
+                    continue;
                 }
 
                 long countOf = Tab.essayDao.

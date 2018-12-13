@@ -33,6 +33,4 @@ public class IAndroidDevice extends AbstractService {
         IAndroidDevice device = new IAndroidDevice();
         device.startAsync();
     }
-
-
 }
