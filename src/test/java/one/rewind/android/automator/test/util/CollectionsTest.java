@@ -1,6 +1,8 @@
 package one.rewind.android.automator.test.util;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import one.rewind.android.automator.model.Essays;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,6 +15,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class CollectionsTest {
 
     @Test
@@ -130,5 +136,15 @@ public class CollectionsTest {
         System.out.println(rs);
         JSONArray array = new JSONArray(rs);
         System.out.println(array);
+    }
+
+    @Test
+    public void testQueueAddAll() {
+        Queue<String> tmp1 = Queues.newLinkedBlockingDeque();
+        Set<String> tmp2 = Sets.newHashSet();
+        tmp1.add("asdasda");
+        tmp2.addAll(tmp1);
+        System.out.println("tmp1: " + tmp1);
+        System.out.println("tmp2: " + tmp2);
     }
 }

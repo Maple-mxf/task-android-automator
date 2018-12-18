@@ -19,8 +19,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Create By 2018/12/10
- * Description:
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class RedissonTest {
     // 订阅端

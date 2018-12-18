@@ -11,6 +11,10 @@ import one.rewind.db.DaoManager;
 
 import java.util.List;
 
+
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 @DBName(value = "raw")
 @DatabaseTable(tableName = "raw_essay_comments")
 public class EssayComment extends ModelD {

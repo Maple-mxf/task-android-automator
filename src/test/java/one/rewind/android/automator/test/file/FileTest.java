@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- *
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class FileTest {
 

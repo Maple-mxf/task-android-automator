@@ -9,6 +9,8 @@ import one.rewind.db.DBName;
 /**
  * Create By 2018/11/7
  * Description:
+ *
+ * @author maxuefeng [m17793873123@163.com]
  */
 @DBName(value = "raw")
 @DatabaseTable(tableName = "baidu_tokens")

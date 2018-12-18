@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class WechatAdapterTest {
 
     String udid = "ZX1G323GNB";

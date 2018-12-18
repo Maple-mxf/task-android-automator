@@ -7,8 +7,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
 /**
- * Create By 2018/10/29
- * Description
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class AppiumElementListener implements AppiumWebDriverEventListener {
 

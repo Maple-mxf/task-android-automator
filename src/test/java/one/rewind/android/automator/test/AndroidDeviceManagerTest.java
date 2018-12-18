@@ -6,8 +6,7 @@ import org.junit.Test;
 import java.sql.SQLException;
 
 /**
- * Create By 2018/11/21
- * Description:
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class AndroidDeviceManagerTest {
 

@@ -3,8 +3,7 @@ package one.rewind.android.automator.test.guava.device;
 import com.google.common.util.concurrent.AbstractService;
 
 /**
- * Create By 2018/11/20
- * Description:
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class IAndroidDevice extends AbstractService {
 

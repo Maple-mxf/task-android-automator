@@ -2,6 +2,10 @@ package one.rewind.android.automator.model;
 
 import one.rewind.data.raw.model.base.ModelL;
 
+/**
+ * @author maxuefeng [m17793873123@163.com]
+ */
+@Deprecated
 public class FailRecord extends ModelL {
 
     public FailRecord() {

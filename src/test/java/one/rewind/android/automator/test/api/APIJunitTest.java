@@ -9,8 +9,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 
 /**
- * Create By  2018/10/25
- * Description:  接口测试用例
+ * @author maxuefeng[m17793873123@163.com]
  */
 
 public class APIJunitTest {

@@ -1,18 +1,18 @@
 package one.rewind.android.automator.test.db;
 
 import one.rewind.android.automator.model.FailRecord;
+import one.rewind.android.automator.model.Tab;
 import one.rewind.db.RedissonAdapter;
 import org.junit.Test;
 import org.redisson.api.RMap;
+import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RedissonClient;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * 描述：
- * 作者：MaXFeng
- * 时间：2018/10/17
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class RedisTest {
 
@@ -34,4 +34,15 @@ public class RedisTest {
 		System.out.println(take);
 		System.out.println("queue size: " + queue.size());
 	}
+
+	@Test
+	public void testPrioryQueue(){
+        RedissonClient client = RedissonAdapter.redisson;
+
+        RPriorityQueue<Object> priorityQueue = client.getPriorityQueue(Tab.TOPIC_MEDIA);
+
+        System.out.println(priorityQueue.size());
+
+        System.out.println(priorityQueue.poll());
+    }
 }

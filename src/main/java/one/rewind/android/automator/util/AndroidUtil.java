@@ -29,7 +29,7 @@ public class AndroidUtil {
 
     // 重启手机APP
 
-    public static void restartWechatAPP(AndroidDevice device) throws InterruptedException {
+    public static void restartWechat(AndroidDevice device) throws InterruptedException {
         AndroidUtil.clearMemory(device.udid);
         AndroidUtil.activeWechat(device);
     }

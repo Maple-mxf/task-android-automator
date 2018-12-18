@@ -5,8 +5,7 @@ import org.openqa.selenium.Alert;
 import org.openqa.selenium.WebDriver;
 
 /**
- * Create By 2018/10/29
- * Description
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class AlertListener implements AlertEventListener {
 

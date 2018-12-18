@@ -6,9 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * 描述：线程池测试
- * 作者：MaXFeng
- * 时间：2018/10/16
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class ThreadTest {
 

@@ -8,8 +8,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 /**
- * @author MaXueFeng
- * @since 1.0
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class DateUtilTest {
 

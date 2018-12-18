@@ -16,7 +16,6 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
-import one.rewind.android.automator.manager.AndroidDeviceManager;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.Tab;
@@ -38,7 +37,10 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Queue;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -53,14 +55,6 @@ public class AndroidDevice extends AbstractService {
     public Queue<String> queue = new ConcurrentLinkedQueue<>();
 
     private boolean clickEffect;
-
-    /**
-     * 是否锁屏  防止appium重启失败
-     *
-     * @see AndroidDeviceManager#restart
-     * @see AndroidDeviceManager#lastRestart
-     */
-    public boolean isLock = false;
 
     public TaskType taskType = TaskType.SUBSCRIBE;
 

@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
 /**
  * Create By 2018/10/23
  * Description      id // md5(平台简称+媒体名称+title)
+ *
+ * @author maxuefeng [m17793873123@163.com]
  */
 @DBName(value = "raw")
 @DatabaseTable(tableName = "essays")

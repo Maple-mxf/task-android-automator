@@ -7,6 +7,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.concurrent.*;
 
+
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class ExecutorsPoolTest {
 
     private ExecutorService executor;

@@ -20,6 +20,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
+
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class WechatSimulator {
 
 	public static AndroidDriver getStart(String udid, String appPackage, String appActivity) throws MalformedURLException, InterruptedException {

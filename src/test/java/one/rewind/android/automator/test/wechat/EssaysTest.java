@@ -9,6 +9,10 @@ import org.junit.Test;
 
 import java.util.List;
 
+
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class EssaysTest {
 
 	String content;

@@ -1,8 +1,8 @@
 package one.rewind.android.automator.test.guava.concurrent;
 
 /**
- * Create By 2018/11/20
- * Description:
+ * @author maxuefeng[m17793873123@163.com]
  */
+@Deprecated
 public class ExecutorsTest  {
 }

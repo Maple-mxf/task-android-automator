@@ -8,6 +8,9 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class TimerTest {
 
 

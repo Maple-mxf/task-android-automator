@@ -12,8 +12,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * Because of the program of accounts from java client to send ,The program can not
  * Know a few account,so must Tag the current data flag
+ *
+ * @author maxuefeng [m17793873123@163.com]
  */
-
 public class Tab {
 
     public static Dao<Essays, String> essayDao;
@@ -26,11 +27,12 @@ public class Tab {
 
     public static final String REQUESTS = "crawler-requests";
 
-    public static final String REQUEST_ID_PREFIX = "req_id";
+    public static final String REQUEST_ID_SUFFIX = "req_id";
 
+    public static final String TOPIC_MEDIA = "topic_media";
+
+    @Deprecated
     public static final String NO_OK_TASK_PROCESS_SUFFIX = "_NOT_Finish";
-
-    public static final String OK_TASK_PROCESS_SUFFIX = "_Finish";
 
 
     // 本地appium端口  为了不使得端口冲突   port自增

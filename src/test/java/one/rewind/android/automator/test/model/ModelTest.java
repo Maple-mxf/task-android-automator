@@ -3,6 +3,10 @@ package one.rewind.android.automator.test.model;
 import one.rewind.android.automator.model.WechatFriend;
 import org.junit.Test;
 
+
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public class ModelTest {
 
     @Test

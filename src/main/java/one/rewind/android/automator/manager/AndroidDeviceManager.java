@@ -16,12 +16,11 @@ import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.io.server.Msg;
+import one.rewind.json.JSON;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.redisson.api.RList;
-import org.redisson.api.RQueue;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Route;
@@ -42,29 +41,6 @@ public class AndroidDeviceManager {
     private static Logger logger = LoggerFactory.getLogger(AndroidDeviceManager.class);
 
     /**
-     * is restart
-     * <p>
-     * <p>
-     * manager记录上一次的重启时间，达到阈值重启appium
-     *
-     * @see AndroidDevice#isLock
-     */
-    @Deprecated
-    public static volatile boolean restart = false;
-
-    /**
-     * last restart date
-     * <p>
-     * 上一次的重启时间 ，间隔机制为每隔4小时重启appium   重启appium需要注意  手机不能锁屏
-     * <p>
-     * 锁频会造成appium重启失败
-     *
-     * @see AndroidDevice#isLock
-     */
-    @Deprecated
-    private static volatile long lastRestart = new Date().getTime();
-
-    /**
      * redis 客户端
      */
     public static RedissonClient redisClient = RedissonAdapter.redisson;
@@ -74,13 +50,16 @@ public class AndroidDeviceManager {
      */
     private BlockingQueue<WechatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
+
+    @Deprecated
+    private Set<WechatAdapter> allAdapters = Sets.newConcurrentHashSet();
+
     /**
-     * 存储需要订阅的公众号 使用stack栈  先进后出
      */
     private Stack<String> mediaStack = new Stack<>();
 
     /**
-     * 存储请求ID   对应redis中的数据
+     * 存储请求ID   对应redis中的topic
      * <p>
      * Thread safe
      */
@@ -130,8 +109,6 @@ public class AndroidDeviceManager {
     }
 
     public void startManager() throws InterruptedException, SQLException {
-
-
         // 初始化设备
         init();
 
@@ -142,19 +119,14 @@ public class AndroidDeviceManager {
         initMediaStack();
 
         for (AndroidDevice device : devices) {
-
             device.startAsync();
-
             idleAdapters.add(new WechatAdapter(device));
         }
 
-        resetOCRToken(); //开启恢复百度API  token 状态
+        //开启恢复百度API  token 状态
+        resetOCRToken();
 
         while (true) {
-
-            // 需要定期重启appium 重启代理等等
-            // 3 关闭本地appium
-            // 5 API接口传递过来的数据持久化
 
             WechatAdapter adapter = idleAdapters.take();
 
@@ -166,12 +138,14 @@ public class AndroidDeviceManager {
 
     private void execute(WechatAdapter adapter) {
         try {
+
             //计算任务类型
-            adapter.getDevice().taskType = calculateTaskType(adapter.getDevice().udid);
+            adapter.getDevice().taskType = calculateTaskType(adapter);
             //初始化任务队列
             switch (adapter.getDevice().taskType) {
                 case SUBSCRIBE: {
-                    initSubscribeQueue(adapter.getDevice());
+                    // 只分配一个任务去订阅   订阅完了之后立马切换到数据采集任务
+                    initSubscribeSingleQueue(adapter.getDevice());
                     break;
                 }
                 case CRAWLER: {
@@ -179,11 +153,11 @@ public class AndroidDeviceManager {
                     break;
                 }
                 default:
-                    System.out.println("没有匹配的任务类型");
+                    logger.info("当前没有匹配到任何任务类型!");
             }
             adapter.start();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("初始化任务失败！");
         }
     }
 
@@ -194,7 +168,17 @@ public class AndroidDeviceManager {
         }
     }
 
-
+    /**
+     * @param device
+     * @throws SQLException
+     */
+    /*
+     * 过时方法   不推荐的做法
+     *
+     * 为了使得任务分配的逻辑更加简单，每次分配订阅任务只分配一个订阅任务，完成订阅任务之后，
+     * 立即开始采集任务，
+     */
+    @Deprecated
     private void initSubscribeQueue(AndroidDevice device) throws SQLException {
 
         int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
@@ -209,7 +193,7 @@ public class AndroidDeviceManager {
                 // 如果redis中的任务没有初始化成功  则换种方式初始化任务队列
                 if (device.queue.size() == 0) {
                     for (int i = 0; i < tmp; i++) {
-                        if (!mediaStack.empty()) {
+                        if (mediaStack.empty()) {
                             // 如果没有数据了 先初始化订阅的公众号
                             startPage += 2;
                             initMediaStack();
@@ -225,12 +209,46 @@ public class AndroidDeviceManager {
         }
     }
 
+    // TODO
+    private void initSubscribeSingleQueue(AndroidDevice device) throws SQLException {
+
+        device.queue.clear();
+        // 计算今日还能订阅多少
+        int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
+
+        // 处于等待状态
+        if (numToday > 40) {
+            device.taskType = TaskType.WAIT;
+        } else {
+
+            // 从redis中加载数据
+            RPriorityQueue<String> priorityQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
+
+            // TODO
+            if (priorityQueue.size() == 0) {
+
+                if (mediaStack.isEmpty()) {
+                    // 如果没有数据了 先初始化订阅的公众号
+                    startPage += 2;
+                    initMediaStack();
+                }
+                device.queue.add(mediaStack.pop());
+            } else {
+
+                // redis 存在API接口数据  直接加载redis中的数据
+                device.queue.add(priorityQueue.poll());
+            }
+        }
+    }
+
+
     /**
      * 优先分配redis中存储的API接口的任务公众号  由于redisson的缘故；抛出NullPointException  需要try-catch消化异常继续进行
      *
      * @param device 设备实例
      * @param number 需要初始化任务队列的size
      */
+    @Deprecated
     private void priorityAllotAPITask(AndroidDevice device, int number) {
 
         RQueue<String> requests = redisClient.getQueue(Tab.REQUESTS);
@@ -274,6 +292,7 @@ public class AndroidDeviceManager {
         }
     }
 
+    // 从MySQL中初始化任务
     private void initCrawlerQueue(AndroidDevice device) throws SQLException {
         List<SubscribeMedia> accounts =
                 Tab.subscribeDao.
@@ -290,8 +309,10 @@ public class AndroidDeviceManager {
         device.queue.addAll(accounts.stream().map(v -> v.media_name).collect(Collectors.toSet()));
     }
 
+    //
+    private TaskType calculateTaskType(WechatAdapter adapter) throws Exception {
 
-    private TaskType calculateTaskType(String udid) throws Exception {
+        String udid = adapter.getDevice().udid;
 
         long allSubscribe = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
@@ -314,11 +335,10 @@ public class AndroidDeviceManager {
             }
             return TaskType.CRAWLER;
         } else {
+            // 当前设备订阅的号没有到达上限则分配订阅任务  有限分配订阅接口任务
             if (notFinishR.size() == 0) {
                 return TaskType.SUBSCRIBE;
             } else {
-                // 优先分配接口任务
-                if (REQUEST_ID_COLLECTION.size() > 0) return TaskType.SUBSCRIBE;
                 return TaskType.CRAWLER;
             }
         }
@@ -391,12 +411,13 @@ public class AndroidDeviceManager {
     }
 
 
+    // 启动入口
+
     public static void main(String[] args) {
 
+        AndroidDeviceManager manage = me();
         new Thread(() -> {
-
             try {
-                AndroidDeviceManager manage = me();
                 manage.startManager(); //开启任务执行
             } catch (InterruptedException | SQLException e) {
                 e.printStackTrace();
@@ -405,8 +426,65 @@ public class AndroidDeviceManager {
 
         Spark.port(8080);
 
-        Spark.post("/push", push);
+//        Spark.post("/push", manage.push, JSON::toJson);
+        Spark.post("/push", manage.load, JSON::toJson);
     }
+
+
+    // Topic Set
+    private Route load = (req, resp) -> {
+        // 参数校验
+        String body = req.body();
+        if (Strings.isNullOrEmpty(body)) return new Msg<>(0, "请检查您的参数！");
+        JSONObject result = new JSONObject(body);
+        JSONArray mediasArray = result.getJSONArray("media");
+        if (mediasArray == null || mediasArray.length() == 0) return new Msg<>(0, "请检查您的参数！");
+
+        // 数据加载到redis
+        String topic = Tab.REQUEST_ID_SUFFIX + DateUtil.timestamp();
+
+        // 获取当前topic对应的media  优先级队列   先进先出
+        RPriorityQueue<Object> topicMedia = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
+
+        // 数据缓存到redis中
+        for (Object tmp : mediasArray) {
+
+            String var = (String) tmp;
+
+            // 需要验证是否是历史任务？
+            // 如果是历史任务   判断是否是否完成？
+            //               1 已完成；发布消息通知订阅者
+            //               2 未完成：改动数据库中的req_id字段  这种公众号执行可能存在很高的延迟
+            SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", var).queryForFirst();
+
+            if (media == null) {
+                // 数据形式应该是   公众号名称+topic
+                topicMedia.add(var + topic);
+
+            } else {
+                if (media.status == SubscribeMedia.State.FINISH.status) {
+
+                    // 已完成任务
+                    logger.info("公众号{}加入okSet,状态为:{}", media.media_name, media.status);
+
+                    // 发布主题
+                    RTopic<Object> tmpTopic = redisClient.getTopic(topic);
+                    long k = tmpTopic.publish(media.media_name);
+                    logger.info("发布完毕！k: {} ; 主题名称： {}", k, tmpTopic);
+
+                } else if (media.status == SubscribeMedia.State.NOT_FINISH.status) {
+
+                    // status: 0 未完成   但是已经订阅
+                    media.request_id = topic;
+                    media.update();
+                    logger.info("公众号{}已经订阅！任务尚未完成，状态为{}", media.media_name, media.status);
+                }
+            }
+
+
+        }
+        return new Msg<>(1, topic);
+    };
 
     /*
      * 存储未完成请求ID集合 requests {n requestID}  完成之后删除此requestID
@@ -414,7 +492,8 @@ public class AndroidDeviceManager {
      * 存储未完成任务公众号集合   requestID_Not_Finish
      */
 
-    private static Route push = (req, resp) -> {
+    @Deprecated
+    private Route push = (req, resp) -> {
 
         String body = req.body();
 
@@ -426,7 +505,7 @@ public class AndroidDeviceManager {
 
         if (mediasArray == null || mediasArray.length() == 0) return new Msg<>(0, "请检查您的参数！");
 
-        String requestID = Tab.REQUEST_ID_PREFIX + DateUtil.timestamp();
+        String requestID = Tab.REQUEST_ID_SUFFIX + DateUtil.timestamp();
 
         RQueue<Object> request = redisClient.getQueue(Tab.REQUESTS);
 
@@ -462,10 +541,9 @@ public class AndroidDeviceManager {
                 if (media.status == SubscribeMedia.State.FINISH.status || media.status == SubscribeMedia.State.NOT_EXIST.status) {
 
                     logger.info("公众号{}加入okSet,状态为:{}", media.media_name, media.status);
-
                     okList.add(media.media_name);
-                } else {
 
+                } else {
                     // status: 0 未完成   但是已经订阅
                     logger.info("公众号{}已经订阅！任务尚未完成，状态为{}", media.media_name, media.status);
                     media.request_id = requestID;

@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Create By 2018/10/18
+ * @author maxuefeng[m17793873123@163.com]
  */
 public class UtilTest {
 

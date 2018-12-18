@@ -1,5 +1,9 @@
 package one.rewind.android.automator.model;
 
+
+/**
+ * @author maxuefeng [m17793873123@163.com]
+ */
 public enum TaskType {
 
     SUBSCRIBE(1),

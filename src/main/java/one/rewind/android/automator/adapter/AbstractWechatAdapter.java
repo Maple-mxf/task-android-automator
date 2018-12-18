@@ -18,6 +18,9 @@ import org.openqa.selenium.By;
 
 import java.util.*;
 
+/**
+ * @author maxuefeng[m17793873123@163.com]
+ */
 public abstract class AbstractWechatAdapter extends Adapter {
 
     ThreadLocal<Boolean> lastPage = new ThreadLocal<>();
@@ -188,7 +191,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             if (words.contains("已无更多")) {
 
-                System.out.println("============================没有更多文章===================================");
+                logger.info("==================没有更多文章==================");
 
                 lastPage.set(Boolean.TRUE);
 
@@ -204,8 +207,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                     e.printStackTrace();
 
                 }
-                System.out.println("是否到最后一页：" + lastPage);
-
+                logger.info("是否到最后一页：{}", lastPage);
             }
 
             int top = inJSON.getInt("top");
@@ -383,22 +385,21 @@ public abstract class AbstractWechatAdapter extends Adapter {
     // 转换成公众号名称
     static String realMedia(String media) {
 
-        if (media.contains(Tab.REQUEST_ID_PREFIX)) {
-            int index = media.indexOf(Tab.REQUEST_ID_PREFIX);
+        if (media.contains(Tab.REQUEST_ID_SUFFIX)) {
+            int index = media.indexOf(Tab.REQUEST_ID_SUFFIX);
             return media.substring(0, index);
         }
         return media;
     }
 
     // 转换成requestID
-    static String requestID(String media) {
-        if (media.contains(Tab.REQUEST_ID_PREFIX)) {
-            int index = media.indexOf(Tab.REQUEST_ID_PREFIX);
+    static String topic(String media) {
+        if (media.contains(Tab.REQUEST_ID_SUFFIX)) {
+            int index = media.indexOf(Tab.REQUEST_ID_SUFFIX);
             return media.substring(index);
         }
         return null;
     }
-
 
     /**
      * 订阅公众号
@@ -410,14 +411,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     public void subscribeMedia(String mediaName) throws Exception {
 
-        String requestID = requestID(mediaName);
+        // 获取topic
+        String topic = topic(mediaName);
 
         mediaName = realMedia(mediaName);
 
         if (Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
 
         //重启
-        AndroidUtil.restartWechatAPP(device);
+        AndroidUtil.restartWechat(device);
 
         Thread.sleep(3000);
 
@@ -447,25 +449,28 @@ public abstract class AbstractWechatAdapter extends Adapter {
             tmp.udid = udid;
             tmp.retry_count = 0;
             tmp.insert_time = new Date();
-            tmp.request_id = requestID;
+            tmp.request_id = topic;
             // 异步通知redis任务不存在
             tmp.insert();
         } else {
             AndroidUtil.clickPoint(point.left, point.top, 2000, driver);
 
             try {
+
                 // 点击订阅
                 driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
-                saveSubscribeRecord(mediaName, requestID);
                 Thread.sleep(3000);
             } catch (Exception ignore) {
                 // 已经订阅了
                 logger.info("Already add public account: {}", mediaName);
             }
+
+            // 如果订阅但是在数据库中没有存在任何记录
+            saveSubscribeRecord(mediaName, topic);
         }
     }
 
-    private void saveSubscribeRecord(String mediaName, String requestID) throws Exception {
+    private void saveSubscribeRecord(String mediaName, String topic) throws Exception {
         long tempCount = Tab.subscribeDao.queryBuilder().where()
                 .eq("media_name", mediaName)
                 .countOf();
@@ -476,7 +481,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
             e.number = 100;
             e.retry_count = 0;
             e.status = SubscribeMedia.State.NOT_FINISH.status;
-            e.request_id = requestID;
+            e.request_id = topic;
             e.insert();
         }
     }
@@ -554,7 +559,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             logger.error("---------公众号订阅失败！---------");
             try {
-                AndroidUtil.restartWechatAPP(device);
+                AndroidUtil.restartWechat(device);
             } catch (Exception e1) {
                 logger.error(e1);
             }
@@ -582,7 +587,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 }
             }
         } catch (Exception e) {
-
             e.printStackTrace();
         }
     }

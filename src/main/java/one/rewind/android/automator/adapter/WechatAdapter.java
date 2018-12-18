@@ -10,14 +10,10 @@ import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.db.RedissonAdapter;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
-import org.redisson.api.RList;
-import org.redisson.api.RQueue;
-import org.redisson.api.RTopic;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 /**
@@ -45,7 +41,6 @@ public class WechatAdapter extends AbstractWechatAdapter {
             switch (device.taskType) {
                 case CRAWLER: {
                     for (String media : device.queue) {
-
                         //  初始化记录  对应当前公众号
                         lastPage.set(Boolean.FALSE);
 
@@ -54,14 +49,15 @@ public class WechatAdapter extends AbstractWechatAdapter {
                         while (!lastPage.get()) {
                             digestionCrawler(media, true);
                         }
-                        System.out.println("one/rewind/android/automator/adapter/WechatAdapter.java location: 40 Line !");
+
+                        logger.info("one/rewind/android/automator/adapter/WechatAdapter.java location: 40 Line !");
 
                         // 当前公众号任务抓取完成之后需要到redis中进行处理数据
-
                         // 异步通知redis
-                        doCallRedisAndChangeState(media);
+                        callRedisAndChangeState(media);
 
-                        AndroidUtil.restartWechatAPP(device);
+                        AndroidUtil.restartWechat(device);
+
                     }
                     break;
                 }
@@ -74,6 +70,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
                 case FINAL:
                     return false;//退出
                 case WAIT: {
+
                     //线程睡眠
                     //需要计算啥时候到达明天   到达明天的时候需要重新分配任务
                     Date nextDay = DateUtil.buildDate();
@@ -87,7 +84,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
         }
 
 
-        private void doCallRedisAndChangeState(String mediaName) throws Exception {
+        private void callRedisAndChangeState(String mediaName) throws Exception {
             SubscribeMedia media = Tab.subscribeDao.
                     queryBuilder().
                     where().
@@ -128,17 +125,7 @@ public class WechatAdapter extends AbstractWechatAdapter {
 
             long k = topic.publish(media.media_name);
 
-            System.out.println("发布完毕！k: " + k);
-
-            // 删除notFinish集合的元素
-            String noOkList = requestID + Tab.REQUEST_ID_PREFIX + Tab.NO_OK_TASK_PROCESS_SUFFIX;
-            RList<Object> var0 = AndroidDeviceManager.redisClient.getList(noOkList);
-            var0.remove(media.media_name);
-
-            //删除requestID
-            RQueue<Object> var2 = AndroidDeviceManager.redisClient.getQueue(Tab.REQUESTS);
-
-            var2.remove(requestID);
+            logger.info("发布完毕！k: {}", k);
         }
     }
 
@@ -149,16 +136,12 @@ public class WechatAdapter extends AbstractWechatAdapter {
         ListenableFuture<Boolean> future = service.submit(new Task());
 
         Futures.addCallback(future, new FutureCallback<Boolean>() {
+
             @Override
             public void onSuccess(@NullableDecl Boolean result) {
-
-                try {
-                    if (Boolean.TRUE.equals(future.get())) {
-                        AndroidDeviceManager.me().addIdleAdapter(adapter);
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
+                // 清空任务队列
+                device.queue.clear();
+                AndroidDeviceManager.me().addIdleAdapter(adapter);
             }
 
             @Override
@@ -170,8 +153,8 @@ public class WechatAdapter extends AbstractWechatAdapter {
     }
 
     @Override
+    @Deprecated
     public void stop() {
-
         //启动关闭线程池
         while (true) {
             service.shutdownNow();
