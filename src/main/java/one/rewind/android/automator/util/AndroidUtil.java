@@ -44,8 +44,7 @@ public class AndroidUtil {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
         } catch (Exception e) {
             closeApp(device);
-            clearMemory(device.udid);
-            AndroidUtil.activeWechat(device);
+            activeWechat(device);
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
         }
         Thread.sleep(1000);
