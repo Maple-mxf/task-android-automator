@@ -425,15 +425,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
         // A 点搜索
         driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]")).click();
-        Thread.sleep(2000);
+        Thread.sleep(5000);
 
         // B 点公众号
         driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
-        Thread.sleep(4000);
+        Thread.sleep(5000);
 
         // C1 输入框输入搜索信息
         driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
-        Thread.sleep(2000);
+        Thread.sleep(3000);
 
         // C3 点击软键盘的搜索键
         AndroidUtil.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整

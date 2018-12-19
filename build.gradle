@@ -93,12 +93,4 @@ task "create-dirs" << {
     sourceSets*.resources.srcDirs*.each { it.mkdirs() }
 } as String
 
-task buildZip(type: Zip) {
-    from compileJava
-    from processResources
-    into('lib') {
-        from configurations.runtime
-    }
-}
 
-build.dependsOn buildZip

@@ -328,7 +328,7 @@ public class AndroidDevice extends AbstractService {
         service = new AppiumServiceBuilder()
                 .withCapabilities(serviceCapabilities)
                 .usingPort(appiumPort)
-                .withArgument(GeneralServerFlag.LOG_LEVEL, "error")
+                .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
 //                .withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")
                 //.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")
                 .build();
