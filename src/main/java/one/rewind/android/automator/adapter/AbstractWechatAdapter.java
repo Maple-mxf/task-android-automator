@@ -553,7 +553,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
      */
     public void digestionSubscribe(String mediaName) {
         try {
-
             subscribeMedia(mediaName);
         } catch (Exception e) {
 

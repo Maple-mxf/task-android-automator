@@ -181,9 +181,7 @@ public class AndroidDevice extends AbstractService {
      * 设备需要连接WIFI，设备与本机器在同一网段
      */
     public void setupWifiProxy() {
-
         try {
-
             JadbConnection jadb = new JadbConnection();
 
             // TODO
@@ -415,17 +413,11 @@ public class AndroidDevice extends AbstractService {
     public void initApp() {
         this.startProxy(localProxyPort);
         this.setupWifiProxy();
-        System.out.println("Starting....Please wait!");
+        logger.info("Starting....Please wait!");
         try {
-            RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
-//                String url = messageInfo.getOriginalUrl();
+            RequestFilter requestFilter = (request, contents, messageInfo) -> null;
 
-//                if (url.contains("https://mp.weixin.qq.com/s")) {
-//                    System.out.println(" . " + url);
-//                }
-                return null;
-            };
             Stack<String> content_stack = new Stack<>();
             Stack<String> stats_stack = new Stack<>();
             Stack<String> comments_stack = new Stack<>();
@@ -538,12 +530,41 @@ public class AndroidDevice extends AbstractService {
 
     }
 
-    public void restartAPPIUM() throws InterruptedException {
 
+    //  清空缓存日志
+    public void clearCacheLog() throws IOException {
+        String command = "adb -s " + this.udid + " logcat -c -b events";
+        Runtime.getRuntime().exec(command);
+        logger.info("清空设备 {} 的缓存日志");
+    }
+
+
+    // 清空所有日志
+    public void clearAllLog() throws IOException {
+        String command = "adb -s " + this.udid + " logcat -c -b main -b events -b radio -b system";
+        Runtime.getRuntime().exec(command);
+        logger.info("清空设备 {} 的全部系统级别日志");
+    }
+
+
+    // 重启appium
+
+    public void restart() throws IOException {
+        // 停止client端
         doStop();
-
-        Thread.sleep(10000);
+        // 停止server端
+        stopAppiumServer();
 
         initApp();
+    }
+
+    // 重启移动端appium
+
+    public void stopAppiumServer() throws IOException {
+        String command1 = "adb -s " + this.udid + " shell am force-stop io.appium.settings";
+        Runtime.getRuntime().exec(command1);
+        String command2 = "adb -s " + this.udid + " shell am force-stop io.appium.uiautomator2.server";
+        Runtime.getRuntime().exec(command2);
+        logger.info("重启设备 {} AppiumServer", udid);
     }
 }

@@ -201,7 +201,7 @@ public class WechatAdapterTest {
 
     @Test
     public void testSubscribeAccount() throws Exception {
-        adapter.digestionSubscribe("阿里巴巴");
+        adapter.digestionSubscribe("芋道源码");
 //        adapter.digestionCrawler("阿里巴巴", true);
     }
 
