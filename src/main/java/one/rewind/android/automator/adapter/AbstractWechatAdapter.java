@@ -508,7 +508,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
                 try {
                     //手机睡眠
                     AndroidUtil.closeApp(device);
-                    Thread.sleep(1000 * 60 * 3);
+                    Thread.sleep(1000 * 30);
                     AndroidUtil.activeWechat(this.device);
                     SubscribeMedia media = AndroidUtil.retry(mediaName, this.device.udid);
                     if (media != null) {

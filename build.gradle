@@ -8,7 +8,9 @@ apply plugin: 'application'
 apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
 
-applicationDefaultJvmArgs = ["-Xms200m", "-Xmx4000m", "-Dsun.net.inetaddr.ttl=-1", "-Djava.net.preferIPv4Stack=true", "-Dlog4j.configurationFile=log4j2.xml", "-Dfile.encoding=UTF8", "-Djdk.http.auth.tunneling.disabledSchemes=\"\"", "-Djava.library.path=/opt/opencv-3.4.1/build/lib"]
+sourceCompatibility = 1.8
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
 
 mainClassName = "one.rewind.android.automator.manager.AndroidDeviceManager"
 
@@ -28,7 +30,6 @@ publishing {
         }
     }
 }
-sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
