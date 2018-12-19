@@ -9,7 +9,7 @@ import one.rewind.db.DBName;
 import java.util.Date;
 
 /**
- * 采集任务 model
+ * 采集任务 监控爬虫用途
  *
  * @author maxuefeng [m17793873123@163.com]
  */
@@ -34,4 +34,8 @@ public class CollectTask extends ModelL {
     // 是否结束
     @DatabaseField(dataType = DataType.BOOLEAN)
     public Boolean end;
+
+    // 客户端IP地址
+    @DatabaseField(dataType = DataType.STRING)
+    public String ip;
 }

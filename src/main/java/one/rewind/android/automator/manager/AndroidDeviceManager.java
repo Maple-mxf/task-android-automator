@@ -50,21 +50,9 @@ public class AndroidDeviceManager {
      */
     private BlockingQueue<WechatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
-
-    @Deprecated
-    private Set<WechatAdapter> allAdapters = Sets.newConcurrentHashSet();
-
     /**
      */
     private Stack<String> mediaStack = new Stack<>();
-
-    /**
-     * 存储请求ID   对应redis中的topic
-     * <p>
-     * Thread safe
-     */
-    public static final List<String> REQUEST_ID_COLLECTION = Lists.newCopyOnWriteArrayList();
-
 
     /**
      * 所有设备的信息
@@ -431,7 +419,6 @@ public class AndroidDeviceManager {
     }
 
 
-    // Topic Set
     private Route load = (req, resp) -> {
         // 参数校验
         String body = req.body();
@@ -456,7 +443,6 @@ public class AndroidDeviceManager {
             //               1 已完成；发布消息通知订阅者
             //               2 未完成：改动数据库中的req_id字段  这种公众号执行可能存在很高的延迟
             SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", var).queryForFirst();
-
             if (media == null) {
                 // 数据形式应该是   公众号名称+topic
                 topicMedia.add(var + topic);

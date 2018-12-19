@@ -7,3 +7,5 @@
 .tmp/
 .build.properties
 .gitignore
+将删除 log/
+将删除 out/

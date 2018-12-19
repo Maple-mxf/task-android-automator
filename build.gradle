@@ -1,11 +1,33 @@
-plugins {
-    id 'java'
-}
-
 group 'one.rewind'
 version '1.0-SNAPSHOT'
 
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'idea'
+apply plugin: 'application'
+apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'maven-publish'
 
+applicationDefaultJvmArgs = ["-Xms200m", "-Xmx4000m", "-Dsun.net.inetaddr.ttl=-1", "-Djava.net.preferIPv4Stack=true", "-Dlog4j.configurationFile=log4j2.xml", "-Dfile.encoding=UTF8", "-Djdk.http.auth.tunneling.disabledSchemes=\"\"", "-Djava.library.path=/opt/opencv-3.4.1/build/lib"]
+
+mainClassName = "one.rewind.android.automator.manager.AndroidDeviceManager"
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5"
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
 sourceCompatibility = 1.8
 
 repositories {
@@ -48,9 +70,34 @@ dependencies {
 
     testCompile group: 'io.appium', name: 'java-client'
 }
-
+test {
+    useJUnitPlatform()
+    failFast = true
+    testLogging {
+        events 'PASSED', 'FAILED', 'SKIPPED'
+    }
+    afterSuite { desc, result ->
+        if (!desc.parent) {
+            println "\nTest result: ${result.resultType}"
+            println "Test summary: ${result.testCount} tests, " +
+                    "${result.successfulTestCount} succeeded, " +
+                    "${result.failedTestCount} failed, " +
+                    "${result.skippedTestCount} skipped"
+        }
+    }
+}
 
 task "create-dirs" << {
     sourceSets*.java.srcDirs*.each { it.mkdirs() }
     sourceSets*.resources.srcDirs*.each { it.mkdirs() }
 } as String
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+build.dependsOn buildZip

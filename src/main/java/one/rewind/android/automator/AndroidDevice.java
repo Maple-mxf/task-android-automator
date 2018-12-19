@@ -532,18 +532,26 @@ public class AndroidDevice extends AbstractService {
 
 
     //  清空缓存日志
-    public void clearCacheLog() throws IOException {
-        String command = "adb -s " + this.udid + " logcat -c -b events";
-        Runtime.getRuntime().exec(command);
-        logger.info("清空设备 {} 的缓存日志");
+    public void clearCacheLog() {
+        try {
+            String command = "adb -s " + this.udid + " logcat -c -b events";
+            Runtime.getRuntime().exec(command);
+            logger.info("清空设备 {} 的缓存日志");
+        } catch (Exception ignore) {
+            logger.error(ignore);
+        }
     }
 
 
     // 清空所有日志
-    public void clearAllLog() throws IOException {
-        String command = "adb -s " + this.udid + " logcat -c -b main -b events -b radio -b system";
-        Runtime.getRuntime().exec(command);
-        logger.info("清空设备 {} 的全部系统级别日志");
+    public void clearAllLog() {
+        try {
+            String command = "adb -s " + this.udid + " logcat -c -b main -b events -b radio -b system";
+            Runtime.getRuntime().exec(command);
+            logger.info("清空设备 {} 的全部系统级别日志");
+        } catch (Exception e) {
+            logger.error(e);
+        }
     }
 
 

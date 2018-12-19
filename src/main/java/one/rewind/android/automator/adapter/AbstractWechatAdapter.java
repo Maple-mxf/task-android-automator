@@ -498,7 +498,11 @@ public abstract class AbstractWechatAdapter extends Adapter {
             }
             delegateOpenEssay(mediaName, retry);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e);
+
+            device.clearCacheLog();
+            device.clearAllLog();
+
             if (e instanceof AndroidCollapseException) {
                 logger.error("设备{}链路出问题了.", device.udid);
                 try {
@@ -558,6 +562,8 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
             logger.error("---------公众号订阅失败！---------");
             try {
+                device.clearCacheLog();
+                device.clearAllLog();
                 AndroidUtil.restartWechat(device);
             } catch (Exception e1) {
                 logger.error(e1);
