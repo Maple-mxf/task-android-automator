@@ -131,8 +131,8 @@ public class AndroidDevice extends AbstractService {
      */
     public void startProxy(int port) {
 
-        CertificateAndKeySource source =
-                new PemFileCertificateSource(new File("ca.crt"), new File("pk.crt"), "sdyk");
+//        CertificateAndKeySource source = new PemFileCertificateSource(new File("ca.crt"), new File("pk.crt"), "sdyk");
+        CertificateAndKeySource source = new PemFileCertificateSource(new File("/usr/local/ca.crt"), new File("/usr/local/pk.crt"), "sdyk");
 
         // tell the MitmManager to use the root certificate we just generated
         ImpersonatingMitmManager mitmManager = ImpersonatingMitmManager.builder()
@@ -328,12 +328,14 @@ public class AndroidDevice extends AbstractService {
         service = new AppiumServiceBuilder()
                 .withCapabilities(serviceCapabilities)
                 .usingPort(appiumPort)
-                .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
+                .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+                .withAppiumJS(new File("/usr/local/lib/node_modules/appium/build/lib/main.js"))
 //                .withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")
-                //.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")
                 .build();
 
         service.start();
+
+        Thread.sleep(5000);
 
         serviceUrl = service.getUrl();
 
@@ -358,9 +360,10 @@ public class AndroidDevice extends AbstractService {
 
         capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, udid);
 
+//        driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
         driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
 
-        Thread.sleep(5000);
+        Thread.sleep(15000);
 
         // 设置宽高
         this.width = getWidth();
@@ -416,7 +419,9 @@ public class AndroidDevice extends AbstractService {
         logger.info("Starting....Please wait!");
         try {
 
-            RequestFilter requestFilter = (request, contents, messageInfo) -> null;
+            RequestFilter requestFilter = (request, contents, messageInfo) -> {
+                return null;
+            };
 
             Stack<String> content_stack = new Stack<>();
             Stack<String> stats_stack = new Stack<>();

@@ -141,7 +141,7 @@ public class DBTest {
     public void perfectEssays() throws Exception {
 
         Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/raw?useSSL=false", "root", "root");
+        Connection conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/raw?useSSL=false", "root", "root");
 
         PreparedStatement ps1 = conn.prepareStatement("select * from essays limit ?,20");
 
@@ -222,7 +222,7 @@ public class DBTest {
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
 
         Class.forName("com.mysql.jdbc.Driver");
-        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/raw?useSSL=false", "root", "root");
+        Connection conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/raw?useSSL=false", "root", "root");
         conn.setAutoCommit(false);
 
         PreparedStatement ps1 = conn.prepareStatement("select id from essays  group by id having count(id)>1");

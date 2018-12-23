@@ -3,6 +3,7 @@ package one.rewind.android.automator.test;
 import com.google.common.collect.Queues;
 import org.junit.Test;
 import org.redisson.Redisson;
+import org.redisson.api.RSet;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.RedisClient;
@@ -28,7 +29,7 @@ public class RedissonTest {
 
         RedisClientConfig config = new RedisClientConfig();
 
-        config.setAddress("localhost", 6379).setPassword("123456");
+        config.setAddress("127.0.0.1", 6379).setPassword("123456");
 
         RedisClient client = RedisClient.create(config);
 
@@ -93,5 +94,17 @@ public class RedissonTest {
         }).start();
         Spark.port(8080);
         Spark.get("/hello", (req, resp) -> "hello world");
+    }
+
+    @Test
+    public void getSet() throws IOException {
+        Config tmp = new Config();
+        tmp.useSingleServer().setAddress("redis://10.0.0.157:6379").setPassword("123456");
+        RedissonClient client = Redisson.create(tmp);
+        RSet<Object> topic_media = client.getSet("topic_media");
+
+        for (Object var : topic_media) {
+            System.out.println(var);
+        }
     }
 }
