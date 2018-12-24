@@ -65,6 +65,8 @@ dependencies {
 
     compile 'one.rewind:raw-data:1.0.16-SNAPSHOT'
 
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.12.0'
+
     compile group: 'org.json', name: 'json', version: '20180130'
 
     compile group: 'org.apache.spark', name: 'spark-core_2.11', version: '2.3.0'

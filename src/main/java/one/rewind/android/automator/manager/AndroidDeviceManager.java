@@ -1,6 +1,8 @@
 package one.rewind.android.automator.manager;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.*;
@@ -413,6 +415,8 @@ public class AndroidDeviceManager {
         // 获取当前topic对应的media  优先级队列   先进先出
         RPriorityQueue<Object> topicMedia = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
 
+        List<String> alreadyCompleted = Lists.newArrayList();
+
         // 数据缓存到redis中
         for (Object tmp : mediasArray) {
 
@@ -434,10 +438,11 @@ public class AndroidDeviceManager {
                     // 已完成任务
                     logger.info("公众号{}加入okSet,状态为:{}", media.media_name, media.status);
 
-                    // 发布主题
-                    RTopic<Object> tmpTopic = redisClient.getTopic(topic);
-                    long k = tmpTopic.publish(media.media_name);
-                    logger.info("发布完毕！k: {} ; 主题名称： {}", k, tmpTopic);
+                    // 发布主题  这个地方发布主题是错误的   存在BUG  客户端会因为时序问题接收不到数据  TODO
+//                    RTopic<Object> tmpTopic = redisClient.getTopic(topic);
+//                    long k = tmpTopic.publish(media.media_name);
+//                    logger.info("发布完毕！k: {} ; 主题名称： {}", k, tmpTopic);
+                    alreadyCompleted.add(media.media_name);
 
                 } else if (media.status == SubscribeMedia.State.NOT_FINISH.status) {
 
@@ -450,7 +455,10 @@ public class AndroidDeviceManager {
 
 
         }
-        return new Msg<>(1, topic);
+        Map<String, Object> data = Maps.newHashMap();
+        data.put("topic", topic);
+        data.put("alreadyCompleted", alreadyCompleted);
+        return new Msg<>(1, data);
     };
 
 

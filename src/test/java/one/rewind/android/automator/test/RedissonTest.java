@@ -1,8 +1,10 @@
 package one.rewind.android.automator.test;
 
 import com.google.common.collect.Queues;
+import one.rewind.android.automator.model.Tab;
 import org.junit.Test;
 import org.redisson.Redisson;
+import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RSet;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -101,9 +103,22 @@ public class RedissonTest {
         Config tmp = new Config();
         tmp.useSingleServer().setAddress("redis://10.0.0.157:6379").setPassword("123456");
         RedissonClient client = Redisson.create(tmp);
-        RSet<Object> topic_media = client.getSet("topic_media");
+        RPriorityQueue<Object> queue = client.getPriorityQueue(Tab.TOPIC_MEDIA);
 
-        for (Object var : topic_media) {
+        for (Object var : queue) {
+            System.out.println(var);
+        }
+    }
+
+    @Test
+    public void pushData2Queue() {
+        Config tmp = new Config();
+        tmp.useSingleServer().setAddress("redis://127.0.0.1:6379").setPassword("123456");
+        RedissonClient client = Redisson.create(tmp);
+        RPriorityQueue<Object> queue = client.getPriorityQueue(Tab.TOPIC_MEDIA);
+//        queue.add("facebookreq_id20181224031231121");
+
+        for (Object var : queue) {
             System.out.println(var);
         }
     }
