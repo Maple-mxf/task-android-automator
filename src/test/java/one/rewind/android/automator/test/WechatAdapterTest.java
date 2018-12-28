@@ -7,7 +7,7 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WechatAdapter;
 import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.model.Tab;
+import one.rewind.android.automator.util.Tab;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;

@@ -1,7 +1,6 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.model.Tab;
 import one.rewind.android.automator.model.Media;
 
 import java.sql.SQLException;
@@ -34,12 +33,7 @@ public class DBUtil {
         }
     }
 
-    public static void obtainFullData(Set<String> accounts, int page, int var) {
-        while (accounts.size() <= var) {
-            sendAccounts(accounts, page);
-            ++page;
-        }
-    }
+
 
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = Tab.subscribeDao.

@@ -2,7 +2,7 @@ package one.rewind.android.automator.test;
 
 import com.google.common.collect.Maps;
 import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.Tab;
+import one.rewind.android.automator.util.Tab;
 import one.rewind.json.JSON;
 import org.junit.Test;
 

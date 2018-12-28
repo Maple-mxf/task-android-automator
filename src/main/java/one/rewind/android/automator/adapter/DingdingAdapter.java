@@ -14,7 +14,6 @@ import java.util.List;
 public class DingdingAdapter extends Adapter {
 
 	/**
-	 *
 	 * @param androidDevice
 	 */
 	public DingdingAdapter(AndroidDevice androidDevice) {
@@ -28,25 +27,25 @@ public class DingdingAdapter extends Adapter {
 	 */
 	public void getAllDingdingContacts() throws InterruptedException {
 
-		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 		Thread.sleep(500);
 
-		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'组织架构')]")).click();
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'组织架构')]")).click();
 		Thread.sleep(200);
 
 		for (int j = 0; j < 50; j++) {
 
-			List<WebElement> lis = driver.findElementsById("com.alibaba.android.rimet:id/item_contact");
+			List<WebElement> lis = device.driver.findElementsById("com.alibaba.android.rimet:id/item_contact");
 
 			for (int i = 0; i < lis.size(); i++) {
 				lis.get(i).click();
 				Thread.sleep(300);
-				System.out.println(driver.findElementById("com.alibaba.android.rimet:id/cell_subTitle"));
+				System.out.println(device.driver.findElementById("com.alibaba.android.rimet:id/cell_subTitle"));
 				Thread.sleep(300);
-				driver.findElementByAccessibilityId("返回");
+				device.driver.findElementByAccessibilityId("返回");
 			}
 
-			TouchAction action = new TouchAction(driver)
+			TouchAction action = new TouchAction(device.driver)
 					.press(PointOption.point(700, 2360))
 					.waitAction()
 					.moveTo(PointOption.point(700, 200))
@@ -60,16 +59,17 @@ public class DingdingAdapter extends Adapter {
 
 	/**
 	 * 获取企业信息
+	 *
 	 * @throws InterruptedException 中断异常
 	 */
 	public void getDingdingCompanyContact() throws InterruptedException {
 
-		driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 		Thread.sleep(500);
 
-		driver.findElementByAccessibilityId("企业广场").click();
+		device.driver.findElementByAccessibilityId("企业广场").click();
 		Thread.sleep(10000);
 
-		System.out.println(driver.getContext());
+		System.out.println(device.driver.getContext());
 	}
 }

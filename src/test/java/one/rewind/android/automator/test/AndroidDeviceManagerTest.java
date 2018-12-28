@@ -1,6 +1,5 @@
 package one.rewind.android.automator.test;
 
-import one.rewind.android.automator.manager.AndroidDeviceManager;
 import org.junit.Test;
 
 import java.sql.SQLException;

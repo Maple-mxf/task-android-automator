@@ -2,7 +2,6 @@ package one.rewind.android.automator.util;
 
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.Tab;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
