@@ -66,6 +66,7 @@ public class DateUtilTest {
 	@Test
 	public void testDateCompare() throws ParseException {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
 		Date d1 = df.parse("2019-12-01 00:00:00");
 		System.out.println(d1.before(new Date()));
 		// d1 > new Date()

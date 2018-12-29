@@ -90,7 +90,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 		screenshot(fileName, path, device.driver);
 
-		JSONObject jsonObject = BaiduAPIUtil.imageOCR(path + fileName);
+		JSONObject jsonObject = OCRAdapter.imageOCR(path + fileName, false);
 
 		FileUtil.deleteFile(path + fileName);
 
@@ -152,9 +152,14 @@ public abstract class AbstractWechatAdapter extends Adapter {
 	 */
 	@SuppressWarnings("JavaDoc")
 	private List<WordsPoint> analysisImage(String filePath) throws Exception {
-		JSONObject jsonObject = BaiduAPIUtil.imageOCR(filePath);
+		JSONObject origin = OCRAdapter.imageOCR(filePath, true);
+
 		FileUtil.deleteFile(filePath);
-		List<WordsPoint> result = analysisWordsPoint(jsonObject.getJSONArray("words_result"));
+
+		// 将图片中的所有标题全部提取出来
+		JSONArray array = OCRAdapter.ocrRealEassyTitleOfBaidu(origin);
+
+		List<WordsPoint> result = analysisWordsPoint(array);
 
 		// 定位最新任务
 		if (this.relativeFlag.history) {

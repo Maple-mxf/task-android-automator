@@ -1,6 +1,7 @@
 package one.rewind.android.automator.test.util;
 
 import com.google.common.collect.Sets;
+import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.Tab;
@@ -37,11 +38,12 @@ public class UtilTest {
     public void testSubscribeNumber() throws SQLException, ClassNotFoundException {
 //        int numToday = DBUtil.obtainSubscribeNumToday("ZX1G423DMM");
 //        System.out.println(numToday);
+		//java校验指定日期格式yyyy年MM月dd日的正则表达式
     }
 
     @Test
     public void testBaiduAPI() throws Exception {
-        JSONObject jsonObject = BaiduAPIUtil.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png");
+        JSONObject jsonObject = OCRAdapter.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png",false);
         System.out.println(jsonObject);
     }
 

@@ -15,15 +15,12 @@ import java.util.Map;
  */
 public class CrawlerAPITest {
 
-    @Test
-    public void testPushMedias() throws SQLException {
-        List<Essays> essays = Tab.essayDao.queryBuilder().offset(2).limit(1).query();
-
-        Map<String, Object> json = Maps.newHashMap();
-        json.put("essays", essays);
-
-        String toJson = JSON.toJson(json);
-
-        System.out.println(toJson);
-    }
+	@Test
+	public void testPushMedias() throws SQLException {
+		List<Essays> essays = Tab.essayDao.queryBuilder().offset(2).limit(1).query();
+		Map<String, Object> json = Maps.newHashMap();
+		json.put("essays", essays);
+		String toJson = JSON.toJson(json);
+		System.out.println(toJson);
+	}
 }

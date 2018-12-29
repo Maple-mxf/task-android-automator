@@ -3,6 +3,7 @@ package one.rewind.android.automator.util;
 import io.appium.java_client.android.AndroidDriver;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWechatAdapter;
+import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -87,7 +88,7 @@ public class AndroidUtil {
 			String fileName = filePrefix + ".png";
 			String path = System.getProperty("user.dir") + "/screen/";
 			AbstractWechatAdapter.screenshot(fileName, path, device.driver);
-			JSONObject jsonObject = BaiduAPIUtil.imageOCR(path + fileName);
+			JSONObject jsonObject = OCRAdapter.imageOCR(path + fileName,false);
 			JSONArray array = (JSONArray) jsonObject.get("words_result");
 			for (Object o : array) {
 
