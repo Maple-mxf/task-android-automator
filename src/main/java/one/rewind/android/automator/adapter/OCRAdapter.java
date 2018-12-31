@@ -184,6 +184,8 @@ public class OCRAdapter {
 
 		for (int i = 0; i < length; i++) {
 
+
+
 			JSONObject var = (JSONObject) wordsResult.get(i);
 
 			StringBuilder title = new StringBuilder();
@@ -196,15 +198,15 @@ public class OCRAdapter {
 
 			while (flag) {
 
+				if (i == length) break;
+
 				JSONObject tmpNode = (JSONObject) wordsResult.get(i);
 
 				String words = tmpNode.getString("words");
 
-				//
-
 				String tmpWords;
 
-				if (words.length()>=11){
+				if (words.length() >= 11){
 					 tmpWords= words.substring(0,11);
 				}else{
 					tmpWords = "";
@@ -233,12 +235,16 @@ public class OCRAdapter {
 			JSONObject titleJSON = new JSONObject();
 
 			titleJSON.put("location",inJSONLocation);
-			titleJSON.put("words",title);
+			titleJSON.put("words",title.toString());
 
 			resultArray.put(titleJSON);
 			resultArray.put(outJSON);
 		}
+
+		System.out.println("result Array : " + resultArray);
 		return resultArray;
 	}
+
+	private OCRAdapter(){}
 
 }

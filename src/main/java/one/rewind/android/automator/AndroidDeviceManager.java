@@ -5,7 +5,7 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.*;
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.adapter.WechatAdapter;
+import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
@@ -47,7 +47,7 @@ public class AndroidDeviceManager {
 	/**
 	 * 存储无任务设备信息 利用建监听者模式实现设备管理
 	 */
-	private BlockingQueue<WechatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
+	private BlockingQueue<WeChatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
 	/**
 	 *
@@ -118,7 +118,7 @@ public class AndroidDeviceManager {
 	}
 
 
-	private void execute(WechatAdapter adapter) {
+	private void execute(WeChatAdapter adapter) {
 		try {
 			logger.info("start executed");
 			//计算任务类型
@@ -144,7 +144,7 @@ public class AndroidDeviceManager {
 	}
 
 
-	public void addIdleAdapter(WechatAdapter adapter) {
+	public void addIdleAdapter(WeChatAdapter adapter) {
 		synchronized (this) {
 			this.idleAdapters.add(adapter);
 		}
@@ -220,7 +220,7 @@ public class AndroidDeviceManager {
 
 
 	//
-	private AndroidDevice.Task.Type calculateTaskType(WechatAdapter adapter) throws Exception {
+	private AndroidDevice.Task.Type calculateTaskType(WeChatAdapter adapter) throws Exception {
 
 		String udid = adapter.getDevice().udid;
 
@@ -359,7 +359,7 @@ public class AndroidDeviceManager {
 			manager.initMediaStack();
 
 			for (AndroidDevice device : manager.devices) {
-				WechatAdapter adapter = new WechatAdapter(device);
+				WeChatAdapter adapter = new WeChatAdapter(device);
 				adapter.startUpDevice();
 				manager.idleAdapters.add(adapter);
 			}
@@ -368,7 +368,7 @@ public class AndroidDeviceManager {
 			manager.resetOCRToken();
 
 			while (true) {
-				WechatAdapter adapter = manager.idleAdapters.take();
+				WeChatAdapter adapter = manager.idleAdapters.take();
 				// 获取到休闲设备进行任务执行
 				manager.execute(adapter);
 			}

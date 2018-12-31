@@ -5,11 +5,15 @@ import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
 import joptsimple.internal.Strings;
+import net.lightbody.bmp.filters.RequestFilter;
+import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AlreadySubscribeException;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.exception.SearchMediaException;
+import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.*;
@@ -18,20 +22,25 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.openqa.selenium.*;
+import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RedissonClient;
 
 import java.io.File;
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
+ * 采集某个号时  先初始化缓存数据  如果从DB中加载数据会降低效率
+ *
  * @author maxuefeng[m17793873123@163.com]
  */
-public abstract class AbstractWechatAdapter extends Adapter {
+public abstract class AbstractWeChatAdapter extends Adapter {
 
 
 	class RelativeFlag {
@@ -58,9 +67,9 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 
 	/**
-	 * 上一次分析点击坐标记录的集合
+	 * 上一次分析点击坐标记录的集合  每次执行新任务会将此集合进行清空   利用回调机制实现
 	 */
-	Set<String> previousEssayTitles = Sets.newHashSet();
+	Set<String> currentTitles = Sets.newHashSet();
 
 	private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
@@ -78,7 +87,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 	public static final int RETRY_COUNT = 20;
 
-	AbstractWechatAdapter(AndroidDevice device) {
+	AbstractWeChatAdapter(AndroidDevice device) {
 		super(device);
 	}
 
@@ -90,7 +99,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 		screenshot(fileName, path, device.driver);
 
-		JSONObject jsonObject = OCRAdapter.imageOCR(path + fileName, false);
+		JSONObject jsonObject = OCRAdapter.imageOCR(path + fileName, true);
 
 		FileUtil.deleteFile(path + fileName);
 
@@ -152,14 +161,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
 	 */
 	@SuppressWarnings("JavaDoc")
 	private List<WordsPoint> analysisImage(String filePath) throws Exception {
+
 		JSONObject origin = OCRAdapter.imageOCR(filePath, true);
 
 		FileUtil.deleteFile(filePath);
 
-		// 将图片中的所有标题全部提取出来
-		JSONArray array = OCRAdapter.ocrRealEassyTitleOfBaidu(origin);
+		// 将图片中的所有标题全部提取出来 大大降低此处的处理复杂度
+//		JSONArray array = OCRAdapter.ocrRealEassyTitleOfBaidu(origin);
 
-		List<WordsPoint> result = analysisWordsPoint(array);
+		List<WordsPoint> result = analysisWordsPoint(origin.getJSONArray("words_result"));
 
 		// 定位最新任务
 		if (this.relativeFlag.history) {
@@ -170,23 +180,27 @@ public abstract class AbstractWechatAdapter extends Adapter {
 				// 对于point处理一下  2018年09月09日 原创
 				String words = point.words;
 
-				// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
-				words = words.substring(0, 11);
+				if (words.length() >= 11) {
 
-				// 首先比较relativeFlag的record字段是否相等于words
-				if (words.equals(this.relativeFlag.record)) {
+					// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
+					words = words.substring(0, 11);
 
-					// 标记任务结束
-					lastPage.set(Boolean.TRUE);
-					//
-					int index = result.indexOf(point);
-					for (int i = index + 1; i <= result.size(); i++) {
-						result.remove(i);
+					// 首先比较relativeFlag的record字段是否相等于words
+					if (words.equals(this.relativeFlag.record)) {
+
+						// 标记任务结束
+						lastPage.set(Boolean.TRUE);
+						//
+						int index = result.indexOf(point);
+						for (int i = index + 1; i <= result.size(); i++) {
+							result.remove(i);
+						}
+
+						// 回调函数  形成闭环
+						this.relativeFlag.callback();
+
+						return result;
 					}
-
-					// 回调函数  形成闭环
-					this.relativeFlag.callback();
-					return result;
 				}
 				// 如果因为安卓惯性造成无法对接上一次的记录(需要对于时间的大小进行表)
 				Date d1 = df.parse(words);
@@ -221,8 +235,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 		JSONArray tmpArray = array;
 
-		array.remove(0);
-
 		List<WordsPoint> wordsPoints = new ArrayList<>();
 
 		//计算坐标  文章的标题最多有两行  标题过长微信会使用省略号代替掉
@@ -237,7 +249,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 			// 置换为空的提高效率操作
 			if (Strings.isNullOrEmpty(words)) continue;
 
-			if (previousEssayTitles.contains(words)) {
+			if (currentTitles.contains(words)) {
 
 				boolean flag = true;
 
@@ -280,7 +292,6 @@ public abstract class AbstractWechatAdapter extends Adapter {
 				return wordsPoints;
 			}
 
-
 			int left = inJSON.getInt("left");
 
 			//确保时间标签的位置   有可能有年月日字符串的在文章标题中   为了防止这种情况   left<=80
@@ -298,16 +309,14 @@ public abstract class AbstractWechatAdapter extends Adapter {
 				if (wordsPoints.size() >= 6) return wordsPoints;
 			}
 		}
-		preserveThePreviousSet(tmpArray);
+		previousTitles(tmpArray);
 		return wordsPoints;
 	}
 
 
 	// 记录上一次的图像识别的结果
 
-	private void preserveThePreviousSet(JSONArray array) {
-
-		previousEssayTitles.clear();
+	private void previousTitles(JSONArray array) {
 
 		for (int i = 0; i < array.length(); i++) {
 
@@ -317,7 +326,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 			if (!words.contains("年") && !words.contains("月") && !words.contains("日")) {
 				if (i != array.length() - 1) {
-					previousEssayTitles.add(words);
+					currentTitles.add(words);
 				}
 			}
 		}
@@ -600,14 +609,14 @@ public abstract class AbstractWechatAdapter extends Adapter {
 
 		// 判断是否无响应
 
-		try {
-			// No
-			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
+//		try {
+		// No
+//			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
 //			throw new SearchMediaException("点击搜索微信公众号" + mediaName + "无响应");
-		} catch (NoSuchElementException e) {
+//		} catch (NoSuchElementException e) {
 //			logger.error("!");
 //			throw new SearchMediaException("点击搜索微信公众号" + mediaName + "无响应");
-		}
+//		}
 
 		// 点击订阅
 		try {
@@ -636,6 +645,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 				e.retry_count = 0;
 				e.status = SubscribeMedia.State.NOT_FINISH.status;
 				e.request_id = topic;
+				e.relative = 1;
 				e.insert();
 			}
 		} catch (Exception e) {
@@ -715,6 +725,15 @@ public abstract class AbstractWechatAdapter extends Adapter {
 		Thread.sleep(sleepTime);
 	}
 
+
+	/**
+	 * 重试
+	 *
+	 * @param mediaName
+	 * @param udid
+	 * @return 为空
+	 * @throws Exception ex
+	 */
 	public static SubscribeMedia retry(String mediaName, String udid) throws Exception {
 		SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
 		if (media == null) {
@@ -738,7 +757,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 			return null;
 		}
 		long count = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-		if (media.retry_count >= AbstractWechatAdapter.RETRY_COUNT) {
+		if (media.retry_count >= RETRY_COUNT) {
 			media.update_time = new Date();
 			media.number = (int) count;
 			media.status = SubscribeMedia.State.FINISH.status;
@@ -783,7 +802,7 @@ public abstract class AbstractWechatAdapter extends Adapter {
 						media.retry_count += 1;
 						media.update_time = new Date();
 						media.update();
-						if (media.retry_count >= 5) lastPage.set(Boolean.TRUE);
+						if (media.retry_count >= RETRY_COUNT) lastPage.set(Boolean.TRUE);
 					}
 
 				} catch (Exception e1) {
@@ -912,4 +931,110 @@ public abstract class AbstractWechatAdapter extends Adapter {
 	abstract void start();
 
 	abstract void stop();
+
+	// 启动Device
+	public void startUpDevice() {
+		Optional.of(this.device).ifPresent(t -> {
+			t.startProxy(t.localProxyPort);
+			t.setupWifiProxy();
+			logger.info("Starting....Please wait!");
+			try {
+
+				RequestFilter requestFilter = (request, contents, messageInfo) -> {
+					return null;
+				};
+
+				Stack<String> content_stack = new Stack<>();
+				Stack<String> stats_stack = new Stack<>();
+				Stack<String> comments_stack = new Stack<>();
+
+				ResponseFilter responseFilter = (response, contents, messageInfo) -> {
+
+					String url = messageInfo.getOriginalUrl();
+
+					if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
+
+						// 正文
+						if (url.contains("https://mp.weixin.qq.com/s")) {
+							t.setClickEffect(true);
+							/*System.err.println(" : " + url);*/
+							content_stack.push(contents.getTextContents());
+						}
+						// 统计信息
+						else if (url.contains("getappmsgext")) {
+							t.setClickEffect(true);
+							/*System.err.println(" :: " + url);*/
+							stats_stack.push(contents.getTextContents());
+						}
+						// 评论信息
+						else if (url.contains("appmsg_comment?action=getcomment")) {
+							t.setClickEffect(true);
+							/*System.err.println(" ::: " + url);*/
+							comments_stack.push(contents.getTextContents());
+						}
+
+						if (content_stack.size() > 0) {
+
+							t.setClickEffect(true);
+							String content_src = content_stack.pop();
+							Essays we = null;
+							try {
+								if (stats_stack.size() > 0) {
+									String stats_src = stats_stack.pop();
+									we = new Essays().parseContent(content_src).parseStat(stats_src);
+								} else {
+									we = new Essays().parseContent(content_src);
+									we.view_count = 0;
+									we.like_count = 0;
+								}
+							} catch (Exception e) {
+								logger.error("文章解析失败！", e);
+							}
+
+							assert we != null;
+
+							we.insert_time = new Date();
+							we.update_time = new Date();
+							we.media_content = we.media_nick;
+							we.platform = "WX";
+							we.media_id = MD5Util.MD5Encode(we.platform + "-" + we.media_name, "UTF-8");
+							we.platform_id = 1;
+							we.fav_count = 0;
+							we.forward_count = 0;
+							we.images = new JSONArray(we.parseImages(we.content)).toString();
+							we.id = MD5Util.MD5Encode(we.platform + "-" + we.media_name + we.title, "UTF-8");
+
+							try {
+								we.insert();
+							} catch (Exception ignored) {
+
+							}
+							if (comments_stack.size() > 0) {
+								String comments_src = comments_stack.pop();
+								List<Comments> comments_ = null;
+								try {
+									comments_ = Comments.parseComments(we.src_id, comments_src);
+								} catch (ParseException e) {
+									logger.error("----------------------");
+								}
+								comments_.stream().forEach(c -> {
+									try {
+										c.insert();
+									} catch (Exception e) {
+										logger.error("----------------评论插入失败！重复key----------------");
+									}
+								});
+							}
+						}
+					}
+				};
+				t.setProxyRequestFilter(requestFilter);
+				t.setProxyResponseFilter(responseFilter);
+				// 启动device
+				t.startAsync();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
+	}
 }

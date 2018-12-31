@@ -15,7 +15,6 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
-import one.rewind.android.automator.callback.DeviceCallback;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
@@ -33,7 +32,6 @@ import se.vidstige.jadb.managers.PackageManager;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
@@ -140,13 +138,6 @@ public class AndroidDevice extends AbstractService {
 	// 设备屏幕宽度
 	public int width;
 
-	// 启动成功后回调方法列表
-	public List<DeviceCallback> startedCallbacks = new ArrayList<>();
-
-	// 停止设备回调方法
-	public List<DeviceCallback> stoppingCallbacks = new ArrayList<>();
-
-	// 重启设备回调方法列表
 
 	/**
 	 * 构造方法

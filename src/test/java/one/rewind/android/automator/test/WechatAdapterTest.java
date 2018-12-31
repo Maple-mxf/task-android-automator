@@ -5,7 +5,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.WechatAdapter;
+import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.android.automator.model.Essays;
@@ -30,7 +30,7 @@ public class WechatAdapterTest {
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
-    WechatAdapter adapter;
+    WeChatAdapter adapter;
 
     /**
      * 初始化设备
@@ -154,7 +154,7 @@ public class WechatAdapterTest {
 
         device.initAppiumServiceAndDriver(appInfo);
 
-        adapter = new WechatAdapter(device);
+        adapter = new WeChatAdapter(device);
 
         Thread.sleep(3000);
     }
@@ -264,7 +264,7 @@ public class WechatAdapterTest {
 
     @Test
     public void testRealMediaName() {
-//        String var = WechatAdapter.realMedia("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
+//        String var = WeChatAdapter.realMedia("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
 //
 //        System.out.println(var);
     }
@@ -272,7 +272,7 @@ public class WechatAdapterTest {
     @Test
     public void testRequestID() {
         // result： $req_HKDFNMADSFQWTEHFBVM7
-//        String var = WechatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
+//        String var = WeChatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
 
 //        System.out.println(var);
     }

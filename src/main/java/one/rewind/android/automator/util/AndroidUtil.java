@@ -2,7 +2,7 @@ package one.rewind.android.automator.util;
 
 import io.appium.java_client.android.AndroidDriver;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.AbstractWechatAdapter;
+import one.rewind.android.automator.adapter.AbstractWeChatAdapter;
 import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.json.JSONArray;
@@ -87,7 +87,7 @@ public class AndroidUtil {
 			String filePrefix = UUID.randomUUID().toString();
 			String fileName = filePrefix + ".png";
 			String path = System.getProperty("user.dir") + "/screen/";
-			AbstractWechatAdapter.screenshot(fileName, path, device.driver);
+			AbstractWeChatAdapter.screenshot(fileName, path, device.driver);
 			JSONObject jsonObject = OCRAdapter.imageOCR(path + fileName,false);
 			JSONArray array = (JSONArray) jsonObject.get("words_result");
 			for (Object o : array) {
@@ -96,16 +96,16 @@ public class AndroidUtil {
 
 				String words = v.getString("words");
 				if (words.contains("微信没有响应") || words.contains("关闭应用")) {
-					AbstractWechatAdapter.clickPoint(517, 1258, 1000, device.driver);
+					AbstractWeChatAdapter.clickPoint(517, 1258, 1000, device.driver);
 					break;
 				}
 				if (words.contains("要将其关闭吗") && words.contains("微信无响应")) {
 					//点击确定  这个截图和上面的截图是有点不太一样的
-					AbstractWechatAdapter.clickPoint(1196, 1324, 1000, device.driver);
+					AbstractWeChatAdapter.clickPoint(1196, 1324, 1000, device.driver);
 					break;
 				}
 				if (words.contains("系统繁忙") && words.contains("请稍后再试")) {
-					AbstractWechatAdapter.clickPoint(1110, 1342, 5000, device.driver);
+					AbstractWeChatAdapter.clickPoint(1110, 1342, 5000, device.driver);
 					break;
 				}
 			}
