@@ -1,4 +1,4 @@
-package one.rewind.android.automator.test;
+package one.rewind.android.automator.test.adapter;
 
 import com.google.common.collect.Queues;
 import io.netty.handler.codec.http.HttpHeaders;

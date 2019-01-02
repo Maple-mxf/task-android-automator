@@ -235,6 +235,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		JSONArray tmpArray = array;
 
+		int count = 0;
+
 		List<WordsPoint> wordsPoints = new ArrayList<>();
 
 		//计算坐标  文章的标题最多有两行  标题过长微信会使用省略号代替掉
@@ -306,10 +308,16 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 				wordsPoints.add(new WordsPoint((top), left, width, height, words));
 
+				++count;
+
 				if (wordsPoints.size() >= 6) return wordsPoints;
 			}
 		}
 		previousTitles(tmpArray);
+
+		// TODO 抛出异常固然不能提高运行效率 但是可以解决问题
+		if (count == 0) throw new AndroidCollapseException("未知异常!没有检测到任务文章数据!");
+
 		return wordsPoints;
 	}
 

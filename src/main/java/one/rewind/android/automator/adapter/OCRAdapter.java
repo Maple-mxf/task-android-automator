@@ -7,6 +7,12 @@ import one.rewind.android.automator.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -15,6 +21,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -22,8 +29,12 @@ import java.util.List;
  * OCRAdapter:图像识别  得出正确的结果用于业务操作,在数据去重上有很大的作用
  * <p>
  * tesseract弊端:不可以识别出颜色比较暗的文字
+ * tesseract  <image path> <out name> -l chi_sim hocr(附带坐标的command)
+ * github wiki:https://github.com/tesseract-ocr/tesseract/wiki/Command-Line-Usage
  */
 public class OCRAdapter {
+
+	private static Logger logger = LoggerFactory.getLogger(OCRAdapter.class);
 
 	// tesseract OCR 图像识别
 
@@ -45,6 +56,8 @@ public class OCRAdapter {
 
 		// tesseract command
 		// tesseract <img_dir> <output_name> <options>
+		// 附带文字坐标command
+
 		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi_sim";
 
 		Process process = Runtime.getRuntime().exec(command);
@@ -154,18 +167,18 @@ public class OCRAdapter {
 	 * @param origin 百度API得到的原始数据
 	 * @return 返回经过处理的数据  并且每个数据都是唯一的标题    精度达不到100%正确
 	 * result :
-	 *  {
-	 *     "log_id": 8053627142307370140,
-	 *     "words_result_num": 25,
-	 *     "words_result": [{
-	 *         "location": {
-	 *             "width": 307,
-	 *             "top": 10,
-	 *             "left": 1113,
-	 *             "height": 62
-	 *         },
-	 *         "words": "R∠B12:14"
-	 *     }]
+	 * {
+	 * "log_id": 8053627142307370140,
+	 * "words_result_num": 25,
+	 * "words_result": [{
+	 * "location": {
+	 * "width": 307,
+	 * "top": 10,
+	 * "left": 1113,
+	 * "height": 62
+	 * },
+	 * "words": "R∠B12:14"
+	 * }]
 	 * }
 	 */
 	public static JSONArray ocrRealEassyTitleOfBaidu(JSONObject origin) {
@@ -183,7 +196,6 @@ public class OCRAdapter {
 		int length = wordsResult.length();
 
 		for (int i = 0; i < length; i++) {
-
 
 
 			JSONObject var = (JSONObject) wordsResult.get(i);
@@ -206,9 +218,9 @@ public class OCRAdapter {
 
 				String tmpWords;
 
-				if (words.length() >= 11){
-					 tmpWords= words.substring(0,11);
-				}else{
+				if (words.length() >= 11) {
+					tmpWords = words.substring(0, 11);
+				} else {
 					tmpWords = "";
 				}
 
@@ -218,11 +230,11 @@ public class OCRAdapter {
 
 					JSONObject location = tmpNode.getJSONObject("location");
 
-					outJSON.put("location",location);
+					outJSON.put("location", location);
 
-					outJSON.put("words",words);
+					outJSON.put("words", words);
 
-				}else{
+				} else {
 					title.append(words);
 					// 此时的words是文章标题
 					i++;
@@ -234,8 +246,8 @@ public class OCRAdapter {
 			// 构建title JSON
 			JSONObject titleJSON = new JSONObject();
 
-			titleJSON.put("location",inJSONLocation);
-			titleJSON.put("words",title.toString());
+			titleJSON.put("location", inJSONLocation);
+			titleJSON.put("words", title.toString());
 
 			resultArray.put(titleJSON);
 			resultArray.put(outJSON);
@@ -245,6 +257,158 @@ public class OCRAdapter {
 		return resultArray;
 	}
 
-	private OCRAdapter(){}
+	/**
+	 * 返回的数据格式如下
+	 * JSONObject{"words_result":[{"words":"xxx","location":{"top":0,"left":0,"width":"","right"}}]}
+	 * <p>
+	 * TODO:目前为止解析出来的数据位置信息没有任何特征(除了日期标记之外)  原生HTML文件中可以利用p标签将图片中的文字进行分段落
+	 * </p>
+	 *
+	 * @param rs html源码
+	 * @throws IOException IO read exception 分析每行文字的坐标
+	 */
+	public static JSONObject jsoupParseHtml2JSON(String rs) throws IOException {
 
+		JSONObject wordsResult = new JSONObject();
+
+		JSONArray array = new JSONArray();
+
+		Document document = Jsoup.parse(rs);
+
+		Element body = document.body();
+
+		// parse div
+		Elements div = body.getElementsByClass("ocr_carea");
+
+		// 便利所有的div元素
+		for (Element var0 : div) {
+
+			// 获取P标签  每一个var0之后一个P标签
+			Element p = var0.child(0);
+
+			// 获取P标签下面的span标签
+			Elements oneLevelSpans = p.children();
+
+			// 遍历一级下的所有span标签
+			for (Element oneLevelSpan : oneLevelSpans) {
+				// span下面可能没有子标签  也可能存在子标签
+
+				// 获取二级的span标签
+				Elements secondLevelSpans = oneLevelSpan.children();
+
+				// 此处的span合起来是一行文字
+				StringBuilder line = new StringBuilder();
+
+				JSONObject outJSON = new JSONObject();
+
+				// 文字坐标位置
+				JSONObject locationJSON = null;
+
+				// 每个二级的第一个span的title属性中包含文字的坐标  只取第一个坐标
+				int size = secondLevelSpans.size();
+
+				for (int i = 0; i < size; i++) {
+					line.append(secondLevelSpans.get(i).text());
+					if (i == 0) {
+						// 存储坐标
+
+						// 获取当前span的title属性
+						String point = secondLevelSpans.get(i).attr("title");
+
+						locationJSON = parsePoint(point);
+
+					}
+				}
+
+				if (StringUtils.isNotBlank(line.toString())) {
+
+					// put words
+					outJSON.put("words", line.toString());
+
+					// put word point
+					outJSON.put("location", locationJSON);
+
+					array.put(outJSON);
+				}
+			}
+		}
+		logger.info("---------------------------------JSONObject--------------------------------------");
+
+		wordsResult.put("words_result", array);
+
+//		System.out.println(wordsResult);
+
+		return wordsResult;
+	}
+
+
+	// 解析坐标
+	private static JSONObject parsePoint(String title) {
+
+		// 利用封号进行分解
+		String[] result = title.split(";");
+		if (result.length < 2) return null;
+
+		String prefix = result[0];
+
+		// 利用空格分割所有的坐标
+		String[] nodes = prefix.split(" ");
+
+		int[] point = new int[4];
+
+		int index = 0;
+
+		for (String node : nodes) {
+			if (isInteger(node)) {
+				point[index++] = Integer.parseInt(node);
+			}
+		}
+		JSONObject json = new JSONObject();
+		json.put("top", point[0]);
+		json.put("left", point[1]);
+		json.put("width", point[2]);
+		json.put("height", point[3]);
+		return json;
+	}
+
+	/**
+	 * 判断是否为整数
+	 *
+	 * @param str 传入的字符串
+	 * @return 是整数返回true, 否则返回false
+	 */
+
+	private static boolean isInteger(String str) {
+		Pattern pattern = Pattern.compile("^[-\\+]?[\\d]*$");
+		return pattern.matcher(str).matches();
+	}
+
+	private OCRAdapter() {
+	}
+
+
+	//  tesseract /usr/local/java-workplace/wechat-android-automator/data/wx.jpeg wx -l chi_sim hocr
+
+	public static String imageOcrOfTesseractByPoint(File file) throws IOException, InterruptedException {
+
+		String fileName = file.getName();
+
+		int index = fileName.lastIndexOf(".");
+
+		String filePrefix = fileName.substring(0, index);
+
+		String pathPrefix = file.getAbsolutePath().replace(fileName, "");
+		// tesseract command
+		// tesseract <img_dir> <output_name> <options>
+		// 附带文字坐标command
+		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi_sim hocr";
+
+		Process process = Runtime.getRuntime().exec(command);
+
+		// 确认命令执行完毕
+		process.waitFor();
+
+		// 识别得出文字集合
+		return FileUtil.allLines(file.getAbsolutePath().replace(fileName, "") + filePrefix + ".hocr");
+	}
 }

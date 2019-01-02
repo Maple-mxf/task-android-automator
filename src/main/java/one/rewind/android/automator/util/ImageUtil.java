@@ -1,6 +1,9 @@
 package one.rewind.android.automator.util;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -39,5 +42,40 @@ public class ImageUtil {
 			}
 		}
 		return result;
+	}
+
+	/**
+	 * 将图片进行灰度化 为了方便tesseract识别
+	 *
+	 * @param inPath     输入文件
+	 * @param outPath    输出文件
+	 * @param formatName 图片文件格式  截图必须为png 其他一般为jpg或者jpeg
+	 * @throws IOException 读取文件异常
+	 */
+	public static void grayImage(String inPath, String outPath, String formatName) throws IOException {
+
+		File file = new File(inPath);
+
+		BufferedImage image = ImageIO.read(file);
+
+		int width = image.getWidth();
+
+		int height = image.getHeight();
+
+		BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);//重点，技巧在这个参数BufferedImage.TYPE_BYTE_GRAY
+
+		for (int i = 0; i < width; i++) {
+
+			for (int j = 0; j < height; j++) {
+
+				int rgb = image.getRGB(i, j);
+
+				grayImage.setRGB(i, j, rgb);
+			}
+		}
+
+		File newFile = new File(outPath);
+
+		ImageIO.write(grayImage, formatName, newFile);
 	}
 }
