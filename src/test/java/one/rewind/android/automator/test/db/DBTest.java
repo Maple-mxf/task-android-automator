@@ -185,8 +185,8 @@ public class DBTest {
 //                var.update();
 //                String content = var.content;
 //                Set<String> imgStr = getImgStr(content);
-//                JSONArray array = new JSONArray(imgStr);
-//                var.images = array.toString();
+//                JSONArray imageOcr = new JSONArray(imgStr);
+//                var.images = imageOcr.toString();
 //                var.update();
 //            }
 //

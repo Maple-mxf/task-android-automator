@@ -1,7 +1,5 @@
 package one.rewind.android.automator.test.adapter;
 
-import one.rewind.android.automator.adapter.OCRAdapter;
-import org.json.JSONObject;
 import org.junit.Test;
 
 import javax.imageio.ImageIO;
@@ -17,10 +15,11 @@ public class OCRAdapterTest {
 
 	@Test
 	public void testParsePoint() throws IOException, InterruptedException {
+
 		File image = new File("/usr/local/java-workplace/wechat-android-automator/data/4068.jpg");
 
 		// 裁剪图片
-//		BufferedImage bufferedImage = OCRAdapter.cropEssayListImage(ImageIO.read(image));
+//		BufferedImage bufferedImage = BaiDuOCRAdapter.cropEssayListImage(ImageIO.read(image));
 //
 //		// 覆盖原有图片  TODO
 //		ImageIO.write(bufferedImage, "png", new File(image.getAbsolutePath()));
@@ -29,18 +28,17 @@ public class OCRAdapterTest {
 //		ImageUtil.grayImage();
 
 		// 执行命令  并且得到hocr的结果(是html代码)
-		String document = OCRAdapter.imageOcrOfTesseractByPoint(image);
-		// 识别结果
-		JSONObject result = OCRAdapter.jsoupParseHtml2JSON(document);
-
-		System.out.println(result);
+//		String document = BaiDuOCRAdapter.imageOcrOfTesseractByPoint(image);
+//		// 识别结果
+//		JSONObject result = BaiDuOCRAdapter.jsoupParseHtml2JSON(document);
+//
+//		System.out.println(result);
 	}
 
 	@Test
 	public void testChangeImageColor1() {
 		BufferedImage img = null;
 		File f;
-//read image
 		try {
 			f = new File("/usr/local/java-workplace/wechat-android-automator/data/wxIn.jpg");
 			img = ImageIO.read(f);
@@ -68,7 +66,9 @@ public class OCRAdapterTest {
 		}
 	}
 
+	// 解析出来的图片问题很大
 	@Test
+	@Deprecated
 	public void testChangeImageColor2() {
 		int width = 640, height = 320;
 		BufferedImage img;
@@ -95,7 +95,7 @@ public class OCRAdapterTest {
 		}
 	}
 
-
+	@Deprecated
 	public static void binaryImage() throws IOException {
 		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/wxOn.jpg");
 		BufferedImage image = ImageIO.read(file);

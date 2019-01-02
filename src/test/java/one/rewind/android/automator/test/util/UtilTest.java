@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.util;
 
 import com.google.common.collect.Sets;
-import one.rewind.android.automator.adapter.OCRAdapter;
+import one.rewind.android.automator.adapter.BaiDuOCRAdapter;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.Tab;
@@ -43,7 +43,7 @@ public class UtilTest {
 
     @Test
     public void testBaiduAPI() throws Exception {
-        JSONObject jsonObject = OCRAdapter.imageOCR("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png",false);
+        JSONObject jsonObject = BaiDuOCRAdapter.imageOcr("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png",false);
         System.out.println(jsonObject);
     }
 

@@ -99,14 +99,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		screenshot(fileName, path, device.driver);
 
-		JSONObject jsonObject = OCRAdapter.imageOCR(path + fileName, true);
+		JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName);
 
 		FileUtil.deleteFile(path + fileName);
 
 		JSONArray result = jsonObject.getJSONArray("words_result");
 		result.remove(0);
-		result.remove(0);
-		result.remove(0);
+//		result.remove(0);
+//		result.remove(0);
 
 		int top;
 		int left;
@@ -159,16 +159,19 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @param filePath
 	 * @return
 	 */
-	@SuppressWarnings("JavaDoc")
 	private List<WordsPoint> analysisImage(String filePath) throws Exception {
 
-		JSONObject origin = OCRAdapter.imageOCR(filePath, true);
+		JSONObject origin = TesseractOCRAdapter.imageOcr(filePath);
 
-		FileUtil.deleteFile(filePath);
+		try {
+			// 删除图片文件
+			FileUtil.deleteFile(filePath);
 
-		// 将图片中的所有标题全部提取出来 大大降低此处的处理复杂度
-//		JSONArray array = OCRAdapter.ocrRealEassyTitleOfBaidu(origin);
-
+			// 删除html文件
+			FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		List<WordsPoint> result = analysisWordsPoint(origin.getJSONArray("words_result"));
 
 		// 定位最新任务
@@ -177,7 +180,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日");
 
 			for (WordsPoint point : result) {
-				// 对于point处理一下  2018年09月09日 原创
+				// 对于point处理一下  "2018年09月09日 原创"
 				String words = point.words;
 
 				if (words.length() >= 11) {
@@ -187,7 +190,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 					// 首先比较relativeFlag的record字段是否相等于words
 					if (words.equals(this.relativeFlag.record)) {
-
 						// 标记任务结束
 						lastPage.set(Boolean.TRUE);
 						//
@@ -195,10 +197,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 						for (int i = index + 1; i <= result.size(); i++) {
 							result.remove(i);
 						}
-
 						// 回调函数  形成闭环
 						this.relativeFlag.callback();
-
 						return result;
 					}
 				}
@@ -208,7 +208,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				// 或者终止条件按照日期去推断,能保证程序不会继续向下无限走
 				Date d2 = df.parse(this.relativeFlag.record);
 
-				// d2 <= 0
 				if (d2.compareTo(d1) <= 0) {
 					// TODO  效率优化  去掉重复的坐标点  获取到当前的坐标点  去掉当前坐标数据后面的数据 reduce
 					lastPage.set(Boolean.TRUE);
@@ -315,9 +314,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 		previousTitles(tmpArray);
 
-		// TODO 抛出异常固然不能提高运行效率 但是可以解决问题
+		// TODO 抛出异常固然不能提高运行效率 但是可以解决问题  更好的解决方案是判断当前页面在那个位置  根据不同的位置进行不同的调整 可以大大提高采集效率
 		if (count == 0) throw new AndroidCollapseException("未知异常!没有检测到任务文章数据!");
-
 		return wordsPoints;
 	}
 
@@ -348,8 +346,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @throws Exception e
 	 */
 	private void delegateOpenEssay(String mediaName, boolean retry) throws Exception {
-
-
 		if (retry) {
 			if (!restore(mediaName)) {
 				return;
