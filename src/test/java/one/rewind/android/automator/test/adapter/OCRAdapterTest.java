@@ -1,5 +1,10 @@
 package one.rewind.android.automator.test.adapter;
 
+import one.rewind.android.automator.adapter.OCRAdapter;
+import one.rewind.android.automator.adapter.TesseractOCRAdapter;
+import one.rewind.android.automator.exception.AndroidCollapseException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Test;
 
 import javax.imageio.ImageIO;
@@ -30,7 +35,7 @@ public class OCRAdapterTest {
 		// 执行命令  并且得到hocr的结果(是html代码)
 //		String document = BaiDuOCRAdapter.imageOcrOfTesseractByPoint(image);
 //		// 识别结果
-//		JSONObject result = BaiDuOCRAdapter.jsoupParseHtml2JSON(document);
+//		JSONObject result = BaiDuOCRAdapter.parseHtml2JSON(document);
 //
 //		System.out.println(result);
 	}
@@ -116,13 +121,13 @@ public class OCRAdapterTest {
 	}
 
 	public static void grayImage() throws IOException {
-		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/wxOn.jpg");
+		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg");
 		BufferedImage image = ImageIO.read(file);
 
 		int width = image.getWidth();
 		int height = image.getHeight();
 
-		BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);//重点，技巧在这个参数BufferedImage.TYPE_BYTE_GRAY
+		BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_GRAY);//重点，技巧在这个参数BufferedImage.TYPE_BYTE_GRAY
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				int rgb = image.getRGB(i, j);
@@ -130,11 +135,193 @@ public class OCRAdapterTest {
 			}
 		}
 
-		File newFile = new File("/usr/local/java-workplace/wechat-android-automator/data/kkkk.png");
+		File newFile = new File("/usr/local/java-workplace/wechat-android-automator/data/llll.png");
 		ImageIO.write(grayImage, "png", newFile);
 	}
 
-	public static void main(String[] args) throws IOException {
+	@Test
+	public void grayImageTest() throws IOException {
 		grayImage();
+	}
+
+	// JSON Data
+	@Test
+	public void testJSONData() throws Exception {
+		JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg", false);
+
+		JSONArray result = jsonObject.getJSONArray("words_result");
+
+		int count = 0;
+
+		System.out.println("result: " + result);
+
+		for (Object var : result) {
+			JSONObject tmp = (JSONObject) var;
+			String words = tmp.getString("words");
+			JSONObject location = tmp.getJSONObject("location");
+
+			int left = location.getInt("left");
+			if (words.contains("年") && words.contains("月") && words.contains("日") && left <= 80) {
+				count++;
+			}
+		}
+		if (count < 1) throw new AndroidCollapseException("未知异常!没有检测到任务文章数据!");
+		System.out.println("count: " + count);
+	}
+
+	@Test
+	public void testParseJSONObject() {
+		JSONObject var = new JSONObject("{\n" +
+				"\t\"words_result\": [{\n" +
+				"\t\t\"words\": \"N\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 21,\n" +
+				"\t\t\t\"left\": 38,\n" +
+				"\t\t\t\"width\": 88,\n" +
+				"\t\t\t\"height\": 63\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"〉〈\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 144,\n" +
+				"\t\t\t\"left\": 46,\n" +
+				"\t\t\t\"width\": 94,\n" +
+				"\t\t\t\"height\": 192\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"金晓:债牛仍然在途，但仍\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 377,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 191,\n" +
+				"\t\t\t\"height\": 432\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"复\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 457,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 109,\n" +
+				"\t\t\t\"height\": 512\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"2018年4月20曰\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 561,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 279,\n" +
+				"\t\t\t\"height\": 606\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"张睿:统_利率双轨制需把\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 748,\n" +
+				"\t\t\t\"left\": 58,\n" +
+				"\t\t\t\"width\": 191,\n" +
+				"\t\t\t\"height\": 803\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"2018年4月17曰\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 851,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 383,\n" +
+				"\t\t\t\"height\": 896\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"徐翔:债市孕盲新机会″追污\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1119,\n" +
+				"\t\t\t\"left\": 54,\n" +
+				"\t\t\t\"width\": 191,\n" +
+				"\t\t\t\"height\": 1174\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"芒\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1199,\n" +
+				"\t\t\t\"left\": 56,\n" +
+				"\t\t\t\"width\": 109,\n" +
+				"\t\t\t\"height\": 1250\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"2018年4月13曰\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1303,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 383,\n" +
+				"\t\t\t\"height\": 1348\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"肖乐鸣:债券违约分析系列\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1490,\n" +
+				"\t\t\t\"left\": 61,\n" +
+				"\t\t\t\"width\": 251,\n" +
+				"\t\t\t\"height\": 1545\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"技术性违约的冰山_角\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1570,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 640,\n" +
+				"\t\t\t\"height\": 1626\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"2018年4月12曰\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1674,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 383,\n" +
+				"\t\t\t\"height\": 1719\n" +
+				"\t\t}\n" +
+				"\t}, {\n" +
+				"\t\t\"words\": \"章凯恺二_个″不着急，慢慢\",\n" +
+				"\t\t\"location\": {\n" +
+				"\t\t\t\"top\": 1860,\n" +
+				"\t\t\t\"left\": 55,\n" +
+				"\t\t\t\"width\": 251,\n" +
+				"\t\t\t\"height\": 1916\n" +
+				"\t\t}\n" +
+				"\t}]\n" +
+				"}");
+		JSONArray array = var.getJSONArray("words_result");
+
+		int count = 0;
+
+		for (Object t : array) {
+			JSONObject tmp = (JSONObject) t;
+
+			String words = tmp.getString("words");
+
+			JSONObject location = tmp.getJSONObject("location");
+
+			int left = location.getInt("left");
+
+			if (words.contains("年") && words.contains("月") && left <= 80 && (words.contains("曰") || words.contains("日"))) {
+
+				count++;
+			}
+		}
+
+		System.out.println("count: " + count);
+	}
+
+	@Test
+	public void parseImage2() throws Exception {
+		JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1100265578.jpg", true);
+		System.out.println(jsonObject);
+	}
+
+	@Test
+	public void testCropImage() throws IOException {
+		// 1 裁剪图片
+		File inImage = new File("/usr/local/java-workplace/wechat-android-automator/data/1100265578.jpg");
+
+		BufferedImage bufferedImage = OCRAdapter.cropEssayListImage(ImageIO.read(inImage));
+
+		// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
+		ImageIO.write(bufferedImage, "png", new File(inImage.getAbsolutePath()));
 	}
 }

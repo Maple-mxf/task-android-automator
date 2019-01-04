@@ -56,7 +56,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 							// 等于1说明非历史任务  retry代表是否重试
 							digestionCrawler(media, var0.relative == 1);
 						}
-						logger.info("one/rewind/android/automator/adapter/WeChatAdapter.java location: 40 Line !");
+						logger.info("当前任务 : {}执行完成", media);
 						// 当前公众号任务抓取完成之后需要到redis中进行处理数据
 
 						// 异步通知redis

@@ -3,10 +3,7 @@ package one.rewind.android.automator.test.db;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDeviceManager;
-import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.MD5Util;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DaoManager;
@@ -279,5 +276,10 @@ public class DBTest {
 			System.out.println(var);
 			System.out.println(manager.mediaStack.size());
 		}
+	}
+
+	@Test
+	public void test3() throws Exception {
+		Refacter.createTable(RequestRecord.class);
 	}
 }

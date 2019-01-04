@@ -10,11 +10,7 @@ import one.rewind.db.DaoManager;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Create By  2018/10/24
- * Description:
- * <p>
- * Because of the program of accounts from java client to send ,The program can not
- * Know a few account,so must Tag the current data relativeFlag
+ * Const method
  *
  * @author maxuefeng [m17793873123@163.com]
  */
@@ -28,7 +24,7 @@ public class Tab {
 
 	public static Dao<Media, String> mediaDao;
 
-	public static final String REQUEST_ID_SUFFIX = "req_id";
+	public static final String REQUEST_ID_SUFFIX = "Android-Automator-Topic-";
 
 	public static final String TOPIC_MEDIA = "topic_media";
 

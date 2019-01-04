@@ -181,8 +181,8 @@ public class AndroidDevice extends AbstractService {
         /*CertificateAndKeySource source = new PemFileCertificateSource(
                 new File("ca.crt"), new File("pk.crt"), "sdyk");*/
 
-		CertificateAndKeySource source = new PemFileCertificateSource(
-				new File("/usr/local/ca.crt"), new File("/usr/local/pk.crt"), "sdyk");
+//		CertificateAndKeySource source = new PemFileCertificateSource(new File("ca.crt"), new File("pk.crt"), "sdyk");
+		CertificateAndKeySource source = new PemFileCertificateSource(new File("/usr/local/ca.crt"), new File("/usr/local/pk.crt"), "sdyk");
 
 		// B 让 MitmManager 使用刚生成的 root certificate
 		ImpersonatingMitmManager mitmManager = ImpersonatingMitmManager.builder()

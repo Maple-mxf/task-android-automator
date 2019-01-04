@@ -19,7 +19,6 @@ import one.rewind.android.automator.model.WordsPoint;
 import one.rewind.android.automator.util.*;
 import one.rewind.db.RedissonAdapter;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
@@ -32,7 +31,6 @@ import org.redisson.api.RedissonClient;
 import java.io.File;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -43,23 +41,23 @@ import java.util.*;
 public abstract class AbstractWeChatAdapter extends Adapter {
 
 
-	class RelativeFlag {
+//	class RelativeFlag {
+//
+//		public boolean history;
+//		public String record;
+//
+//		public RelativeFlag() {
+//			history = false;
+//			record = "";
+//		}
+//
+//		public void callback() {
+//			this.history = false;
+//			this.record = "";
+//		}
+//	}
 
-		public boolean history;
-		public String record;
-
-		public RelativeFlag() {
-			history = false;
-			record = "";
-		}
-
-		public void callback() {
-			this.history = false;
-			this.record = "";
-		}
-	}
-
-	public RelativeFlag relativeFlag = new RelativeFlag();
+//	public RelativeFlag relativeFlag = new RelativeFlag();
 
 	ThreadLocal<Boolean> lastPage = new ThreadLocal<>();
 
@@ -95,22 +93,18 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	private WordsPoint accuracySubscribe(String mediaName) throws Exception {
 
 		String fileName = UUID.randomUUID().toString() + ".png";
+
 		String path = System.getProperty("user.dir") + "/screen/";
 
 		screenshot(fileName, path, device.driver);
 
-		JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName);
+		JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
 
 		FileUtil.deleteFile(path + fileName);
 
 		JSONArray result = jsonObject.getJSONArray("words_result");
-		result.remove(0);
-//		result.remove(0);
-//		result.remove(0);
-
 		int top;
 		int left;
-
 		int i = 0;
 		for (Object v : result) {
 
@@ -144,10 +138,20 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		return null;
 	}
 
+	/**
+	 * 获取可点击的点
+	 *
+	 * @return 返回坐标集合
+	 * @throws Exception 抛出AndroidException
+	 */
 	private List<WordsPoint> obtainClickPoints() throws Exception {
+
 		String filePrefix = UUID.randomUUID().toString();
 		String fileName = filePrefix + ".png";
 		String path = System.getProperty("user.dir") + "/screen/";
+
+		logger.info("截图文件路径为: {}", path + fileName);
+
 		screenshot(fileName, path, device.driver);
 		// 图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
 		return analysisImage(path + fileName);
@@ -156,71 +160,74 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	/**
 	 * 分析图像  得到的做坐标集合是一个按照时间
 	 *
-	 * @param filePath
-	 * @return
+	 * @param filePath 文件路径
+	 * @return 返回坐标集合
 	 */
 	private List<WordsPoint> analysisImage(String filePath) throws Exception {
 
-		JSONObject origin = TesseractOCRAdapter.imageOcr(filePath);
+		JSONObject origin = TesseractOCRAdapter.imageOcr(filePath, true);
 
+		// TODO 删除文件放到ocr adapter上做
 		try {
 			// 删除图片文件
 			FileUtil.deleteFile(filePath);
 
 			// 删除html文件
 			FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		List<WordsPoint> result = analysisWordsPoint(origin.getJSONArray("words_result"));
 
 		// 定位最新任务
-		if (this.relativeFlag.history) {
-
-			SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日");
-
-			for (WordsPoint point : result) {
-				// 对于point处理一下  "2018年09月09日 原创"
-				String words = point.words;
-
-				if (words.length() >= 11) {
-
-					// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
-					words = words.substring(0, 11);
-
-					// 首先比较relativeFlag的record字段是否相等于words
-					if (words.equals(this.relativeFlag.record)) {
-						// 标记任务结束
-						lastPage.set(Boolean.TRUE);
-						//
-						int index = result.indexOf(point);
-						for (int i = index + 1; i <= result.size(); i++) {
-							result.remove(i);
-						}
-						// 回调函数  形成闭环
-						this.relativeFlag.callback();
-						return result;
-					}
-				}
-				// 如果因为安卓惯性造成无法对接上一次的记录(需要对于时间的大小进行表)
-				Date d1 = df.parse(words);
-
-				// 或者终止条件按照日期去推断,能保证程序不会继续向下无限走
-				Date d2 = df.parse(this.relativeFlag.record);
-
-				if (d2.compareTo(d1) <= 0) {
-					// TODO  效率优化  去掉重复的坐标点  获取到当前的坐标点  去掉当前坐标数据后面的数据 reduce
-					lastPage.set(Boolean.TRUE);
-
-					int index = result.indexOf(point);
-					for (int i = index + 1; i <= result.size(); i++) {
-						result.remove(i);
-					}
-					this.relativeFlag.callback();
-					return result;
-				}
-			}
-		}
+//		if (this.relativeFlag.history) {
+//
+//			SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日");
+//
+//			for (WordsPoint point : result) {
+//				// 对于point处理一下  "2018年09月09日 原创"
+//				String words = point.words;
+//
+//				if (words.length() >= 11) {
+//
+//					// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
+//					words = words.substring(0, 11);
+//
+//					// 首先比较relativeFlag的record字段是否相等于words
+//					if (words.equals(this.relativeFlag.record)) {
+//						// 标记任务结束
+//						lastPage.set(Boolean.TRUE);
+//						//
+//						int index = result.indexOf(point);
+//
+//						for (int i = index + 1; i <= result.size(); i++) {
+//							result.remove(i);
+//						}
+//						// 回调函数  形成闭环
+//						this.relativeFlag.callback();
+//						return result;
+//					}
+//				}
+//				// 如果因为安卓惯性造成无法对接上一次的记录(需要对于时间的大小进行表)
+//				Date d1 = df.parse(words);
+//
+//				// 或者终止条件按照日期去推断,能保证程序不会继续向下无限走
+//				Date d2 = df.parse(this.relativeFlag.record);
+//
+//				if (d2.compareTo(d1) <= 0) {
+//					// TODO  效率优化  去掉重复的坐标点  获取到当前的坐标点  去掉当前坐标数据后面的数据 reduce
+//					lastPage.set(Boolean.TRUE);
+//
+//					int index = result.indexOf(point);
+//					for (int i = index + 1; i <= result.size(); i++) {
+//						result.remove(i);
+//					}
+//					this.relativeFlag.callback();
+//					return result;
+//				}
+//			}
+//		}
 		return result;
 	}
 
@@ -232,9 +239,11 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	private List<WordsPoint> analysisWordsPoint(JSONArray array) throws AndroidCollapseException {
 
-		JSONArray tmpArray = array;
-
 		int count = 0;
+
+		int differenceCount = 0;
+
+		JSONArray tmpArray = array;
 
 		List<WordsPoint> wordsPoints = new ArrayList<>();
 
@@ -252,24 +261,25 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			if (currentTitles.contains(words)) {
 
+				differenceCount += 1;
+
 				boolean flag = true;
 
 				int k = i + 1;
 
 				while (flag) {
-					if (k > array.length() - 1) {
-						break;
-					}
+
+					if (k > array.length() - 1) break;
+
 					// 如果存在重复记录   删除下一条坐标信息
 					// JSONArray由于逻辑问题不能删除任何元素  将words可以替换
 					JSONObject tmpJSON = (JSONObject) array.get(k);
 
 					String tmpWords1 = tmpJSON.getString("words");
 
-					if (tmpWords1.contains("年") && tmpWords1.contains("月") && tmpWords1.contains("日")) {
-
+					if (tmpWords1.contains("年") && tmpWords1.contains("月") && (tmpWords1.contains("曰") || tmpWords1.contains("日"))) {
+						count++;
 						flag = false;
-
 					}
 					// 将内容置换为空字符串  防止在统计坐标时出现重复
 					tmpJSON.put("words", "");
@@ -281,10 +291,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				continue;
 			}
 
-			// 合理抛出异常
 			if (words.contains("微信没有响应") || words.contains("全部消息")) throw new AndroidCollapseException("微信没有响应！");
 
-			if (words.contains("已无更多")) {
+			// TODO  判断当前的索引是数组中的最后一个
+			if (words.contains("已无更多") || words.contains("己无更多")) {
 
 				logger.info("==============翻到最后一页=============");
 
@@ -297,7 +307,9 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			//确保时间标签的位置   有可能有年月日字符串的在文章标题中   为了防止这种情况   left<=80
 
-			if (words.contains("年") && words.contains("月") && words.contains("日") && left <= 80) {
+			if (words.contains("年") && words.contains("月") && left <= 80 && (words.contains("曰") || words.contains("日"))) {
+
+				count++;
 
 				int top = inJSON.getInt("top");
 
@@ -307,21 +319,33 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 				wordsPoints.add(new WordsPoint((top), left, width, height, words));
 
-				++count;
-
 				if (wordsPoints.size() >= 6) return wordsPoints;
 			}
 		}
+
+		// TODO 统计到最后一页
+		if (differenceCount != 0 && differenceCount == currentTitles.size() && count > 0) {
+			lastPage.set(Boolean.TRUE);
+		}
+
 		previousTitles(tmpArray);
 
+		logger.info("count :  {}", count);
+
+		logger.info("wordsPoints size: " + wordsPoints.size());  // wordsPoints的size位0的时候,直接向下翻一页
+
 		// TODO 抛出异常固然不能提高运行效率 但是可以解决问题  更好的解决方案是判断当前页面在那个位置  根据不同的位置进行不同的调整 可以大大提高采集效率
-		if (count == 0) throw new AndroidCollapseException("未知异常!没有检测到任务文章数据!");
+		if (count < 1) throw new AndroidCollapseException("未知异常!没有检测到任务文章数据!");
+
 		return wordsPoints;
 	}
 
 
-	// 记录上一次的图像识别的结果
-
+	/**
+	 * 记录上一次的图像识别的结果
+	 *
+	 * @param array 当前的文章标题
+	 */
 	private void previousTitles(JSONArray array) {
 
 		for (int i = 0; i < array.length(); i++) {
@@ -330,15 +354,13 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			String words = tmpJSON.getString("words");
 
-			if (!words.contains("年") && !words.contains("月") && !words.contains("日")) {
+			if (!words.contains("年") && !words.contains("月") && !(words.contains("曰") || words.contains("日"))) {
 				if (i != array.length() - 1) {
 					currentTitles.add(words);
 				}
 			}
 		}
 	}
-
-	// openEssays中封装一个参数
 
 	/**
 	 * @param mediaName 公众号名称
@@ -351,7 +373,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return;
 			}
 		} else {
-			slideToPoint(431, 1250, 431, 455, device.driver, 1000);
+			slideToPoint(431, 1250, 431, 600, device.driver, 1000);
 			firstPage.set(Boolean.FALSE);
 			// 采集近期更新的文章,出发lastPage的条件是接着上一次更新的时间
 			SubscribeMedia subscribeRecord = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
@@ -363,22 +385,23 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			}
 
 			// 完善标记数据  Flag的数据要形成闭环 ---回调函数
-			this.relativeFlag.history = true;
-			this.relativeFlag.record = DateFormatUtils.format(subscribeRecord.update_time, "yyyy年MM月dd日");
+//			this.relativeFlag.history = true;
+//			this.relativeFlag.record = DateFormatUtils.format(subscribeRecord.update_time, "yyyy年MM月dd日");
 		}
 
 		//l
 		while (!lastPage.get()) {
+
 			// 翻到下一页
 			slideToPoint(606, 2387, 606, 200, device.driver, 2000);
 
 			List<WordsPoint> wordsPoints = obtainClickPoints();
 
-			if (wordsPoints == null || wordsPoints.size() == 0) {
+			if (wordsPoints.size() == 0) {
 
 				if (!lastPage.get()) {
 					// TODO   很大程度的造成微信无故被关闭  很可能是因为图像识别的缘故或者安卓惯性造成(效率优化的一块存在)
-					logger.error("图像识别的结果为空!");
+					logger.info("图像识别的结果为空!");
 				} else {
 					logger.info("公众号{}抓取到最后一页了", mediaName);
 				}
@@ -413,7 +436,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 					slideToPoint(606, 2387, 606, 960, device.driver, 1500);
 				}
 			} else {
-				slideToPoint(431, 1250, 431, 455, device.driver, 1000);
+				slideToPoint(431, 1250, 431, 500, device.driver, 1000);
 				firstPage.set(Boolean.FALSE);
 			}
 			return true;
@@ -431,9 +454,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	private void openEssays(List<WordsPoint> wordsPoints) throws AndroidCollapseException, InterruptedException {
 		int neverClickCount = 0;
 		for (WordsPoint wordsPoint : wordsPoints) {
-			//睡眠策略
-//			setCountVal();
-//			sleepPolicy();
 
 			// 点击不动卡主抛出安卓设备异常
 			if (neverClickCount > 3) {
@@ -449,6 +469,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				}
 
 				Thread.sleep(1000);
+
 				//关闭文章
 				AndroidUtil.closeEssay(device.driver);
 
@@ -573,54 +594,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		// C3 点击软键盘的搜索键
 		clickPoint(1350, 2250, 6000, device.driver); //TODO
 
-//		WordsPoint point = accuracySubscribe(mediaName);  // TODO 点击第一个结果 图像识别是造成订阅不成功的因素之一
-
-//		clickPoint();
-		// 点击结果页第一条记录
-
-		//公众号不存在的情况
-//		if (point == null) {
-		// 可能存在点击但是没有反应
-//			SubscribeMedia tmp = new SubscribeMedia();
-//			tmp.media_name = mediaName;
-//			tmp.status = 2;
-//			tmp.update_time = new Date();
-//			tmp.number = 0;
-//			tmp.udid = udid;
-//			tmp.retry_count = 0;
-//			tmp.insert_time = new Date();
-//			tmp.request_id = topic;
-//			tmp.insert();
-//			throw new AndroidCollapseException("设备 {device.udid} 点不动了！！！");
-//		} else {
-//			clickPoint(point.left, point.top, 2000, device.driver);
-//			try {
-//
-//				// 点击订阅
-//				device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
-//				Thread.sleep(3000);
-//			} catch (Exception ignore) {
-//				// 已经订阅了
-//				logger.info("Already add public account: {}", mediaName);
-//			}
-//			// 如果订阅但是在数据库中没有存在任何记录
-//			saveSubscribeRecord(mediaName, topic);
-//		}
-
-
 		// 点击第一个位置
 		clickPoint(320, 406, 2000, device.driver);
-
-		// 判断是否无响应
-
-//		try {
-		// No
-//			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]"));
-//			throw new SearchMediaException("点击搜索微信公众号" + mediaName + "无响应");
-//		} catch (NoSuchElementException e) {
-//			logger.error("!");
-//			throw new SearchMediaException("点击搜索微信公众号" + mediaName + "无响应");
-//		}
 
 		// 点击订阅
 		try {
@@ -664,7 +639,9 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	public static boolean enterEssay(String mediaName, AndroidDevice device) throws Exception {
 
 		try {
+
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			AndroidUtil.closeApp(device);
@@ -733,8 +710,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	/**
 	 * 重试
 	 *
-	 * @param mediaName
-	 * @param udid
+	 * @param mediaName 公众号名称
+	 * @param udid      手机udid
 	 * @return 为空
 	 * @throws Exception ex
 	 */
@@ -797,9 +774,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			if (e instanceof AndroidCollapseException) {
 				logger.error("设备{}链路出问题了.", device.udid);
 				try {
-					//手机睡眠
 					AndroidUtil.closeApp(device);
-//					Thread.sleep(1000 * 30);
+
 					AndroidUtil.activeWechat(this.device);
 					SubscribeMedia media = retry(mediaName, this.device.udid);
 					if (media != null) {
@@ -818,7 +794,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				logger.error("百度API调用失败！");
 				try {
 					// 需要计算啥时候到达明天   到达明天的时候需要重新分配任务
-					//
 					Date nextDay = DateUtil.buildDate();
 
 					Date thisDay = new Date();
@@ -833,10 +808,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			} else if (e instanceof InterruptedException) {
 				e.printStackTrace();
 				logger.error("InterruptedException 线程中断异常！");
-			} else {
-				// 如果搜索不到公众号，则会在此处形成死循环
-				lastPage.set(Boolean.TRUE);
+			} else if (e instanceof NoSuchElementException) {
+				// 如果搜索不到公众号，则会在此处形成死循环  其他没有捕获到的异常
+
 				e.printStackTrace();
+			} else {
+				lastPage.set(Boolean.TRUE);
 			}
 		}
 	}
@@ -896,6 +873,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			} else if (e instanceof SQLException) {
 				logger.error("SQL数据库操作异常!");
 				e.printStackTrace();
+			} else if (e instanceof NoSuchElementException) {
+				try {
+					logger.info("失败原因是NoSuchElementException");
+					AndroidUtil.closeApp(device);
+					AndroidUtil.restartWechat(device);
+				} catch (InterruptedException ignore) {
+					logger.error(ignore);
+				}
 			}
 
 		}

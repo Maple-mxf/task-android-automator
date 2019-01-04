@@ -8,11 +8,14 @@ import org.junit.Test;
 public class StringTest {
 
 	@Test
-	public void testChaineseLength(){
+	public void testChaineseLength() {
 		String tmp = "2018年12月21日";
 
-		System.out.println(tmp.length());
 
-		System.out.println(tmp.substring(0,11));
+		System.out.println(tmp.substring(0, 4));
+
+		System.out.println(tmp.substring(5, 7));
+
+//		System.out.println(tmp.substring());
 	}
 }

@@ -35,6 +35,7 @@ import static spark.Spark.post;
  * 1: 记录每次的请求并且缓存 加速后面请求的响应时间
  */
 @ThreadSafe
+@Deprecated
 public class APIServer {
 
 	private static Logger logger = LoggerFactory.getLogger(APIServer.class);
@@ -333,6 +334,7 @@ public class APIServer {
 
 	// 相对任务判断  需要计算离最后一次数据更新的时间间隔
 
+	@Deprecated
 	private static int relativeTask(SubscribeMedia media) {
 
 		Date lastedDate = media.update_time;

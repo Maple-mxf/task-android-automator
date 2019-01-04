@@ -23,4 +23,16 @@ public class CrawlerAPITest {
 		String toJson = JSON.toJson(json);
 		System.out.println(toJson);
 	}
+
+	public static void main(String[] args) {
+		test1(0);
+	}
+
+	public static void test1(int arg) {
+		int count = 0;
+		if (arg == 0) {
+			count += 1;
+		}
+		System.out.println(count);
+	}
 }
