@@ -105,4 +105,12 @@ public class TaskLog extends ModelL {
 			ignore.printStackTrace();
 		}
 	}
+
+	public void error() {
+		this.error++;
+	}
+
+	public void step() {
+		this.step++;
+	}
 }

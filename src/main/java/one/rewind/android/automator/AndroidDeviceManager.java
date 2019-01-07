@@ -262,17 +262,16 @@ public class AndroidDeviceManager {
 		} else if (todaySubscribe >= 40) {
 
 			if (notFinishR.size() == 0) {
-				adapter.getDevice().flag = AndroidDevice.Flag.Upper_Limit;
+				adapter.getDevice().flag = AndroidDevice.Flag.Frequent_Operation;
 				return null;
 			}
 			return AndroidDevice.Task.Type.Fetch;
 		} else {
+			adapter.getDevice().flag = null;
 			// 当前设备订阅的号没有到达上限则分配订阅任务  有限分配订阅接口任务
 			if (notFinishR.size() == 0) {
-				adapter.getDevice().flag = null;
 				return AndroidDevice.Task.Type.Subscribe;
 			} else {
-				adapter.getDevice().flag = null;
 				return AndroidDevice.Task.Type.Fetch;
 			}
 		}

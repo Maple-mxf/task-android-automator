@@ -37,6 +37,8 @@ import java.util.*;
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
 
+	TaskLog taskLog;
+
 	ThreadLocal<Boolean> lastPage = new ThreadLocal<>();
 
 	ThreadLocal<Boolean> firstPage = new ThreadLocal<>();
@@ -85,8 +87,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		int left;
 		int i = 0;
 		for (Object v : result) {
-
-
 			JSONObject b = (JSONObject) v;
 			String words = b.getString("words");
 			if (words.startsWith("(")) words = words.replace("(", "");
@@ -346,13 +346,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @throws Exception e
 	 */
 	private void delegateOpenEssay(String mediaName, boolean retry) throws Exception {
+
 		if (retry) {
 			if (!restore(mediaName)) {
 				return;
 			}
 		} else {
-
-			slideToPoint(431, 1250, 431, 600, device.driver, 1000);
 
 			firstPage.set(Boolean.FALSE);
 			// 采集近期更新的文章,出发lastPage的条件是接着上一次更新的时间
@@ -363,16 +362,19 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return;
 			}
 		}
-
 		while (!lastPage.get()) {
+
 
 			// 翻到下一页
 			if (!firstPage.get()) {
-				// 第一次
 				slideToPoint(606, 2387, 606, 300, device.driver, 2000);
+			} else {
+				// 第一次
+				slideToPoint(431, 1250, 431, 455, device.driver, 1000);
 				firstPage.set(Boolean.FALSE);
 			}
 
+			this.taskLog.step();
 			List<WordsPoint> wordsPoints = obtainClickPoints();
 
 			if (wordsPoints.size() == 0) {
@@ -394,10 +396,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	private boolean restore(String mediaName) {
 		try {
 			long count = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
-			this.firstPage.set(count == 0);
-			if (!this.firstPage.get()) {
 
-				slideToPoint(431, 1250, 431, 455, device.driver, 1000);
+			this.firstPage.set(count == 0);
+
+			if (!this.firstPage.get()) {
 
 				int var = (int) count % 6;
 
@@ -430,6 +432,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		int neverClickCount = 0;
 		for (WordsPoint wordsPoint : wordsPoints) {
 
+			this.taskLog.step();
+
 			// 点击不动卡主抛出安卓设备异常
 			if (neverClickCount > 3) {
 				throw new AndroidCollapseException("安卓系统卡住点不动了！");
@@ -440,16 +444,20 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 				System.out.println("文章点进去了....");
 				for (int i = 0; i < 2; i++) {
+
 					slideToPoint(1413, 2369, 1413, 277, device.driver, 500);
+					this.taskLog.step();
 				}
 
 				Thread.sleep(1000);
 
 				//关闭文章
 				AndroidUtil.closeEssay(device.driver);
+				this.taskLog.step();
 
 				//设置为默认值
 				this.device.setClickEffect(false);
+				this.taskLog.step();
 			} else {
 				++neverClickCount;
 			}
@@ -800,11 +808,23 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		try {
 			subscribeMedia(mediaName);
 		} catch (Exception e) {
+
+			this.taskLog.error();
+
 			logger.error("失败原因如下");
 
 			e.printStackTrace();
+
 			if (e instanceof AlreadySubscribeException) {
+
 				logger.info("失败原因是已经订阅了当前公众号; 设备:{};公众号:{}", device.udid, Tab.realMedia(mediaName));
+
+				String topic = Tab.topic(mediaName);
+
+				// 已经关注了
+				mediaName = Tab.realMedia(mediaName);
+
+				saveSubscribeRecord(mediaName, topic);
 
 				try {
 					// 返回到主界面即可
@@ -848,9 +868,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			} else if (e instanceof SQLException) {
 				logger.error("SQL数据库操作异常!");
 				e.printStackTrace();
+
 			} else if (e instanceof NoSuchElementException) {
+
 				try {
 					logger.info("失败原因是NoSuchElementException");
+
 					AndroidUtil.closeApp(device);
 					AndroidUtil.restartWechat(device);
 				} catch (InterruptedException ignore) {

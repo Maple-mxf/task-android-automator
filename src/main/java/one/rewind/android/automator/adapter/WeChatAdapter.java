@@ -29,8 +29,6 @@ import java.util.concurrent.Executors;
 public class WeChatAdapter extends AbstractWeChatAdapter {
 
 
-	private TaskLog taskLog;
-
 	private static final RedissonClient client = RedissonAdapter.redisson;
 
 	public WeChatAdapter(AndroidDevice device) {
