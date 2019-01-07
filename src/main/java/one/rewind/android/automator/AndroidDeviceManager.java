@@ -6,14 +6,12 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.*;
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.adapter.WeChatAdapter;
-import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DBUtil;
-import one.rewind.android.automator.util.DateUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
-import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RQueue;
@@ -23,11 +21,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
@@ -37,12 +37,15 @@ public class AndroidDeviceManager {
 
 	private static Logger logger = LoggerFactory.getLogger(AndroidDeviceManager.class);
 
+	/**
+	 * guava线程池
+	 */
 	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
 
 	/**
 	 * redis 客户端
 	 */
-	public static RedissonClient redisClient = RedissonAdapter.redisson;
+	private static RedissonClient redisClient = RedissonAdapter.redisson;
 
 	/**
 	 * 存储无任务设备信息 利用建监听者模式实现设备管理
@@ -82,7 +85,6 @@ public class AndroidDeviceManager {
 	 *
 	 */
 	private AndroidDeviceManager() {
-
 	}
 
 	/**
@@ -139,8 +141,6 @@ public class AndroidDeviceManager {
 				default:
 					logger.info("当前没有匹配到任何任务类型!");
 			}
-
-
 			adapter.start();
 		} catch (Exception e) {
 			logger.error("初始化任务失败！");
@@ -154,9 +154,18 @@ public class AndroidDeviceManager {
 		}
 	}
 
+	/**
+	 * 初始化订阅任务
+	 *
+	 * @param device
+	 * @throws SQLException
+	 */
 	private void initSubscribeSingleQueue(AndroidDevice device) throws SQLException {
-
-		device.queue.clear();
+		if (mediaStack.isEmpty()) {
+			// 如果没有数据了 先初始化订阅的公众号
+			startPage += 2;
+			initMediaStack();
+		}
 		// 今日订阅了多少个号
 		int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
 
@@ -166,65 +175,67 @@ public class AndroidDeviceManager {
 			device.flag = AndroidDevice.Flag.Upper_Limit;
 			device.taskType = null;
 		} else {
-			// 从redis中加载数据
 			RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
 
 			System.out.println("redis中的任务队列的数据是否为空? " + taskQueue.size());
 
-			if (taskQueue.size() == 0) {
+			String redisTask = redisTask(device.udid);
 
-				if (mediaStack.isEmpty()) {
-					// 如果没有数据了 先初始化订阅的公众号
-					startPage += 2;
-					initMediaStack();
-				}
-				device.queue.add(mediaStack.pop());
+			// 如果可以从redis中加到任务
+			if (StringUtils.isNotBlank(redisTask)) {
+				device.queue.add(redisTask);
 			} else {
-				// TODO 此处使用peek()会使得任务数据重复 pool()会使得丢失一些数据(发生在程序停止的时候)
-
-				// 分配合理的任务
-				for (String var : taskQueue) {
-					if (var.contains(Tab.UDID_SUFFIX)) {
-						String udid = Tab.udid(var);
-						if (!Strings.isNullOrEmpty(udid) && udid.equals(device.udid)) {
-							device.queue.add(var);
-							taskQueue.remove(var);
-							logger.info("订阅任务{}", var);
-							System.out.println("订阅任务  : " + var);
-							break;
-						} else {
-							// TODO BUG------------------------------------------------------------------------------------------------------------------------------
-						}
-					} else {
-						device.queue.add(var);
-						taskQueue.remove(var);
-						System.out.println("订阅任务  : " + var);
-						break;
-					}
-				}
+				device.queue.add(mediaStack.pop());
 			}
 		}
+	}
+
+	/**
+	 * 从redis中加载任务
+	 *
+	 * @param originUdid 设备udid标识
+	 * @return 返回任务
+	 */
+	private String redisTask(String originUdid) {
+		RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
+
+		for (String var : taskQueue) {
+			if (var.contains(Tab.UDID_SUFFIX)) {
+
+				String udid = Tab.udid(var);
+
+				if (!Strings.isNullOrEmpty(udid) && originUdid.equals(udid)) {
+					taskQueue.remove(var);
+					return var;
+				}
+			} else {
+				taskQueue.remove(var);
+				return var;
+			}
+		}
+		return null;
 	}
 
 
 	// 从MySQL中初始化任务
 	private void initCrawlerQueue(AndroidDevice device) throws SQLException {
-		List<SubscribeMedia> accounts =
+		SubscribeMedia media =
 				Tab.subscribeDao.
 						queryBuilder().
 						where().
 						eq("udid", device.udid).
 						and().
 						eq("status", SubscribeMedia.State.NOT_FINISH.status).
-						query();
+						queryForFirst();
 		// 相对于现在没有完成的任务
-		if (accounts.size() == 0) {
+		if (media == null) {
 			device.taskType = null;
 			// 处于等待状态
 			device.flag = AndroidDevice.Flag.Upper_Limit;
 			return;
 		}
-		device.queue.addAll(accounts.stream().map(v -> v.media_name).collect(Collectors.toSet()));
+		// 限制初始化一个任务
+		device.queue.add(media.media_name);
 	}
 
 
@@ -326,32 +337,6 @@ public class AndroidDeviceManager {
 	}
 
 
-	// reset 百度API token状态
-
-	private void resetOCRToken() {
-		Timer timer = new Timer(false);
-		Date nextDay = DateUtil.buildDate();
-		timer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				try {
-					List<BaiduTokens> tokens = Tab.tokenDao.queryForAll();
-					for (BaiduTokens v : tokens) {
-						if (!DateUtils.isSameDay(v.update_time, new Date())) {
-							v.count = 0;
-							v.update_time = new Date();
-							v.update();
-						}
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}, nextDay, 1000 * 60 * 60 * 24);
-
-	}
-
-
 	public static class ManagerTask implements Callable<Boolean> {
 		@Override
 		public Boolean call() throws Exception {
@@ -374,7 +359,7 @@ public class AndroidDeviceManager {
 			}
 
 			//开启恢复百度API  token 状态
-			manager.resetOCRToken();
+//			BaiDuOCRAdapter.resetOCRToken();
 
 			while (true) {
 				WeChatAdapter adapter = manager.idleAdapters.take();

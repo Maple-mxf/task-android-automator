@@ -280,6 +280,6 @@ public class DBTest {
 
 	@Test
 	public void test3() throws Exception {
-		Refacter.createTable(RequestRecord.class);
+		Refacter.createTable(TaskLog.class);
 	}
 }

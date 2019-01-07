@@ -37,7 +37,6 @@ public class Bootstrap {
 	public static void main(String[] args) {
 
 		AndroidDeviceManager manage = AndroidDeviceManager.me();
-
 		// 启动任务
 		manage.run();
 
@@ -45,7 +44,47 @@ public class Bootstrap {
 
 		// 爬虫接口
 		post("/fetch", fetch, JSON::toJson);
+
+		// 订阅接口
+		post("/subscribe", subscribe, JSON::toJson);
 	}
+
+
+	/**
+	 * request body param {"media":[""]}
+	 * 公众号订阅
+	 */
+	private static Route subscribe = (req, resp) -> {
+
+		String body = req.body();
+
+		if (Strings.isNullOrEmpty(body)) return new Msg<>(0, "请检查您的参数！");
+
+		JSONObject json = new JSONObject(body);
+
+		if (!json.has("media")) return new Msg<>(0, "请检查您的参数！");
+
+		JSONArray mediasArray = json.getJSONArray("media");
+
+		if (mediasArray == null || mediasArray.length() == 0) return new Msg<>(0, "请检查您的参数！");
+
+		String topic = parseTopic(json);
+
+		if (Strings.isNullOrEmpty(topic)) return new Msg<>(0, "请检查Topic参数！");
+
+		String udid = null;
+		// 指定设备执行任务
+		if (json.has("udid")) {
+
+			if (parseDeviceExist(json.getString("udid"))) return new Msg<>(0, "设备不存在！");  // TODO 需要获取当前设备订阅的任务是否处于
+
+			udid = json.getString("udid");
+		}
+
+		Map data = parseMedia(mediasArray, topic, udid);
+
+		return new Msg<>(1, data);
+	};
 
 
 	/**

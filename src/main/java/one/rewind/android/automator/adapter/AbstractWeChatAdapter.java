@@ -12,10 +12,7 @@ import one.rewind.android.automator.exception.AlreadySubscribeException;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.exception.SearchMediaException;
-import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.model.WordsPoint;
+import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.*;
 import one.rewind.db.RedissonAdapter;
 import org.apache.commons.io.FileUtils;
@@ -39,7 +36,6 @@ import java.util.*;
  * @author maxuefeng[m17793873123@163.com]
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
-
 
 //	class RelativeFlag {
 //
@@ -373,27 +369,27 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return;
 			}
 		} else {
+
 			slideToPoint(431, 1250, 431, 600, device.driver, 1000);
+
 			firstPage.set(Boolean.FALSE);
 			// 采集近期更新的文章,出发lastPage的条件是接着上一次更新的时间
 			SubscribeMedia subscribeRecord = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
-
 			// 搜索不到数据
 			if (subscribeRecord == null) {
 				lastPage.set(Boolean.TRUE);
 				return;
 			}
-
-			// 完善标记数据  Flag的数据要形成闭环 ---回调函数
-//			this.relativeFlag.history = true;
-//			this.relativeFlag.record = DateFormatUtils.format(subscribeRecord.update_time, "yyyy年MM月dd日");
 		}
 
-		//l
 		while (!lastPage.get()) {
 
 			// 翻到下一页
-			slideToPoint(606, 2387, 606, 200, device.driver, 2000);
+			if (!firstPage.get()) {
+				// 第一次
+				slideToPoint(606, 2387, 606, 300, device.driver, 2000);
+				firstPage.set(Boolean.FALSE);
+			}
 
 			List<WordsPoint> wordsPoints = obtainClickPoints();
 
@@ -435,9 +431,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				for (int i = 0; i < slideNumByPage; i++) {
 					slideToPoint(606, 2387, 606, 960, device.driver, 1500);
 				}
-			} else {
-				slideToPoint(431, 1250, 431, 500, device.driver, 1000);
-				firstPage.set(Boolean.FALSE);
 			}
 			return true;
 		} catch (Exception e) {
@@ -929,9 +922,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			logger.info("Starting....Please wait!");
 			try {
 
-				RequestFilter requestFilter = (request, contents, messageInfo) -> {
-					return null;
-				};
+				RequestFilter requestFilter = (request, contents, messageInfo) -> null;
 
 				Stack<String> content_stack = new Stack<>();
 				Stack<String> stats_stack = new Stack<>();

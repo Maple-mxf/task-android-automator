@@ -1,10 +1,8 @@
 package one.rewind.android.automator.adapter;
 
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.util.BaiduAPIUtil;
-import one.rewind.android.automator.util.Base64Util;
-import one.rewind.android.automator.util.FileUtil;
-import one.rewind.android.automator.util.HttpUtil;
+import one.rewind.android.automator.util.*;
+import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -14,6 +12,10 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URLEncoder;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -150,4 +152,29 @@ public class BaiDuOCRAdapter implements OCRAdapter {
 	private BaiDuOCRAdapter() {
 	}
 
+	/**
+	 * 重置百度接口token
+	 */
+	public static void resetOCRToken() {
+		Timer timer = new Timer(false);
+		Date nextDay = DateUtil.buildDate();
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				try {
+					List<BaiduTokens> tokens = Tab.tokenDao.queryForAll();
+					for (BaiduTokens v : tokens) {
+						if (!DateUtils.isSameDay(v.update_time, new Date())) {
+							v.count = 0;
+							v.update_time = new Date();
+							v.update();
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}, nextDay, 1000 * 60 * 60 * 24);
+
+	}
 }
