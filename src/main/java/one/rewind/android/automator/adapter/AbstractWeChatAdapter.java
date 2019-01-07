@@ -468,8 +468,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	/**
 	 * 截图
 	 *
-	 * @param fileName
-	 * @param path
+	 * @param fileName file name
+	 * @param path     file absolute path
 	 */
 	public static void screenshot(String fileName, String path, AndroidDriver driver) {
 		try {
@@ -485,10 +485,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	/**
 	 * 点击固定的位置
 	 *
-	 * @param xOffset
-	 * @param yOffset
+	 * @param xOffset   x
+	 * @param yOffset   y
 	 * @param sleepTime 睡眠时间
-	 * @throws InterruptedException
+	 * @throws InterruptedException e
 	 */
 	public static void clickPoint(int xOffset, int yOffset, int sleepTime, AndroidDriver driver) throws InterruptedException {
 		new TouchAction(driver).tap(PointOption.point(xOffset, yOffset)).perform();
@@ -545,8 +545,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * <p>
 	 * 要订阅的公众号可能存在一个问题就是搜索不到微信账号或者最准确的结果并不是第一个
 	 *
-	 * @param mediaName
-	 * @throws Exception
+	 * @param mediaName media
+	 * @throws AlreadySubscribeException,SearchMediaException,InterruptedException,SQLException e
 	 */
 	public void subscribeMedia(String mediaName) throws AlreadySubscribeException, SearchMediaException, InterruptedException, SQLException {
 
@@ -594,6 +594,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	}
 
+	/**
+	 * save subscribe record
+	 *
+	 * @param mediaName media
+	 * @param topic     redis topic
+	 */
 	private void saveSubscribeRecord(String mediaName, String topic) {
 		try {
 			long tempCount = Tab.subscribeDao.queryBuilder().where()
@@ -616,10 +622,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	}
 
 	/**
-	 * @param mediaName
-	 * @throws InterruptedException
+	 * @param mediaName media
+	 * @throws Exception e
 	 */
-	public static boolean enterEssay(String mediaName, AndroidDevice device) throws Exception {
+	private static boolean enterEssay(String mediaName, AndroidDevice device) throws Exception {
 
 		try {
 
@@ -679,6 +685,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	/**
 	 * 下滑到指定位置
+	 *
+	 * @param startX    start x point
+	 * @param startY    start y point
+	 * @param endX      end x point
+	 * @param endY      end y point
+	 * @param driver    AndroidDriver
+	 * @param sleepTime thread sleep time by mill
+	 * @throws InterruptedException e
 	 */
 	private static void slideToPoint(int startX, int startY, int endX, int endY, AndroidDriver driver, int sleepTime) throws InterruptedException {
 		new TouchAction(driver).press(PointOption.point(startX, startY))
@@ -698,7 +712,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @return 为空
 	 * @throws Exception ex
 	 */
-	public static SubscribeMedia retry(String mediaName, String udid) throws Exception {
+	private static SubscribeMedia retry(String mediaName, String udid) throws Exception {
 		SubscribeMedia media = Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).and().eq("udid", udid).queryForFirst();
 		if (media == null) {
 			media = new SubscribeMedia();
