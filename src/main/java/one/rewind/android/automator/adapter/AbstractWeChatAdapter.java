@@ -37,24 +37,6 @@ import java.util.*;
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
 
-//	class RelativeFlag {
-//
-//		public boolean history;
-//		public String record;
-//
-//		public RelativeFlag() {
-//			history = false;
-//			record = "";
-//		}
-//
-//		public void callback() {
-//			this.history = false;
-//			this.record = "";
-//		}
-//	}
-
-//	public RelativeFlag relativeFlag = new RelativeFlag();
-
 	ThreadLocal<Boolean> lastPage = new ThreadLocal<>();
 
 	ThreadLocal<Boolean> firstPage = new ThreadLocal<>();

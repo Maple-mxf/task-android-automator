@@ -29,9 +29,20 @@ public interface OCRAdapter {
 	 */
 	int IMAGE_WIDTH = 1080;
 
+	/**
+	 * 裁剪图片
+	 *
+	 * @param bufferedImage bin
+	 * @return bout
+	 */
 	static BufferedImage cropEssayListImage(BufferedImage bufferedImage) {
-		// 头部的数据是不可以裁剪的   会影响坐标的准确度
 		return ImageUtil.cropImage(bufferedImage, 0, CROP_TOP, 770, 1920);
 	}
-	///usr/local/wechat-android-automator-1.0-SNAPSHOT/screen/20069cba-df67-4033-a4fa-99d7e1c7cc4a.png
+
+	/**
+	 * 解析获取到文章的真实标题
+	 */
+	static void realTitle() {
+
+	}
 }
