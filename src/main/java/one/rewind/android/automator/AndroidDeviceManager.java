@@ -123,6 +123,8 @@ public class AndroidDeviceManager {
 			logger.info("start executed");
 			//计算任务类型
 			adapter.getDevice().taskType = calculateTaskType(adapter);
+
+			System.out.println("当前设备 : " + adapter.getDevice().udid + "的任务类型是: " + adapter.getDevice().taskType);
 			//初始化任务队列
 			switch (adapter.getDevice().taskType) {
 				case Subscribe: {
@@ -137,6 +139,8 @@ public class AndroidDeviceManager {
 				default:
 					logger.info("当前没有匹配到任何任务类型!");
 			}
+
+
 			adapter.start();
 		} catch (Exception e) {
 			logger.error("初始化任务失败！");
@@ -153,17 +157,19 @@ public class AndroidDeviceManager {
 	private void initSubscribeSingleQueue(AndroidDevice device) throws SQLException {
 
 		device.queue.clear();
-		// 计算今日还能订阅多少
+		// 今日订阅了多少个号
 		int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
 
+		System.out.println("今天订阅了" + numToday + "个号");
 		// 处于等待状态
 		if (numToday > 40) {
 			device.flag = AndroidDevice.Flag.Upper_Limit;
 			device.taskType = null;
 		} else {
-
 			// 从redis中加载数据
 			RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
+
+			System.out.println("redis中的任务队列的数据是否为空? " + taskQueue.size());
 
 			if (taskQueue.size() == 0) {
 
@@ -184,12 +190,15 @@ public class AndroidDeviceManager {
 							device.queue.add(var);
 							taskQueue.remove(var);
 							logger.info("订阅任务{}", var);
+							System.out.println("订阅任务  : " + var);
 							break;
+						} else {
+							// TODO BUG------------------------------------------------------------------------------------------------------------------------------
 						}
 					} else {
 						device.queue.add(var);
 						taskQueue.remove(var);
-						logger.info("订阅任务{}", var);
+						System.out.println("订阅任务  : " + var);
 						break;
 					}
 				}

@@ -2,8 +2,11 @@ package one.rewind.android.automator.adapter;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.*;
+import okhttp3.internal.Util;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.callback.TaskStartCallback;
+import one.rewind.android.automator.callback.TaskStopCallback;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.DateUtil;
@@ -30,7 +33,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 		super(device);
 	}
 
-	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
+	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10, Util.threadFactory("thread-" + device.udid, false)));
 
 	class Task implements Callable<Boolean> {
 
@@ -42,9 +45,10 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 		public Boolean call() throws Exception {
 
 			if (device.taskType != null) {
-				if (device.taskType.equals(AndroidDevice.Task.Type.Fetch)) {
-					for (String media : device.queue) {
 
+				if (device.taskType.equals(AndroidDevice.Task.Type.Fetch)) {
+
+					for (String media : device.queue) {
 						//  初始化记录  对应当前公众号
 						lastPage.set(Boolean.FALSE);
 
@@ -65,7 +69,9 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 						AndroidUtil.restartWechat(device);
 					}
 				} else if (device.taskType.equals(AndroidDevice.Task.Type.Subscribe)) {
+
 					for (String media : device.queue) {
+
 						digestionSubscribe(media);
 					}
 				}
@@ -130,12 +136,29 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 			logger.info("发布完毕！k: {}", k);
 		}
+
+
+		// 执行任务
+		private void execute(TaskStartCallback startCallback, TaskStopCallback stopCallback) {
+
+			startCallback.call(device);
+
+			executeTask();
+
+			stopCallback.call(device);
+		}
+
+		private void executeTask() {
+
+			// execute task
+		}
 	}
 
 
 	@Override
 	public void start() {
 		WeChatAdapter adapter = this;
+
 		ListenableFuture<Boolean> future = service.submit(new Task());
 
 		Futures.addCallback(future, new FutureCallback<Boolean>() {

@@ -6,5 +6,5 @@ package one.rewind.android.automator.callback;
 @FunctionalInterface
 public interface TaskStopCallback {
 
-	void call();
+	void call(Object obj);
 }
