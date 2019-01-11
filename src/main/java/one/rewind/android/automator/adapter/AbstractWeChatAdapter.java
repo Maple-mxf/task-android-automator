@@ -412,6 +412,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			String path = System.getProperty("user.dir") + "/screen/";
 
+			screenshot(fileName, path, device.driver);
+
 			// 恢复之前截图分析是否被限流
 			final JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
 
@@ -422,7 +424,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 				final String words = tmp.getString("words");
 
-				if (words.contains("操作频繁") || words.contains("请稍后再")) {
+				if (words.contains("操作频") || words.contains("请稍后再")) {
 					throw new WeChatRateLimitException("微信被限流了");
 				}
 			});
