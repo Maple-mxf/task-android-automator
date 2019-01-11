@@ -405,6 +405,28 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	private boolean restore(String mediaName) {
 		try {
+
+			String filePrefix = UUID.randomUUID().toString();
+
+			String fileName = filePrefix + ".png";
+
+			String path = System.getProperty("user.dir") + "/screen/";
+
+			// 恢复之前截图分析是否被限流
+			final JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+
+			final JSONArray array = jsonObject.getJSONArray("words_result");
+
+			array.forEach(t -> {
+				JSONObject tmp = (JSONObject) t;
+
+				final String words = tmp.getString("words");
+
+				if (words.contains("操作频繁") || words.contains("请稍后再")) {
+					throw new WeChatRateLimitException("微信被限流了");
+				}
+			});
+
 			long count = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
 
 			this.firstPage.set(count == 0);
@@ -801,10 +823,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				} catch (Exception e1) {
 					logger.error(e1);
 				}
-			} else if (e instanceof InvokingBaiduAPIException) {
+			} else if (e instanceof InterruptedException) {
+				e.printStackTrace();
+				logger.error("InterruptedException 线程中断异常！");
+			} else if (e instanceof NoSuchElementException) {
+				// 如果搜索不到公众号，则会在此处形成死循环  其他没有捕获到的异常
 
 				e.printStackTrace();
-				logger.error("百度API调用失败！");
+			} else if (e instanceof WeChatRateLimitException) {
 				try {
 					// 需要计算啥时候到达明天   到达明天的时候需要重新分配任务
 					Date nextDay = DateUtil.buildDate();
@@ -818,13 +844,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				} catch (Exception e2) {
 					logger.error(e2);
 				}
-			} else if (e instanceof InterruptedException) {
-				e.printStackTrace();
-				logger.error("InterruptedException 线程中断异常！");
-			} else if (e instanceof NoSuchElementException) {
-				// 如果搜索不到公众号，则会在此处形成死循环  其他没有捕获到的异常
-
-				e.printStackTrace();
 			} else {
 				lastPage.set(Boolean.TRUE);
 			}
