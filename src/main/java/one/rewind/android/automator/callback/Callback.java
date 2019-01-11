@@ -9,6 +9,5 @@ package one.rewind.android.automator.callback;
 @FunctionalInterface
 public interface Callback {
 
-
 	void call(Object t);
 }

@@ -157,10 +157,12 @@ public class AndroidDeviceManager {
 	/**
 	 * 初始化订阅任务
 	 *
-	 * @param device
+	 * @param device d
 	 * @throws SQLException
 	 */
 	private void initSubscribeSingleQueue(AndroidDevice device) throws SQLException {
+		device.queue.clear();
+
 		if (mediaStack.isEmpty()) {
 			// 如果没有数据了 先初始化订阅的公众号
 			startPage += 2;
@@ -172,8 +174,11 @@ public class AndroidDeviceManager {
 		System.out.println("今天订阅了" + numToday + "个号");
 		// 处于等待状态
 		if (numToday > 40) {
+
 			device.flag = AndroidDevice.Flag.Upper_Limit;
+
 			device.taskType = null;
+
 		} else {
 			RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
 
@@ -217,8 +222,14 @@ public class AndroidDeviceManager {
 	}
 
 
-	// 从MySQL中初始化任务
+	/**
+	 * 从MySQL中初始化任务
+	 *
+	 * @param device d
+	 * @throws SQLException sql e
+	 */
 	private void initCrawlerQueue(AndroidDevice device) throws SQLException {
+		device.queue.clear();
 		SubscribeMedia media =
 				Tab.subscribeDao.
 						queryBuilder().
@@ -227,6 +238,8 @@ public class AndroidDeviceManager {
 						and().
 						eq("status", SubscribeMedia.State.NOT_FINISH.status).
 						queryForFirst();
+
+		System.out.println("当前设备 " + device.udid + "分配的任务是: " + media);
 		// 相对于现在没有完成的任务
 		if (media == null) {
 			device.taskType = null;
@@ -239,7 +252,13 @@ public class AndroidDeviceManager {
 	}
 
 
-	//
+	/**
+	 * 计算任务类型
+	 *
+	 * @param adapter
+	 * @return
+	 * @throws Exception
+	 */
 	private AndroidDevice.Task.Type calculateTaskType(WeChatAdapter adapter) throws Exception {
 
 		String udid = adapter.getDevice().udid;
@@ -260,7 +279,6 @@ public class AndroidDeviceManager {
 			}
 			return AndroidDevice.Task.Type.Fetch;
 		} else if (todaySubscribe >= 40) {
-
 			if (notFinishR.size() == 0) {
 				adapter.getDevice().flag = AndroidDevice.Flag.Frequent_Operation;
 				return null;
@@ -277,6 +295,13 @@ public class AndroidDeviceManager {
 		}
 	}
 
+	/**
+	 * 计算今日订阅了多少公众号
+	 *
+	 * @param udid
+	 * @return
+	 * @throws SQLException
+	 */
 	private int obtainSubscribeNumToday(String udid) throws SQLException {
 		GenericRawResults<String[]> results = Tab.subscribeDao.
 				queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -353,18 +378,15 @@ public class AndroidDeviceManager {
 
 			for (AndroidDevice device : manager.devices) {
 				WeChatAdapter adapter = new WeChatAdapter(device);
-				adapter.startUpDevice();
+				adapter.startupDevice();
 				manager.idleAdapters.add(adapter);
 			}
 
-			//开启恢复百度API  token 状态
-//			BaiDuOCRAdapter.resetOCRToken();
-
-			while (true) {
+			do {
 				WeChatAdapter adapter = manager.idleAdapters.take();
 				// 获取到休闲设备进行任务执行
 				manager.execute(adapter);
-			}
+			} while (true);
 		}
 	}
 

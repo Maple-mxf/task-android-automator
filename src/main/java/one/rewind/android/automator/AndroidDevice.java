@@ -223,7 +223,7 @@ public class AndroidDevice extends AbstractService {
 	 * 停止代理
 	 */
 	public void stopProxy() {
-		Optional.ofNullable(bmProxy).ifPresent(t -> t.stop());
+		Optional.ofNullable(bmProxy).ifPresent(BrowserMobProxy::stop);
 	}
 
 	/**

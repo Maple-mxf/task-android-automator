@@ -11,7 +11,4 @@ public class AlreadySubscribeException extends NoSuchElementException {
 		super(reason);
 	}
 
-	public AlreadySubscribeException(String reason, Throwable cause) {
-		super(reason, cause);
-	}
 }

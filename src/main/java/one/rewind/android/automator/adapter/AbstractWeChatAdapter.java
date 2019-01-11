@@ -8,10 +8,7 @@ import joptsimple.internal.Strings;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.exception.AlreadySubscribeException;
-import one.rewind.android.automator.exception.AndroidCollapseException;
-import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.exception.SearchMediaException;
+import one.rewind.android.automator.exception.*;
 import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.util.*;
 import one.rewind.db.RedissonAdapter;
@@ -36,6 +33,7 @@ import java.util.*;
  * @author maxuefeng[m17793873123@163.com]
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
+
 
 	TaskLog taskLog;
 
@@ -63,7 +61,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	}
 
 
-	public static final int RETRY_COUNT = 20;
+	public static final int RETRY_COUNT = 5;
 
 	AbstractWeChatAdapter(AndroidDevice device) {
 		super(device);
@@ -125,7 +123,9 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	private List<WordsPoint> obtainClickPoints() throws Exception {
 
 		String filePrefix = UUID.randomUUID().toString();
+
 		String fileName = filePrefix + ".png";
+
 		String path = System.getProperty("user.dir") + "/screen/";
 
 		logger.info("截图文件路径为: {}", path + fileName);
@@ -148,7 +148,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		// TODO 删除文件放到ocr adapter上做
 		try {
 			// 删除图片文件
-			FileUtil.deleteFile(filePath);
+//			FileUtil.deleteFile(filePath);
 
 			// 删除html文件
 			FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
@@ -219,8 +219,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		int count = 0;
 
-		int differenceCount = 0;
-
 		JSONArray tmpArray = array;
 
 		List<WordsPoint> wordsPoints = new ArrayList<>();
@@ -238,8 +236,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			if (Strings.isNullOrEmpty(words)) continue;
 
 			if (currentTitles.contains(words)) {
-
-				differenceCount += 1;
 
 				boolean flag = true;
 
@@ -269,10 +265,15 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				continue;
 			}
 
-			if (words.contains("微信没有响应") || words.contains("全部消息")) throw new AndroidCollapseException("微信没有响应！");
+			if (words.contains("微信没有响应")) throw new AndroidCollapseException("微信没有响应！");
 
-			// TODO  判断当前的索引是数组中的最后一个
-			if (words.contains("已无更多") || words.contains("己无更多")) {
+			if (words.contains("操作频繁") || words.contains("请稍后再试")) throw new WeChatRateLimitException("微信接口被限流了!");
+
+			int left = inJSON.getInt("left");
+			int top = inJSON.getInt("top");
+
+			// TODO  判断当前的索引是数组中的最后一个2185,
+			if ((words.contains("已无更") || words.contains("己无更")) && top >= 2000) {
 
 				logger.info("==============翻到最后一页=============");
 
@@ -281,7 +282,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return wordsPoints;
 			}
 
-			int left = inJSON.getInt("left");
 
 			//确保时间标签的位置   有可能有年月日字符串的在文章标题中   为了防止这种情况   left<=80
 
@@ -289,7 +289,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 				count++;
 
-				int top = inJSON.getInt("top");
 
 				int width = inJSON.getInt("width");
 
@@ -302,9 +301,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 
 		// TODO 统计到最后一页
-		if (differenceCount != 0 && differenceCount == currentTitles.size() && count > 0) {
-			lastPage.set(Boolean.TRUE);
-		}
 
 		previousTitles(tmpArray);
 
@@ -352,7 +348,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return;
 			}
 		} else {
-
 			firstPage.set(Boolean.FALSE);
 			// 采集近期更新的文章,出发lastPage的条件是接着上一次更新的时间
 			SubscribeMedia subscribeRecord = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", mediaName).queryForFirst();
@@ -362,9 +357,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return;
 			}
 		}
+
+		int count = 0;
+
 		while (!lastPage.get()) {
 
-
+			if (count >= 5) {
+				throw new AndroidCollapseException("崩溃异常");
+			}
 			// 翻到下一页
 			if (!firstPage.get()) {
 				slideToPoint(606, 2387, 606, 300, device.driver, 2000);
@@ -375,24 +375,34 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			}
 
 			this.taskLog.step();
+
 			List<WordsPoint> wordsPoints = obtainClickPoints();
 
 			if (wordsPoints.size() == 0) {
 
+				count++;
 				if (!lastPage.get()) {
 					// TODO   很大程度的造成微信无故被关闭  很可能是因为图像识别的缘故或者安卓惯性造成(效率优化的一块存在)
 					logger.info("图像识别的结果为空!");
 				} else {
 					logger.info("公众号{}抓取到最后一页了", mediaName);
 				}
-
 			} else {
+
+				count = 0;
 				openEssays(wordsPoints);
 			}
+
 		}
 	}
 
 
+	/**
+	 * 恢复到上次数据采集的位置
+	 *
+	 * @param mediaName 任务名称
+	 * @return true or false
+	 */
 	private boolean restore(String mediaName) {
 		try {
 			long count = Tab.essayDao.queryBuilder().where().eq("media_nick", mediaName).countOf();
@@ -473,10 +483,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	public static void screenshot(String fileName, String path, AndroidDriver driver) {
 		try {
-			File screenFile = ((TakesScreenshot) driver)
-					.getScreenshotAs(OutputType.FILE);
+			File screenFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 
 			FileUtils.copyFile(screenFile, new File(path + fileName));
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -629,6 +639,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		try {
 
+			Thread.sleep(6000);
+
+//			Stream
+
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 
 		} catch (Exception e) {
@@ -766,15 +780,17 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			logger.error(e);
 
 			device.clearCacheLog();
+
 			device.clearAllLog();
 
 			if (e instanceof AndroidCollapseException) {
 				logger.error("设备{}链路出问题了.", device.udid);
 				try {
-					AndroidUtil.closeApp(device);
 
+					AndroidUtil.closeApp(device);
 					AndroidUtil.activeWechat(this.device);
 					SubscribeMedia media = retry(mediaName, this.device.udid);
+
 					if (media != null) {
 						media.retry_count += 1;
 						media.update_time = new Date();
@@ -933,8 +949,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	abstract void stop();
 
-	// 启动Device
-	public void startUpDevice() {
+	/**
+	 * 启动设备
+	 */
+	public void startupDevice() {
 		Optional.of(this.device).ifPresent(t -> {
 			t.startProxy(t.localProxyPort);
 			t.setupWifiProxy();
@@ -956,24 +974,23 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 						// 正文
 						if (url.contains("https://mp.weixin.qq.com/s")) {
 							t.setClickEffect(true);
-							/*System.err.println(" : " + url);*/
+							System.err.println(" : " + url);
 							content_stack.push(contents.getTextContents());
 						}
 						// 统计信息
 						else if (url.contains("getappmsgext")) {
 							t.setClickEffect(true);
-							/*System.err.println(" :: " + url);*/
+							System.err.println(" :: " + url);
 							stats_stack.push(contents.getTextContents());
 						}
 						// 评论信息
 						else if (url.contains("appmsg_comment?action=getcomment")) {
 							t.setClickEffect(true);
-							/*System.err.println(" ::: " + url);*/
+							System.err.println(" ::: " + url);
 							comments_stack.push(contents.getTextContents());
 						}
 
 						if (content_stack.size() > 0) {
-
 							t.setClickEffect(true);
 							String content_src = content_stack.pop();
 							Essays we = null;
@@ -1006,7 +1023,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 							try {
 								we.insert();
 							} catch (Exception ignored) {
-
+								logger.info("文章插入失败！");
 							}
 							if (comments_stack.size() > 0) {
 								String comments_src = comments_stack.pop();

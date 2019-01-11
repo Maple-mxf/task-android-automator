@@ -6,6 +6,16 @@
 .data/
 .tmp/
 .build.properties
+README.markdown
 .gitignore
+wechat-android-automator.iml
+ca.crt
+pk.crt
+contacts.txt
+.data
 将删除 log/
 将删除 out/
+将删除 build/
+将删除 data/
+将删除 screen/
+将删除 src/test/resources/

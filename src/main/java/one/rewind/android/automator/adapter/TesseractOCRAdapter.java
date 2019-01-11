@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import one.rewind.android.automator.util.FileUtil;
 import one.rewind.android.automator.util.ImageUtil;
@@ -19,6 +20,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -81,6 +83,8 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		// 附带文字坐标command
 		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi_sim hocr";
 
+//		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi hocr";
+
 		Process process = Runtime.getRuntime().exec(command);
 
 		// 确认命令执行完毕
@@ -117,7 +121,7 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		JSONObject json = new JSONObject();
 		json.put("left", point[0]);
 		// 相对位置
-		json.put("top", point[1] + CROP_TOP);
+		json.put("top", point[1]);
 		json.put("width", point[2]);
 		json.put("height", point[3]);
 		return json;
@@ -174,7 +178,10 @@ public class TesseractOCRAdapter implements OCRAdapter {
 				int size = secondLevelSpans.size();
 
 				for (int i = 0; i < size; i++) {
-					line.append(secondLevelSpans.get(i).text());
+					Element tmpElement = secondLevelSpans.get(i);
+					if (!Strings.isNullOrEmpty(tmpElement.text())) {
+						line.append(tmpElement.text());
+					}
 					if (i == 0) {
 						// 存储坐标
 
@@ -186,15 +193,22 @@ public class TesseractOCRAdapter implements OCRAdapter {
 					}
 				}
 
-				if (StringUtils.isNotBlank(line.toString())) {
+				if (!Strings.isNullOrEmpty(line.toString())) {
 
-					// put words
-					outJSON.put("words", line.toString());
+					Optional.ofNullable(locationJSON).ifPresent(t -> {
 
-					// put word point
-					outJSON.put("location", locationJSON);
+						final int top = t.getInt("top");
 
-					array.put(outJSON);
+						if (top >= CROP_TOP) {
+							// put words
+							outJSON.put("words", line.toString());
+
+							// put word point
+							outJSON.put("location", t);
+
+							array.put(outJSON);
+						}
+					});
 				}
 			}
 		}
@@ -414,12 +428,5 @@ public class TesseractOCRAdapter implements OCRAdapter {
 
 		outJSON.put("words_result", newArray);
 		return outJSON;
-	}
-
-	/**
-	 * @return
-	 */
-	public static boolean isDate(String pa) {
-		return false;
 	}
 }

@@ -1,8 +1,10 @@
 package one.rewind.android.automator.api;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.model.RequestRecord;
@@ -17,38 +19,57 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.redisson.api.RPriorityQueue;
+import org.redisson.api.RTopic;
 import spark.Route;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static one.rewind.db.RedissonAdapter.redisson;
 import static spark.Spark.port;
 import static spark.Spark.post;
 
 /**
+ * 每次往redis中存储任务的时候,通知topic定时更新TASK_CACHE中的数据 作为简单缓存来使用
+ *
  * @author maxuefeng [m17793873123@163.com]
  */
 @ThreadSafe
 public class Bootstrap {
 
+	private static final Set<String> TASK_CACHE = Sets.newConcurrentHashSet();
+
+	private static final ImmutableSet<String> STRINGS = ImmutableSet.<String>builder().build();
+
+	private static final String TASK_MSG = "Android-Automator-Task_Msg";
+
 	public static void main(String[] args) {
 
 		AndroidDeviceManager manage = AndroidDeviceManager.me();
+
 		// 启动任务
 		manage.run();
 
 		port(56789);
 
-		// 爬虫接口
+		// 采集接口
 		post("/fetch", fetch, JSON::toJson);
 
 		// 订阅接口
 		post("/subscribe", subscribe, JSON::toJson);
 	}
 
+
+	/**
+	 * 图像识别服务  客户端先将图片转换为byte数组  再将byte数组转换为字符串
+	 */
+	private static Route ocrService = (req, resp) -> {
+
+		return null;
+	};
 
 	/**
 	 * request body param {"media":[""]}
@@ -172,7 +193,6 @@ public class Bootstrap {
 	 */
 	private static Map<String, Object> parseMedia(JSONArray media, String topic, String udid) {
 		try {
-
 			Map<String, Object> data = Maps.newHashMap();
 
 			List<Object> result = Lists.newArrayList();
@@ -270,7 +290,7 @@ public class Bootstrap {
 				single.put("media", requestRecord.media);
 				single.put("is_finish", requestRecord.is_finish);
 				single.put("is_follow", requestRecord.is_follow);
-				single.put("is_queue", requestRecord.is_queue);
+				single.put("in_queue", requestRecord.is_queue);
 				single.put("is_finish_history", requestRecord.is_finish_history);
 				single.put("last", requestRecord.last == null ? "" : DateFormatUtils.format(requestRecord.last, "yyyy-MM-dd HH:mm:ss"));
 				single.put("udid", requestRecord.udid);
@@ -289,8 +309,18 @@ public class Bootstrap {
 		}
 	}
 
+	/**
+	 * 队列中是否包含
+	 *
+	 * @param mediaName
+	 * @param topic
+	 * @return
+	 */
+	@Deprecated
 	private static String contain(String mediaName, String topic) {
+
 		RPriorityQueue<String> topicMedia = redisson.getPriorityQueue(Tab.TOPIC_MEDIA);
+
 		for (String var : topicMedia) {
 			if (var.startsWith(mediaName + Tab.REQUEST_ID_SUFFIX)) {
 				// 获取真实Topic
@@ -312,8 +342,32 @@ public class Bootstrap {
 
 			return 0;
 		} else {
-
 			return 1;
 		}
+	}
+
+	/**
+	 * 监听redis队列
+	 */
+	public static void startListen() {
+
+		final RTopic<Object> taskMsgTopic = redisson.getTopic(TASK_MSG);
+
+		taskMsgTopic.addListener((channel, msg) -> {
+
+			System.out.println(msg);
+
+//			更新 TASK_CACHE 集合的数据
+			TASK_CACHE.clear();
+
+			final RPriorityQueue<String> var = redisson.getPriorityQueue(Tab.TOPIC_MEDIA);
+
+			final String[] tasks = (String[]) var.toArray();
+
+			for (String task : tasks) {
+				final String media = Tab.realMedia(task);
+				TASK_CACHE.add(media);
+			}
+		});
 	}
 }

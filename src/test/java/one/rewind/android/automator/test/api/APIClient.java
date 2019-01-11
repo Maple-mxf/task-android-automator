@@ -20,12 +20,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class APIClient {
 
-	private final String url = "http://192.168.8.100:56789/fetch";
-//		private final String url = "http://127.0.0.1:56789/fetch";
+	private final String fetchUrl = "http://192.168.8.104:56789/fetch";
+	private final String subscribeUrl = "http://192.168.8.104:56789/subscribe";
 
 	private Request buildRequest(String json) {
 		RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
-		return new Request.Builder().url(url).post(body).build();
+		return new Request.Builder().url(fetchUrl).post(body).build();
 	}
 
 	private Logger logger = LoggerFactory.getLogger(APIClient.class);
@@ -58,7 +58,7 @@ public class APIClient {
 
 		// 测试 "facebook" 公众号
 		// 在微信公众号中确定真是存在名称为facebook的公众号
-		Request request = buildRequest("{\"media\":[\"阿里巴巴\"]}");
+		Request request = buildRequest("{\"media\":[\"定投十年赚十倍\"]}");
 
 		Response response = client.newCall(request).execute();
 

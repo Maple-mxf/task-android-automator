@@ -17,15 +17,15 @@ public interface OCRAdapter {
 	/**
 	 * 右侧裁剪距离  右侧裁剪不需要附加坐标
 	 */
-	int CROP_RIGHT = 770;
+	int CROP_RIGHT = 1056;
 
 	/**
 	 * 图片高度
 	 */
-	int IMAGE_HEIGHT = 1920;
+	int IMAGE_HEIGHT = 2550;
 
 	/**
-	 * 图片宽度
+	 * 图片宽度  1920-190
 	 */
 	int IMAGE_WIDTH = 1080;
 
@@ -36,7 +36,7 @@ public interface OCRAdapter {
 	 * @return bout
 	 */
 	static BufferedImage cropEssayListImage(BufferedImage bufferedImage) {
-		return ImageUtil.cropImage(bufferedImage, 0, CROP_TOP, 770, 1920);
+		return ImageUtil.cropImage(bufferedImage, 0, 0, CROP_RIGHT, IMAGE_HEIGHT);
 	}
 
 	/**

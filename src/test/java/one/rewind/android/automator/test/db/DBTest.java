@@ -280,6 +280,15 @@ public class DBTest {
 
 	@Test
 	public void test3() throws Exception {
-		Refacter.createTable(TaskLog.class);
+		SubscribeMedia media =
+				Tab.subscribeDao.
+						queryBuilder().
+						where().
+						eq("udid", "ZX1G22PQLH").
+						and().
+						eq("status", SubscribeMedia.State.NOT_FINISH.status).
+						queryForFirst();
+		System.out.println(media.media_name);
+
 	}
 }

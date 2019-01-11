@@ -18,6 +18,7 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
@@ -27,7 +28,6 @@ import java.util.concurrent.Executors;
  * @see AndroidDevice
  */
 public class WeChatAdapter extends AbstractWeChatAdapter {
-
 
 	private static final RedissonClient client = RedissonAdapter.redisson;
 
@@ -45,6 +45,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 		 */
 		@Override
 		public Boolean call() throws Exception {
+
 			execute(begin -> {
 
 				WeChatAdapter adapter = (WeChatAdapter) begin;
@@ -69,7 +70,6 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 				}
 			}, end -> {
 				try {
-
 					WeChatAdapter adapter = (WeChatAdapter) end;
 					// peek
 					String media = adapter.device.queue.peek();
@@ -113,30 +113,32 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 					String media = device.queue.poll();
 
+					System.out.println("=-----------------------关键位置-----" + media);
+
 					SubscribeMedia var0 = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", media).queryForFirst();
 
-					while (!lastPage.get()) {
-						// 等于1说明非历史任务  retry代表是否重试
-						digestionCrawler(media, var0.relative == 1);
-					}
-
+					Optional.ofNullable(var0).ifPresent(v -> {
+						while (!lastPage.get()) {
+							// 等于1说明非历史任务  retry代表是否重试
+							digestionCrawler(media, var0.relative == 1);
+						}
+					});
 				} else if (device.taskType.equals(AndroidDevice.Task.Type.Subscribe)) {
-
-					for (String media : device.queue) {
-
-						digestionSubscribe(media);
-					}
+					digestionSubscribe(device.queue.poll());
 				}
 			} else {
 				if (device.flag != null) {
 
 					if (device.flag.equals(AndroidDevice.Flag.Frequent_Operation)) {
-
 						// 需要计算啥时候到达明天   到达明天的时候需要重新分配任务
 						Date nextDay = DateUtil.buildDate();
+
 						Date thisDay = new Date();
+
 						long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
+
 						Thread.sleep(waitMills + 1000 * 60 * 5);
+
 					} else if (device.flag.equals(AndroidDevice.Flag.Upper_Limit)) {
 						// 当前设备订阅公众号数量到达上限
 						logger.info("当前设备{}订阅的公众号已经达到上限", udid);
@@ -189,10 +191,8 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 	}
 
-
 	@Override
 	public void start() {
-		WeChatAdapter adapter = this;
 
 		ListenableFuture<Boolean> future = service.submit(new Task());
 
@@ -200,19 +200,16 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 			@Override
 			public void onSuccess(@NullableDecl Boolean result) {
-
-				// 清空任务队列
-				if (!AndroidDevice.Flag.Upper_Limit.equals(adapter.device.flag)) {
-
-					AndroidDeviceManager.me().addIdleAdapter(adapter);
-
-				}
+				System.out.println("设备 " + WeChatAdapter.this.device.udid + "已完成任务;添加自己到AndroidDeviceManager容器中");
+				AndroidDeviceManager.me().addIdleAdapter(WeChatAdapter.this);
 			}
 
 			@Override
 			public void onFailure(Throwable t) {
 				//任务失败
 				t.printStackTrace();
+
+				System.out.println("设备" + WeChatAdapter.this.device.udid + "执行任务失败了!");
 			}
 		});
 	}

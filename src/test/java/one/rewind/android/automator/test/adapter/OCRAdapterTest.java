@@ -324,4 +324,30 @@ public class OCRAdapterTest {
 		// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 		ImageIO.write(bufferedImage, "png", new File(inImage.getAbsolutePath()));
 	}
+
+	@Test
+	public void testOcrResult() throws Exception {
+		final JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", true);
+
+		System.out.println(jsonObject);
+
+		final JSONArray array = jsonObject.getJSONArray("words_result");
+
+		for (Object var : array) {
+			JSONObject tmp = (JSONObject) var;
+
+			final String words = tmp.getString("words");
+
+			if (words.equals("已无更多")) {
+				System.out.println("jjjjjjjjjjjjjjjjjjjjjjjjjjjj");
+			}
+		}
+	}
+
+	@Test
+	public void testOcrByChi() throws Exception {
+		final JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+
+		System.out.println(jsonObject);
+	}
 }
