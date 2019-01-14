@@ -3,7 +3,7 @@ package one.rewind.android.automator.util;
 import io.appium.java_client.android.AndroidDriver;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWeChatAdapter;
-import one.rewind.android.automator.adapter.TesseractOCRAdapter;
+import one.rewind.android.automator.ocr.TesseractOCRAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
 import org.json.JSONArray;
 import org.json.JSONObject;

@@ -1,14 +1,13 @@
-package one.rewind.android.automator.adapter;
+package one.rewind.android.automator.ocr;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.util.FileUtil;
 import one.rewind.android.automator.util.ImageUtil;
 import one.rewind.json.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,6 +17,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -30,10 +30,11 @@ import java.util.Optional;
  */
 public class TesseractOCRAdapter implements OCRAdapter {
 
-	protected static TesseractOCRAdapter instance;
+	public static TesseractOCRAdapter instance;
 
 	/**
 	 * 单例模式
+	 *
 	 * @return
 	 */
 	public static TesseractOCRAdapter getInstance() {
@@ -45,7 +46,6 @@ public class TesseractOCRAdapter implements OCRAdapter {
 				}
 			}
 		}
-
 		return instance;
 	}
 
@@ -73,7 +73,7 @@ public class TesseractOCRAdapter implements OCRAdapter {
 
 		// 3 tesseract图像识别
 
-		// 4 解析tesseract out 得到JSONObject
+		// 4 解析tesseract out 得到Java Object
 		List<TouchableTextArea> textAreas = parseHtml(parse2Html(inImage));
 
 		logger.info(JSON.toJson(textAreas));
@@ -83,7 +83,8 @@ public class TesseractOCRAdapter implements OCRAdapter {
 
 	/**
 	 * 具体调用命令
-	 * 	tesseract /usr/local/java-workplace/wechat-android-automator/data/wx.jpeg wx -l chi_sim hocr
+	 * tesseract /usr/local/java-workplace/wechat-android-automator/data/wx.jpeg wx -l chi_sim hocr
+	 *
 	 * @param file
 	 * @return
 	 * @throws IOException
@@ -185,7 +186,7 @@ public class TesseractOCRAdapter implements OCRAdapter {
 				// 每个二级的第一个span的title属性中包含文字的坐标  只取第一个坐标
 				int size = secondLevelSpans.size();
 
-				for (int i=0; i< size; i++) {
+				for (int i = 0; i < size; i++) {
 
 					Element tmpElement = secondLevelSpans.get(i);
 
@@ -204,10 +205,14 @@ public class TesseractOCRAdapter implements OCRAdapter {
 				if (!Strings.isNullOrEmpty(line.toString())) {
 
 					Optional.ofNullable(rectangle).ifPresent(r -> {
+						try {
 
-						if (r.top >= CROP_TOP) {
+							if (r.top >= CROP_TOP) {
 
-							textAreas.add(new TouchableTextArea(line.toString(), r));
+								textAreas.add(new TouchableTextArea(line.toString(), r));
+							}
+						} catch (ParseException e) {
+							e.printStackTrace();
 						}
 					});
 				}
@@ -223,19 +228,18 @@ public class TesseractOCRAdapter implements OCRAdapter {
 	 * @param originalTextAreas 初始解析的文本框列表
 	 * @return 合并后的文本框列表
 	 */
-	private List<TouchableTextArea> mergeForTitle(List<TouchableTextArea> originalTextAreas, int gap) {
+	private List<TouchableTextArea> mergeForTitle(List<TouchableTextArea> originalTextAreas, int gap) throws ParseException {
 
 		List<TouchableTextArea> newTextAreas = new LinkedList<>();
 
 		TouchableTextArea lastArea = null;
-		for(TouchableTextArea area : originalTextAreas) {
+		for (TouchableTextArea area : originalTextAreas) {
 
-			if(lastArea != null) {
+			if (lastArea != null) {
 
-				if(area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
+				if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
 					lastArea = lastArea.add(area);
-				}
-				else {
+				} else {
 					newTextAreas.add(area);
 					lastArea = area;
 				}
@@ -291,87 +295,8 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		return result;
 	}
 
-	/**
-	 * @param origin 原始JSON
-	 * @return 返回经过处理的JSON数据
-	 */
-	public static JSONObject realTitles(JSONObject origin) {
-
-
-		JSONObject outJSON = new JSONObject();
-
-		JSONArray newArray = new JSONArray();
-
-		JSONArray wordsResult = origin.getJSONArray("words_result");
-
-		// 处理原始数据
-		for (int i = 0; i < wordsResult.length(); i++) {
-
-			JSONObject tmp = (JSONObject) wordsResult.get(i);
-
-
-			String words = tmp.getString("words");
-
-			JSONObject location = tmp.getJSONObject("location");
-
-			int left = location.getInt("left");
-
-			// 1 处理当前words的长度
-
-			if (words.length() <= 3) {
-
-				if (newArray.length() == 0) continue; //丢弃当前字段
-
-				else {
-					// 获取上一个JSON数据
-					JSONObject previous = newArray.getJSONObject(newArray.length() - 1);
-
-					// 修改上一个JSON数据
-					previous.put("words", previous.getString("words") + words);
-
-					continue;
-				}
-
-			}
-
-			// 2 处理文章标题 如果上一个JSON数据里面的内容是日期
-			if (!NumberUtils.isDigits(words.substring(0, 4)) && !words.contains("年")) {
-
-				// 直接放入数组
-				if (newArray.length() == 0) {
-
-					JSONObject inJSON = new JSONObject();
-					inJSON.put("words", words);
-					inJSON.put("location", location);
-
-					newArray.put(inJSON);
-
-					continue;
-				} else {
-					// 获取上一个数据是否是日期格式的
-					// 获取上一个JSON数据
-					JSONObject previous = newArray.getJSONObject(newArray.length() - 1);
-
-					// TODO previousWords是否是日期格式的数据?
-
-					String previousWords = previous.getString("words");
-
-					String temp = previousWords;
-
-					// 防止替换错误
-					String var0 = previousWords.replace("曰", "日");
-
-					// 判断前4位是否是数字  2017年08月12日
-					if (NumberUtils.isDigits(words.substring(0, 4)) && words.contains("年") && words.contains("月") && words.contains("日")) {
-
-					}
-
-
-				}
-			}
-		}
-
-		outJSON.put("words_result", newArray);
-		return outJSON;
+	@Override
+	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) {
+		return null;
 	}
 }

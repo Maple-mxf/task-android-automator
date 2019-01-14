@@ -17,7 +17,7 @@ import java.util.List;
  */
 public interface OCRAdapter {
 
-	static final Logger logger = LogManager.getLogger(OCRAdapter.class.getName());
+	Logger logger = LogManager.getLogger(OCRAdapter.class.getName());
 
 	/**
 	 * 头部裁剪距离  在分析完坐标之后需要将裁剪的距离加上去,以保证像素的正确性
@@ -51,16 +51,17 @@ public interface OCRAdapter {
 
 	/**
 	 * 解析图片中的文本框，并获取可点击的坐标
+	 *
 	 * @param filePath
 	 * @param crop
 	 * @return
 	 */
-	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop);
+	List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop);
 
 	/**
 	 * 自定义点坐标类型
 	 */
-	public static class Rectangle implements JSONable<Rectangle> {
+	class Rectangle implements JSONable<Rectangle> {
 
 		public int left = 0;
 		public int top = 0;
@@ -84,21 +85,20 @@ public interface OCRAdapter {
 	/**
 	 * 自定义可点击文本框类型
 	 */
-	public static class TouchableTextArea extends Rectangle {
+	class TouchableTextArea extends Rectangle {
 
 		public String content;
 
 		public Date date;
 
 		/**
-		 *
 		 * @param content
 		 * @param rectangle
 		 */
 		public TouchableTextArea(String content, Rectangle rectangle) throws ParseException {
 			super(rectangle.left, rectangle.top, rectangle.width, rectangle.height);
 
-			if(content.matches("\\d{2,4}年\\d{1,2}月\\d{1,2}[日曰]]")) {
+			if (content.matches("\\d{2,4}年\\d{1,2}月\\d{1,2}[日曰]]")) {
 				date = DateFormatUtil.parseTime(content.replaceAll("曰", "日"));
 			} else {
 				this.content = content;
@@ -107,17 +107,17 @@ public interface OCRAdapter {
 
 		/**
 		 * 两个矩形合并成一个新矩形
+		 *
 		 * @param area
 		 * @return
 		 */
 		public TouchableTextArea add(TouchableTextArea area) throws ParseException {
 
-			if(area.content.matches("\\d{2,4}年\\d{1,2}月\\d{1,2}[日曰]]")) {
+			if (area.content.matches("\\d{2,4}年\\d{1,2}月\\d{1,2}[日曰]]")) {
 				date = DateFormatUtil.parseTime(area.content.replaceAll("曰", "日"));
 			} else {
 				this.content = this.content + " " + area.content;
 			}
-
 			// 第一个矩形右界
 			int right = left + width;
 			// 第二个矩形右界
@@ -128,11 +128,11 @@ public interface OCRAdapter {
 			// 第二个矩形下界
 			int bottom_ = area.top + area.height;
 
-			left = left < area.left? left : area.left;
-			top = top < area.top? top : area.top;
+			left = left < area.left ? left : area.left;
+			top = top < area.top ? top : area.top;
 
 			width = right > right_ ? right - left : right_ - left;
-			height = bottom > bottom_ ? bottom - top : bottom_ -top;
+			height = bottom > bottom_ ? bottom - top : bottom_ - top;
 
 			return this;
 		}

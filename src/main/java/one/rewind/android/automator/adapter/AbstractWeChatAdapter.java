@@ -10,6 +10,7 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.*;
 import one.rewind.android.automator.model.*;
+import one.rewind.android.automator.ocr.TesseractOCRAdapter;
 import one.rewind.android.automator.util.*;
 import one.rewind.db.RedissonAdapter;
 import org.apache.commons.io.FileUtils;
@@ -71,7 +72,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @return 点击坐标
 	 * @throws Exception
 	 */
-	@Deprecated
+	/*@Deprecated
 	private WordsPoint accuracySubscribe(String mediaName) throws Exception {
 
 		String fileName = UUID.randomUUID().toString() + ".png";
@@ -100,7 +101,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			String words = b.getString("words");
 
 			// 去除开头的半角英文括号 和 结束的半角英文括号 以及 空格符
-			/*words.replaceAll("^\\(|\\)$| ", "");*/
+			*//*words.replaceAll("^\\(|\\)$| ", "");*//*
 
 			if (words.startsWith("(")) words = words.replace("(", "");
 			if (words.startsWith(")")) words = words.replace(")", "");
@@ -134,6 +135,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		return null;
 	}
+*/
 
 	/**
 	 * 获取可点击的点
@@ -165,7 +167,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	private List<WordsPoint> analysisImage(String filePath) throws Exception {
 
-		JSONObject origin = TesseractOCRAdapter.imageOcr(filePath, true);
+//		JSONObject origin = TesseractOCRAdapter.imageOcr(filePath, true);
+
+		JSONObject origin = null;
+
+		// TODO=================================
+		final List<OCRAdapter.TouchableTextArea> textAreaList = TesseractOCRAdapter.getInstance().imageOcr(filePath, true);
 
 		// TODO 删除文件放到ocr adapter上做
 		try {
@@ -175,8 +182,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			// 删除html文件
 			FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			logger.error("Error delete image file, ", e);
 		}
 
@@ -439,7 +445,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			screenshot(fileName, path, device.driver);
 
 			// 恢复之前截图分析是否被限流
-			final JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+//			final JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+
+			final List<OCRAdapter.TouchableTextArea> touchableTextAreas = TesseractOCRAdapter.getInstance().imageOcr(path + fileName, false);
+			final JSONObject jsonObject = null;// TODO==========================
 
 			final JSONArray array = jsonObject.getJSONArray("words_result");
 
@@ -814,6 +823,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	/**
 	 * 采集任务的入口？
+	 *
 	 * @param mediaName
 	 * @param retry
 	 */
@@ -871,6 +881,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	/**
 	 * 记录重试日志
+	 *
 	 * @param mediaName
 	 */
 	private void retryRecord(String mediaName) {
@@ -892,6 +903,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	/**
 	 * 订阅任务第一个人入口
+	 *
 	 * @param mediaName 公众号名称  可能包含topic和udid
 	 */
 	public void digestionSubscribe(String mediaName) {

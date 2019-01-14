@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.util;
 
 import com.google.common.collect.Sets;
-import one.rewind.android.automator.adapter.BaiDuOCRAdapter;
+import one.rewind.android.automator.ocr.BaiDuOCRAdapter;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.Tab;

@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.adapter;
 
 import one.rewind.android.automator.adapter.OCRAdapter;
-import one.rewind.android.automator.adapter.TesseractOCRAdapter;
+import one.rewind.android.automator.ocr.TesseractOCRAdapter;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import org.json.JSONArray;
 import org.json.JSONObject;

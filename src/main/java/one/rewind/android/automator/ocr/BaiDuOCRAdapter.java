@@ -1,5 +1,6 @@
-package one.rewind.android.automator.adapter;
+package one.rewind.android.automator.ocr;
 
+import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.*;
 import org.apache.commons.lang3.time.DateUtils;
@@ -172,5 +173,10 @@ public class BaiDuOCRAdapter implements OCRAdapter {
 			}
 		}, nextDay, 1000 * 60 * 60 * 24);
 
+	}
+
+	@Override
+	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) {
+		return null;
 	}
 }
