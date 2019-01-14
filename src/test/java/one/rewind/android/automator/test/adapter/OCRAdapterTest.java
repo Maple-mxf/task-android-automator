@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.adapter;
 
-import one.rewind.android.automator.adapter.OCRAdapter;
-import one.rewind.android.automator.ocr.TesseractOCRAdapter;
+import one.rewind.android.automator.ocr.OCRParser;
+import one.rewind.android.automator.ocr.TesseractOCRParser;
 import one.rewind.android.automator.exception.AndroidCollapseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,7 +25,7 @@ public class OCRAdapterTest {
 		File image = new File("/usr/local/java-workplace/wechat-android-automator/data/4068.jpg");
 
 		// 裁剪图片
-//		BufferedImage bufferedImage = BaiDuOCRAdapter.cropImage(ImageIO.read(image));
+//		BufferedImage bufferedImage = BaiDuOCRParser.cropImage(ImageIO.read(image));
 //
 //		// 覆盖原有图片  TODO
 //		ImageIO.write(bufferedImage, "png", new File(image.getAbsolutePath()));
@@ -34,9 +34,9 @@ public class OCRAdapterTest {
 //		ImageUtil.grayImage();
 
 		// 执行命令  并且得到hocr的结果(是html代码)
-//		String document = BaiDuOCRAdapter.imageOcrOfTesseractByPoint(image);
+//		String document = BaiDuOCRParser.imageOcrOfTesseractByPoint(image);
 //		// 识别结果
-//		JSONObject result = BaiDuOCRAdapter.parseHtml2JSON(document);
+//		JSONObject result = BaiDuOCRParser.parseHtml2JSON(document);
 //
 //		System.out.println(result);
 	}
@@ -150,7 +150,7 @@ public class OCRAdapterTest {
 	public void testJSONData() throws Exception {
 
 //		TODO
-		final List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg", false);
+		final List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg", false);
 
 		JSONObject jsonObject = null;
 
@@ -317,7 +317,7 @@ public class OCRAdapterTest {
 	public void parseImage2() throws Exception {
 
 //		TODO ====================
-		TesseractOCRAdapter.getInstance().imageOcr("", false);
+		TesseractOCRParser.getInstance().imageOcr("", false);
 		JSONObject jsonObject = null;
 		System.out.println(jsonObject);
 	}
@@ -327,7 +327,7 @@ public class OCRAdapterTest {
 		// 1 裁剪图片
 		File inImage = new File("/usr/local/java-workplace/wechat-android-automator/data/1100265578.jpg");
 
-		BufferedImage bufferedImage = OCRAdapter.cropImage(ImageIO.read(inImage));
+		BufferedImage bufferedImage = OCRParser.cropImage(ImageIO.read(inImage));
 
 		// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 		ImageIO.write(bufferedImage, "png", new File(inImage.getAbsolutePath()));
@@ -335,7 +335,7 @@ public class OCRAdapterTest {
 
 	@Test
 	public void testOcrResult() throws Exception {
-		final List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", true);
+		final List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", true);
 
 		// TODO
 		final JSONObject jsonObject = null;
@@ -358,8 +358,8 @@ public class OCRAdapterTest {
 	@Test
 	public void testOcrByChi() throws Exception {
 
-//		TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
-		List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+//		TesseractOCRParser.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+		List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
 		JSONObject jsonObject = null;
 
 		System.out.println(jsonObject);

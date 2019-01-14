@@ -1,6 +1,5 @@
 package one.rewind.android.automator.ocr;
 
-import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.model.BaiduTokens;
 import one.rewind.android.automator.util.*;
 import org.apache.commons.lang3.time.DateUtils;
@@ -19,10 +18,11 @@ import java.util.TimerTask;
 /**
  * @author maxuefeng [m17793873123@163.com]
  * <p>
- * BaiDuOCRAdapter:图像识别  得出正确的结果用于业务操作,在数据去重上有很大的作用
- * <p>
+ * BaiDuOCRParser:图像识别  得出正确的结果用于业务操作,在数据去重上有很大的作用
+ * </p>
+ * TODO 调整接口
  */
-public class BaiDuOCRAdapter implements OCRAdapter {
+public class BaiDuOCRParser implements OCRParser {
 
 	/**
 	 * @param filePath 文件路径
@@ -34,7 +34,7 @@ public class BaiDuOCRAdapter implements OCRAdapter {
 		if (crop) {
 			File file = new File(filePath);
 			// 首先线裁剪图片
-			BufferedImage bufferedImage = OCRAdapter.cropImage(ImageIO.read(file));
+			BufferedImage bufferedImage = OCRParser.cropImage(ImageIO.read(file));
 
 			// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 			ImageIO.write(bufferedImage, "png", new File(file.getAbsolutePath()));
@@ -146,7 +146,7 @@ public class BaiDuOCRAdapter implements OCRAdapter {
 		return resultArray;
 	}
 
-	private BaiDuOCRAdapter() {
+	private BaiDuOCRParser() {
 	}
 
 	/**

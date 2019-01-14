@@ -10,7 +10,8 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.*;
 import one.rewind.android.automator.model.*;
-import one.rewind.android.automator.ocr.TesseractOCRAdapter;
+import one.rewind.android.automator.ocr.OCRParser;
+import one.rewind.android.automator.ocr.TesseractOCRParser;
 import one.rewind.android.automator.util.*;
 import one.rewind.db.RedissonAdapter;
 import org.apache.commons.io.FileUtils;
@@ -82,7 +83,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		screenshot(fileName, path, device.driver);
 
 		// B 使用 TesseractOCR 分析图片中的文字信息
-		JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+		JSONObject jsonObject = TesseractOCRParser.imageOcr(path + fileName, false);
 
 		FileUtil.deleteFile(path + fileName);
 
@@ -166,12 +167,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	private List<WordsPoint> analysisImage(String filePath) throws Exception {
 
-//		JSONObject origin = TesseractOCRAdapter.imageOcr(filePath, true);
+//		JSONObject origin = TesseractOCRParser.imageOcr(filePath, true);
 
 		JSONObject origin = null;
 
 		// TODO=================================
-		final List<OCRAdapter.TouchableTextArea> textAreaList = TesseractOCRAdapter.getInstance().imageOcr(filePath, true);
+		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().imageOcr(filePath, true);
 
 		// TODO 删除文件放到ocr adapter上做
 		try {
@@ -444,9 +445,9 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			screenshot(fileName, path, device.driver);
 
 			// 恢复之前截图分析是否被限流
-//			final JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+//			final JSONObject jsonObject = TesseractOCRParser.imageOcr(path + fileName, false);
 
-			final List<OCRAdapter.TouchableTextArea> touchableTextAreas = TesseractOCRAdapter.getInstance().imageOcr(path + fileName, false);
+			final List<OCRParser.TouchableTextArea> touchableTextAreas = TesseractOCRParser.getInstance().imageOcr(path + fileName, false);
 			final JSONObject jsonObject = null;// TODO==========================
 
 			final JSONArray array = jsonObject.getJSONArray("words_result");

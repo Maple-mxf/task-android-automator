@@ -4,12 +4,13 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
+import one.rewind.db.model.ModelD;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @DBName(value = "wechat")
 @DatabaseTable(tableName = "wechat_friends")
-public class WechatFriend extends Model {
+public class WechatFriend extends ModelD {
 
 	private static final Logger logger = LogManager.getLogger(WechatFriend.class.getName());
 

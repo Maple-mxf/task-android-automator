@@ -1,4 +1,4 @@
-package one.rewind.android.automator.adapter;
+package one.rewind.android.automator.ocr;
 
 import one.rewind.android.automator.util.ImageUtil;
 import one.rewind.json.JSON;
@@ -15,9 +15,9 @@ import java.util.List;
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
-public interface OCRAdapter {
+public interface OCRParser {
 
-	Logger logger = LogManager.getLogger(OCRAdapter.class.getName());
+	Logger logger = LogManager.getLogger(OCRParser.class.getName());
 
 	/**
 	 * 头部裁剪距离  在分析完坐标之后需要将裁剪的距离加上去,以保证像素的正确性
@@ -56,7 +56,7 @@ public interface OCRAdapter {
 	 * @param crop
 	 * @return
 	 */
-	List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop);
+	List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) throws Exception;
 
 	/**
 	 * 自定义点坐标类型

@@ -1,12 +1,9 @@
 package one.rewind.android.automator.ocr;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.util.FileUtil;
 import one.rewind.android.automator.util.ImageUtil;
 import one.rewind.json.JSON;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,21 +25,21 @@ import java.util.Optional;
  * tesseract  <image path> <out name> -l chi_sim hocr(附带坐标的command)
  * github wiki:https://github.com/tesseract-ocr/tesseract/wiki/Command-Line-Usage
  */
-public class TesseractOCRAdapter implements OCRAdapter {
+public class TesseractOCRParser implements OCRParser {
 
-	public static TesseractOCRAdapter instance;
+	public static TesseractOCRParser instance;
 
 	/**
 	 * 单例模式
 	 *
 	 * @return
 	 */
-	public static TesseractOCRAdapter getInstance() {
+	public static TesseractOCRParser getInstance() {
 
 		if (instance == null) {
-			synchronized (TesseractOCRAdapter.class) {
+			synchronized (TesseractOCRParser.class) {
 				if (instance == null) {
-					instance = new TesseractOCRAdapter();
+					instance = new TesseractOCRParser();
 				}
 			}
 		}
@@ -55,13 +52,14 @@ public class TesseractOCRAdapter implements OCRAdapter {
 	 * @return 返回图片文字坐标
 	 * @throws Exception IOException cropException
 	 */
-	public List<TouchableTextArea> imageOcr(String filePath, boolean crop) throws Exception {
+	@Override
+	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) throws Exception {
 
 		// 1 裁剪图片
 		File inImage = new File(filePath);
 
 		if (crop) {
-			BufferedImage bufferedImage = OCRAdapter.cropImage(ImageIO.read(inImage));
+			BufferedImage bufferedImage = OCRParser.cropImage(ImageIO.read(inImage));
 
 			// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 			ImageIO.write(bufferedImage, "png", new File(inImage.getAbsolutePath()));
@@ -233,10 +231,13 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		List<TouchableTextArea> newTextAreas = new LinkedList<>();
 
 		TouchableTextArea lastArea = null;
+
+		// 遍历初始获得的TextArea
 		for (TouchableTextArea area : originalTextAreas) {
 
 			if (lastArea != null) {
 
+				// 判断是否与之前的TextArea合并
 				if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
 					lastArea = lastArea.add(area);
 				} else {
@@ -251,52 +252,5 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		}
 
 		return newTextAreas;
-	}
-
-	/**
-	 * tesseract图像识别识别出来的数据空格相对较多;需要将数据的所有空白行去掉,所有的标题合成为一行
-	 * 下面两种场景都是基于去掉图片中的顶部的时间数据的处理场景
-	 * 第一种场景:如果是首页,存在发"消息按钮"等无用数据
-	 * 第二种场景:如果是正常的页面截图  无需去除头部无用数据
-	 *
-	 * @param origin 未经处理的原始数据
-	 */
-	@Deprecated
-	public static List<String> realTitleOfTesseract(List<String> origin) {
-
-		List<String> result = Lists.newArrayList();
-
-		int length = origin.size();
-
-		for (int i = 0; i < length; i++) {
-			String current = origin.get(i);
-			if (StringUtils.isNotBlank(current)) {
-
-				String title = null;
-
-				boolean flag = true;
-
-				while (flag) {
-					i++;
-					if (StringUtils.isBlank(origin.get(i))) {
-						flag = false;
-						title = current;
-					} else {
-						title = current + origin.get(i);
-					}
-				}
-
-				// 得到title
-				if (StringUtils.isNotBlank(title)) {
-					result.add(title);
-				}
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) {
-		return null;
 	}
 }

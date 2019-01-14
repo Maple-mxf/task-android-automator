@@ -1,0 +1,11 @@
+2018-09-26 23:41:42.930 INFO  [main] [AndroidDevice:54] <clinit> - Local IP: 192.168.164.145
+2018-09-26 23:41:43.928 INFO  [main] [AndroidDevice:274] execShell - Deleted 0 rows
+
+2018-09-26 23:41:44.909 INFO  [main] [AndroidDevice:274] execShell - Deleted 0 rows
+
+2018-09-26 23:41:45.881 INFO  [main] [AndroidDevice:274] execShell - Deleted 0 rows
+
+2018-09-26 23:41:46.957 INFO  [main] [AndroidDevice:274] execShell - Deleted 0 rows
+
+2018-09-26 23:41:53.637 INFO  [main] [AndroidDevice:303] initAppiumServiceAndDriver - Appium Service URL: http://0.0.0.0:47454/wd/hub
+2018-09-26 23:42:44.670 INFO  [main] [WechatAdapter:819] searchPublicAccount - Public account name is not the same.

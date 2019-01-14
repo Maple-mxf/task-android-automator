@@ -3,9 +3,9 @@ package one.rewind.android.automator.util;
 import io.appium.java_client.android.AndroidDriver;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWeChatAdapter;
-import one.rewind.android.automator.adapter.OCRAdapter;
+import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.ocr.TesseractOCRAdapter;
+import one.rewind.android.automator.ocr.TesseractOCRParser;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -92,8 +92,8 @@ public class AndroidUtil {
 			AbstractWeChatAdapter.screenshot(fileName, path, device.driver);
 
 //			TODO =================================
-//			JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
-			List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr(path + fileName, false);
+//			JSONObject jsonObject = TesseractOCRParser.imageOcr(path + fileName, false);
+			List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr(path + fileName, false);
 			JSONObject jsonObject = null;
 
 			JSONArray array = jsonObject.getJSONArray("words_result");

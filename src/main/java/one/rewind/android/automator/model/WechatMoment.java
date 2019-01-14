@@ -4,10 +4,11 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
+import one.rewind.db.model.ModelD;
 
 @DBName(value = "wechat")
 @DatabaseTable(tableName = "wechat_moments")
-public class WechatMoment extends Model {
+public class WechatMoment extends ModelD {
 
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String device_id;

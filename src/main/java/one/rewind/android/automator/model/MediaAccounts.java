@@ -11,6 +11,4 @@ import one.rewind.db.DBName;
 @DatabaseTable(tableName = "media_accounts")
 public class MediaAccounts extends ModelL {
 
-
-
 }

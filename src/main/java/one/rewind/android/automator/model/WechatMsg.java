@@ -4,6 +4,7 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
+import one.rewind.db.model.ModelD;
 
 /**
  *
@@ -12,7 +13,7 @@ import one.rewind.db.DBName;
  */
 @DBName(value = "wechat")
 @DatabaseTable(tableName = "wechat_msgs")
-public class WechatMsg extends Model {
+public class WechatMsg extends ModelD {
 
 	public static enum Type {
 		Image, Text, Time, File, Url
