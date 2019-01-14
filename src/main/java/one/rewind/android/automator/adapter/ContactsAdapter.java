@@ -4,7 +4,6 @@ import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.util.ShellUtil;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
-import one.rewind.util.FileUtil;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 

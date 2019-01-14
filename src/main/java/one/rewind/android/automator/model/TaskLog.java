@@ -40,13 +40,13 @@ public class TaskLog extends ModelL {
 	 * 执行的步数
 	 */
 	@DatabaseField(dataType = DataType.INTEGER)
-	public int step;
+	public int step = 0;
 
 	/**
 	 * 抛出异常的次数
 	 */
 	@DatabaseField(dataType = DataType.INTEGER)
-	public int error;
+	public int error = 0;
 
 	/**
 	 * redis主题ID
@@ -58,13 +58,32 @@ public class TaskLog extends ModelL {
 	 * 任务执行是否成功
 	 */
 	@DatabaseField(dataType = DataType.BOOLEAN)
-	public boolean success;
+	public boolean success = false;
 
 	/**
 	 * 任务类型
 	 */
 	@DatabaseField(dataType = DataType.INTEGER)
 	public int type;
+
+	public TaskLog() {}
+
+	/**
+	 *
+	 * @param media_id
+	 * @param media_nick
+	 * @param topic
+	 * @param udid
+	 * @param type
+	 */
+	public TaskLog(String media_id, String media_nick, String topic, String udid, int type) {
+
+		this.media_id = media_id;
+		this.media_nick = media_nick;
+		this.topic = topic;
+		this.udid = udid;
+		this.type = type;
+	}
 
 	public void buildLog(String media_id, String media_nick, String topic, String udid, int type) {
 

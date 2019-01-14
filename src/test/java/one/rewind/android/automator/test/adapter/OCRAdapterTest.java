@@ -24,7 +24,7 @@ public class OCRAdapterTest {
 		File image = new File("/usr/local/java-workplace/wechat-android-automator/data/4068.jpg");
 
 		// 裁剪图片
-//		BufferedImage bufferedImage = BaiDuOCRAdapter.cropEssayListImage(ImageIO.read(image));
+//		BufferedImage bufferedImage = BaiDuOCRAdapter.cropImage(ImageIO.read(image));
 //
 //		// 覆盖原有图片  TODO
 //		ImageIO.write(bufferedImage, "png", new File(image.getAbsolutePath()));
@@ -319,7 +319,7 @@ public class OCRAdapterTest {
 		// 1 裁剪图片
 		File inImage = new File("/usr/local/java-workplace/wechat-android-automator/data/1100265578.jpg");
 
-		BufferedImage bufferedImage = OCRAdapter.cropEssayListImage(ImageIO.read(inImage));
+		BufferedImage bufferedImage = OCRAdapter.cropImage(ImageIO.read(inImage));
 
 		// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 		ImageIO.write(bufferedImage, "png", new File(inImage.getAbsolutePath()));

@@ -16,7 +16,7 @@ public class OCRAdapterTest {
 //		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/3.jpeg");
 //
 //		// 首先线裁剪图片
-//		BufferedImage bufferedImage = BaiDuOCRAdapter.cropEssayListImage(ImageIO.read(file));
+//		BufferedImage bufferedImage = BaiDuOCRAdapter.cropImage(ImageIO.read(file));
 //
 //		// 覆盖原有图片
 //		ImageIO.write(bufferedImage, "jpg", new File(file.getAbsolutePath()));

@@ -33,7 +33,7 @@ public class BaiDuOCRAdapter implements OCRAdapter {
 		if (crop) {
 			File file = new File(filePath);
 			// 首先线裁剪图片
-			BufferedImage bufferedImage = OCRAdapter.cropEssayListImage(ImageIO.read(file));
+			BufferedImage bufferedImage = OCRAdapter.cropImage(ImageIO.read(file));
 
 			// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 			ImageIO.write(bufferedImage, "png", new File(file.getAbsolutePath()));

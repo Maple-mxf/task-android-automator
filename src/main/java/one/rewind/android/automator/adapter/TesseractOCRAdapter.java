@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import one.rewind.android.automator.util.FileUtil;
 import one.rewind.android.automator.util.ImageUtil;
+import one.rewind.json.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.json.JSONArray;
@@ -12,13 +13,12 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,10 +30,24 @@ import java.util.Optional;
  */
 public class TesseractOCRAdapter implements OCRAdapter {
 
-	private TesseractOCRAdapter() {
-	}
+	protected static TesseractOCRAdapter instance;
 
-	private static Logger logger = LoggerFactory.getLogger(TesseractOCRAdapter.class);
+	/**
+	 * 单例模式
+	 * @return
+	 */
+	public static TesseractOCRAdapter getInstance() {
+
+		if (instance == null) {
+			synchronized (TesseractOCRAdapter.class) {
+				if (instance == null) {
+					instance = new TesseractOCRAdapter();
+				}
+			}
+		}
+
+		return instance;
+	}
 
 
 	/**
@@ -41,35 +55,41 @@ public class TesseractOCRAdapter implements OCRAdapter {
 	 * @return 返回图片文字坐标
 	 * @throws Exception IOException cropException
 	 */
-	public static JSONObject imageOcr(String filePath, boolean crop) throws Exception {
+	public List<TouchableTextArea> imageOcr(String filePath, boolean crop) throws Exception {
 
 		// 1 裁剪图片
 		File inImage = new File(filePath);
 
 		if (crop) {
-			BufferedImage bufferedImage = OCRAdapter.cropEssayListImage(ImageIO.read(inImage));
+			BufferedImage bufferedImage = OCRAdapter.cropImage(ImageIO.read(inImage));
 
 			// 覆盖原有图片  TODO 第二个参数formatName设置为png文件是否会变名字
 			ImageIO.write(bufferedImage, "png", new File(inImage.getAbsolutePath()));
 
 		}
+
 		// 2 灰度化图片
 		ImageUtil.grayImage(filePath, filePath, "png");
 
 		// 3 tesseract图像识别
-		String allLines = imageOcrOfTesseractByPoint(inImage);
 
 		// 4 解析tesseract out 得到JSONObject
+		List<TouchableTextArea> textAreas = parseHtml(parse2Html(inImage));
 
-		JSONObject result = parseHtml2JSON(allLines);
-//		JSONObject result = parseHtml2JSONByTitle(allLines);
-		System.out.println("结果为: " + result);
-		return result;
+		logger.info(JSON.toJson(textAreas));
+
+		return textAreas;
 	}
 
-	//  tesseract /usr/local/java-workplace/wechat-android-automator/data/wx.jpeg wx -l chi_sim hocr
-
-	public static String imageOcrOfTesseractByPoint(File file) throws IOException, InterruptedException {
+	/**
+	 * 具体调用命令
+	 * 	tesseract /usr/local/java-workplace/wechat-android-automator/data/wx.jpeg wx -l chi_sim hocr
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public static String parse2Html(File file) throws IOException, InterruptedException {
 
 		String fileName = file.getName();
 
@@ -78,12 +98,12 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		String filePrefix = fileName.substring(0, index);
 
 		String pathPrefix = file.getAbsolutePath().replace(fileName, "");
+
 		// tesseract command
 		// tesseract <img_dir> <output_name> <options>
 		// 附带文字坐标command
-		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi_sim hocr";
-
-//		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi hocr";
+		String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi_sim hocr"; // chi_sim 是字体参数
+		/*String command = "tesseract " + file.getAbsolutePath() + " " + pathPrefix + filePrefix + "  -l chi hocr";*/
 
 		Process process = Runtime.getRuntime().exec(command);
 
@@ -98,7 +118,7 @@ public class TesseractOCRAdapter implements OCRAdapter {
 	 * @param title 每一行文字
 	 * @return 当前行文字内容及其坐标
 	 */
-	private static JSONObject parsePoint(String title) {
+	private Rectangle parseRectangle(String title) {
 
 		// 利用封号进行分解
 		String[] result = title.split(";");
@@ -118,43 +138,33 @@ public class TesseractOCRAdapter implements OCRAdapter {
 				point[index++] = Integer.parseInt(node);
 			}
 		}
-		JSONObject json = new JSONObject();
-		json.put("left", point[0]);
-		// 相对位置
-		json.put("top", point[1]);
-		json.put("width", point[2]);
-		json.put("height", point[3]);
-		return json;
+
+		return new Rectangle(point[0], point[1], point[2], point[3]);
 	}
 
 
 	/**
-	 * 返回的数据格式如下
-	 * JSONObject{"words_result":[{"words":"xxx","location":{"top":0,"left":0,"width":"","right"}}]}
 	 * <p>
 	 * TODO:目前为止解析出来的数据位置信息没有任何特征(除了日期标记之外)  原生HTML文件中可以利用p标签将图片中的文字进行分段落
 	 * </p>
 	 *
-	 * @param rs html源码
+	 * @param source html源码
 	 */
-	public static JSONObject parseHtml2JSON(String rs) {
+	public List<TouchableTextArea> parseHtml(String source) {
 
-		JSONObject wordsResult = new JSONObject();
+		List<TouchableTextArea> textAreas = new LinkedList<>();
 
-		JSONArray array = new JSONArray();
-
-		Document document = Jsoup.parse(rs);
-
+		Document document = Jsoup.parse(source);
 		Element body = document.body();
 
 		// parse div
 		Elements div = body.getElementsByClass("ocr_carea");
 
 		// 便利所有的div元素
-		for (Element var0 : div) {
+		for (Element el : div) {
 
 			// 获取P标签  每一个var0之后一个P标签
-			Element p = var0.child(0);
+			Element p = el.child(0);
 
 			// 获取P标签下面的span标签
 			Elements oneLevelSpans = p.children();
@@ -169,53 +179,74 @@ public class TesseractOCRAdapter implements OCRAdapter {
 				// 此处的span合起来是一行文字
 				StringBuilder line = new StringBuilder();
 
-				JSONObject outJSON = new JSONObject();
-
 				// 文字坐标位置
-				JSONObject locationJSON = null;
+				Rectangle rectangle = null;
 
 				// 每个二级的第一个span的title属性中包含文字的坐标  只取第一个坐标
 				int size = secondLevelSpans.size();
 
-				for (int i = 0; i < size; i++) {
+				for (int i=0; i< size; i++) {
+
 					Element tmpElement = secondLevelSpans.get(i);
+
 					if (!Strings.isNullOrEmpty(tmpElement.text())) {
 						line.append(tmpElement.text());
 					}
+
 					if (i == 0) {
+
 						// 存储坐标
-
 						// 获取当前span的title属性
-						String point = secondLevelSpans.get(i).attr("title");
-
-						locationJSON = parsePoint(point);
-
+						rectangle = parseRectangle(secondLevelSpans.get(i).attr("title"));
 					}
 				}
 
 				if (!Strings.isNullOrEmpty(line.toString())) {
 
-					Optional.ofNullable(locationJSON).ifPresent(t -> {
+					Optional.ofNullable(rectangle).ifPresent(r -> {
 
-						final int top = t.getInt("top");
+						if (r.top >= CROP_TOP) {
 
-						if (top >= CROP_TOP) {
-							// put words
-							outJSON.put("words", line.toString());
-
-							// put word point
-							outJSON.put("location", t);
-
-							array.put(outJSON);
+							textAreas.add(new TouchableTextArea(line.toString(), r));
 						}
 					});
 				}
 			}
 		}
-		logger.info("---------------------------------JSONObject--------------------------------------");
 
-		wordsResult.put("words_result", array);
-		return wordsResult;
+		return textAreas;
+	}
+
+	/**
+	 * 由于默认的解析方法会把两行标题解析成两个文本框，此时需要根据顺序关系和坐标关系，对文本框进行合并
+	 *
+	 * @param originalTextAreas 初始解析的文本框列表
+	 * @return 合并后的文本框列表
+	 */
+	private List<TouchableTextArea> mergeForTitle(List<TouchableTextArea> originalTextAreas, int gap) {
+
+		List<TouchableTextArea> newTextAreas = new LinkedList<>();
+
+		TouchableTextArea lastArea = null;
+		for(TouchableTextArea area : originalTextAreas) {
+
+			if(lastArea != null) {
+
+				if(area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
+					lastArea = lastArea.add(area);
+				}
+				else {
+					newTextAreas.add(area);
+					lastArea = area;
+				}
+
+			} else {
+				newTextAreas.add(area);
+				lastArea = area;
+			}
+		}
+
+		return newTextAreas;
 	}
 
 	/**
@@ -259,92 +290,6 @@ public class TesseractOCRAdapter implements OCRAdapter {
 		}
 		return result;
 	}
-
-
-	/**
-	 * 相比于上面的方法不一样的地方是以P标签为中心来做  按照P标签解析偶尔会出现标题和文章发布日期成为一行文字
-	 *
-	 * @param rs html代码
-	 * @return 返回详细坐标信息
-	 */
-	@Deprecated
-	public static JSONObject parseHtml2JSONByTitle(String rs) {
-
-		JSONObject wordsResult = new JSONObject();
-
-		JSONArray array = new JSONArray();
-
-		Document document = Jsoup.parse(rs);
-
-		Element body = document.body();
-
-		// parse div
-		Elements div = body.getElementsByClass("ocr_carea");
-
-		// 便利所有的div元素
-		for (Element var0 : div) {
-
-			// 获取P标签  每一个var0之后一个P标签  每个P标签是一个完整的标题  按照P标签去解析会清楚很多
-			Element p = var0.child(0);
-
-			// 外部JSON
-			JSONObject outJSON1 = new JSONObject();
-
-			// 用于存储日期的   可能由于tesseract的问题造成文章标题和日期混为一行
-			JSONObject outJSON2 = new JSONObject();
-
-			// 文字坐标位置
-			JSONObject locationJSON1 = null;
-
-			// 日期的位置坐标点
-			JSONObject locationJSON2 = null;
-
-			// 此处的span合起来是一个标题
-			StringBuilder line = new StringBuilder();
-
-			// 获取P标签下面的span标签  span标签只有两层
-			Elements oneLevelSpans = p.children();
-
-			for (Element oneLevelSpan : oneLevelSpans) {
-				// span下面可能没有子标签  也可能存在子标签
-
-				// 获取二级的span标签
-				Elements secondLevelSpans = oneLevelSpan.children();
-
-				// 每个二级的第一个span的title属性中包含文字的坐标  只取第一个坐标
-				int size = secondLevelSpans.size();
-
-				// 为了分解开日期  由于tesseract的问题造成的
-				StringBuilder secondLine = new StringBuilder();
-
-				for (int i = 0; i < size; i++) {
-
-					line.append(secondLevelSpans.get(i).text());
-
-					// 如果出现年月日  会有两个坐标位置
-					if (i == 0) {
-
-						// 获取当前span的title属性
-						String point = secondLevelSpans.get(i).attr("title");
-						locationJSON1 = parsePoint(point);
-					}
-				}
-			}
-			if (StringUtils.isNotBlank(line.toString())) {
-				// put words
-				outJSON1.put("words", line.toString());
-
-				// put word point
-				outJSON1.put("location", locationJSON1);
-
-				array.put(outJSON1);
-			}
-		}
-		wordsResult.put("words_result", array);
-
-		return wordsResult;
-	}
-
 
 	/**
 	 * @param origin 原始JSON

@@ -34,19 +34,18 @@ import java.util.*;
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
 
+	TaskLog taskLog; // ?
 
-	TaskLog taskLog;
+	ThreadLocal<Boolean> lastPage = new ThreadLocal<>(); //?
 
-	ThreadLocal<Boolean> lastPage = new ThreadLocal<>();
-
-	ThreadLocal<Boolean> firstPage = new ThreadLocal<>();
-
+	ThreadLocal<Boolean> firstPage = new ThreadLocal<>(); //?
 
 	/**
 	 * 上一次分析点击坐标记录的集合  每次执行新任务会将此集合进行清空   利用回调机制实现
 	 */
 	Set<String> currentTitles = Sets.newHashSet();
 
+	//
 	private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
 	@Deprecated
@@ -60,13 +59,18 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
-
 	public static final int RETRY_COUNT = 5;
 
 	AbstractWeChatAdapter(AndroidDevice device) {
 		super(device);
 	}
 
+	/**
+	 * 订阅
+	 * @param mediaName 媒体名称
+	 * @return 点击坐标
+	 * @throws Exception
+	 */
 	@Deprecated
 	private WordsPoint accuracySubscribe(String mediaName) throws Exception {
 
@@ -74,19 +78,30 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		String path = System.getProperty("user.dir") + "/screen/";
 
+		// A 截图
 		screenshot(fileName, path, device.driver);
 
+		// B 使用 TesseractOCR 分析图片中的文字信息
 		JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
 
 		FileUtil.deleteFile(path + fileName);
 
+		// C 解析文字信息
 		JSONArray result = jsonObject.getJSONArray("words_result");
+
 		int top;
 		int left;
 		int i = 0;
+
+		// C1 对文字信息进行遍历
 		for (Object v : result) {
+
 			JSONObject b = (JSONObject) v;
 			String words = b.getString("words");
+
+			// 去除开头的半角英文括号 和 结束的半角英文括号 以及 空格符
+			/*words.replaceAll("^\\(|\\)$| ", "");*/
+
 			if (words.startsWith("(")) words = words.replace("(", "");
 			if (words.startsWith(")")) words = words.replace(")", "");
 			words = words.replaceAll(" ", "");
@@ -95,22 +110,28 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			top = location.getInt("top");
 			left = location.getInt("left");
 
-			// 第一个成为正确的几率最大
+			// C2 第一个成为正确的几率最大
 			// 很有可能是公众号的头像中的文字也被识别了    去除前三个JSON数据，第三个数据也是此处的第一个数据，第一条数据命中率针对于mediaName是最高的
-
+			// 生成点击坐标并返回
 			if (i == 0) {
 				if (words.endsWith(mediaName)) {
 					return new WordsPoint(top + 30, left + 30, 0, 0, words);
 				}
 			}
+
+			// C3 如果第一个不匹配，还可以再继续遍历结果
 			if (left <= 50 && words.endsWith(mediaName)) {
 				return new WordsPoint(top + 30, left + 30, 0, 0, words);
 			}
+
+			// C4
 			if (words.equalsIgnoreCase(mediaName) || words.equalsIgnoreCase("<" + mediaName)) {
 				return new WordsPoint(top + 30, left + 30, 0, 0, words);
 			}
+
 			i++;
 		}
+
 		return null;
 	}
 
@@ -136,7 +157,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	}
 
 	/**
-	 * 分析图像  得到的做坐标集合是一个按照时间
+	 * 分析图像  得到{标题区域}中{发布时间}的做坐标集合
+	 * 原因是 部分情况下，点击标题微信没响应，点击发布时间稳定性更高
 	 *
 	 * @param filePath 文件路径
 	 * @return 返回坐标集合
@@ -148,64 +170,66 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		// TODO 删除文件放到ocr adapter上做
 		try {
 			// 删除图片文件
-//			FileUtil.deleteFile(filePath);
+			/*FileUtil.deleteFile(filePath);*/
 
 			// 删除html文件
 			FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
 
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
+		catch (Exception e) {
+			logger.error("Error delete image file, ", e);
+		}
+
 		List<WordsPoint> result = analysisWordsPoint(origin.getJSONArray("words_result"));
 
 		// 定位最新任务
-//		if (this.relativeFlag.history) {
-//
-//			SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日");
-//
-//			for (WordsPoint point : result) {
-//				// 对于point处理一下  "2018年09月09日 原创"
-//				String words = point.words;
-//
-//				if (words.length() >= 11) {
-//
-//					// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
-//					words = words.substring(0, 11);
-//
-//					// 首先比较relativeFlag的record字段是否相等于words
-//					if (words.equals(this.relativeFlag.record)) {
-//						// 标记任务结束
-//						lastPage.set(Boolean.TRUE);
-//						//
-//						int index = result.indexOf(point);
-//
-//						for (int i = index + 1; i <= result.size(); i++) {
-//							result.remove(i);
-//						}
-//						// 回调函数  形成闭环
-//						this.relativeFlag.callback();
-//						return result;
-//					}
-//				}
-//				// 如果因为安卓惯性造成无法对接上一次的记录(需要对于时间的大小进行表)
-//				Date d1 = df.parse(words);
-//
-//				// 或者终止条件按照日期去推断,能保证程序不会继续向下无限走
-//				Date d2 = df.parse(this.relativeFlag.record);
-//
-//				if (d2.compareTo(d1) <= 0) {
-//					// TODO  效率优化  去掉重复的坐标点  获取到当前的坐标点  去掉当前坐标数据后面的数据 reduce
-//					lastPage.set(Boolean.TRUE);
-//
-//					int index = result.indexOf(point);
-//					for (int i = index + 1; i <= result.size(); i++) {
-//						result.remove(i);
-//					}
-//					this.relativeFlag.callback();
-//					return result;
-//				}
-//			}
-//		}
+		/*if (this.relativeFlag.history) {
+
+			SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日");
+
+			for (WordsPoint point : result) {
+				// 对于point处理一下  "2018年09月09日 原创"
+				String words = point.words;
+
+				if (words.length() >= 11) {
+
+					// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
+					words = words.substring(0, 11);
+
+					// 首先比较relativeFlag的record字段是否相等于words
+					if (words.equals(this.relativeFlag.record)) {
+						// 标记任务结束
+						lastPage.set(Boolean.TRUE);
+						//
+						int index = result.indexOf(point);
+
+						for (int i = index + 1; i <= result.size(); i++) {
+							result.remove(i);
+						}
+						// 回调函数  形成闭环
+						this.relativeFlag.callback();
+						return result;
+					}
+				}
+				// 如果因为安卓惯性造成无法对接上一次的记录(需要对于时间的大小进行表)
+				Date d1 = df.parse(words);
+
+				// 或者终止条件按照日期去推断,能保证程序不会继续向下无限走
+				Date d2 = df.parse(this.relativeFlag.record);
+
+				if (d2.compareTo(d1) <= 0) {
+					// TODO  效率优化  去掉重复的坐标点  获取到当前的坐标点  去掉当前坐标数据后面的数据 reduce
+					lastPage.set(Boolean.TRUE);
+
+					int index = result.indexOf(point);
+					for (int i = index + 1; i <= result.size(); i++) {
+						result.remove(i);
+					}
+					this.relativeFlag.callback();
+					return result;
+				}
+			}
+		}*/
 		return result;
 	}
 
@@ -223,7 +247,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		List<WordsPoint> wordsPoints = new ArrayList<>();
 
-		//计算坐标  文章的标题最多有两行  标题过长微信会使用省略号代替掉
+		// 计算坐标  文章的标题最多有两行  标题过长微信会使用省略号代替掉
 		for (int i = 0; i < array.length(); i++) {
 
 			JSONObject outJSON = (JSONObject) array.get(i);
@@ -788,6 +812,11 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
+	/**
+	 * 采集任务的入口？
+	 * @param mediaName
+	 * @param retry
+	 */
 	public void digestionCrawler(String mediaName, boolean retry) {
 		try {
 			if (!enterEssay(mediaName, device)) {
@@ -840,6 +869,10 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
+	/**
+	 * 记录重试日志
+	 * @param mediaName
+	 */
 	private void retryRecord(String mediaName) {
 		try {
 			AndroidUtil.closeApp(device);
@@ -858,6 +891,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	}
 
 	/**
+	 * 订阅任务第一个人入口
 	 * @param mediaName 公众号名称  可能包含topic和udid
 	 */
 	public void digestionSubscribe(String mediaName) {
