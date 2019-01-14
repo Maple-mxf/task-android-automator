@@ -781,6 +781,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			return null;
 		}
 		if (count < media.number) {
+			// 此处
 			return media;
 		} else {
 			return null;
@@ -797,6 +798,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				return;
 			}
 			delegateOpenEssay(mediaName, retry);
+
 		} catch (Exception e) {
 
 			e.printStackTrace();
@@ -809,28 +811,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			if (e instanceof AndroidCollapseException) {
 				logger.error("设备{}链路出问题了.", device.udid);
-				try {
-
-					AndroidUtil.closeApp(device);
-					AndroidUtil.activeWechat(this.device);
-					SubscribeMedia media = retry(mediaName, this.device.udid);
-
-					if (media != null) {
-						media.retry_count += 1;
-						media.update_time = new Date();
-						media.update();
-						if (media.retry_count >= RETRY_COUNT) lastPage.set(Boolean.TRUE);
-					}
-
-				} catch (Exception e1) {
-					logger.error(e1);
-				}
+				retryRecord(mediaName);
 			} else if (e instanceof InterruptedException) {
 				e.printStackTrace();
 				logger.error("InterruptedException 线程中断异常！");
+				retryRecord(mediaName);
 			} else if (e instanceof NoSuchElementException) {
 				// 如果搜索不到公众号，则会在此处形成死循环  其他没有捕获到的异常
-
+				// TODO 此处不记录  属于操作层次的异常
 				e.printStackTrace();
 			} else if (e instanceof WeChatRateLimitException) {
 				try {
@@ -849,6 +837,23 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			} else {
 				lastPage.set(Boolean.TRUE);
 			}
+		}
+	}
+
+	private void retryRecord(String mediaName) {
+		try {
+			AndroidUtil.closeApp(device);
+			AndroidUtil.activeWechat(this.device);
+			SubscribeMedia media = retry(mediaName, this.device.udid);
+			if (media != null) {
+				media.retry_count += 1;
+				media.update_time = new Date();
+				media.update();
+				if (media.retry_count >= RETRY_COUNT) lastPage.set(Boolean.TRUE);
+			}
+
+		} catch (Exception e1) {
+			logger.error(e1);
 		}
 	}
 
@@ -1014,43 +1019,44 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 						if (content_stack.size() > 0) {
 							t.setClickEffect(true);
 							String content_src = content_stack.pop();
-							Essays we = null;
+							Essays essay = null;
 							try {
 								if (stats_stack.size() > 0) {
 									String stats_src = stats_stack.pop();
-									we = new Essays().parseContent(content_src).parseStat(stats_src);
+									essay = new Essays().parseContent(content_src).parseStat(stats_src);
 								} else {
-									we = new Essays().parseContent(content_src);
-									we.view_count = 0;
-									we.like_count = 0;
+									essay = new Essays().parseContent(content_src);
+									essay.view_count = 0;
+									essay.like_count = 0;
 								}
 							} catch (Exception e) {
 								logger.error("文章解析失败！", e);
 							}
 
-							assert we != null;
+							assert essay != null;
 
-							we.insert_time = new Date();
-							we.update_time = new Date();
-							we.media_content = we.media_nick;
-							we.platform = "WX";
-							we.media_id = MD5Util.MD5Encode(we.platform + "-" + we.media_name, "UTF-8");
-							we.platform_id = 1;
-							we.fav_count = 0;
-							we.forward_count = 0;
-							we.images = new JSONArray(we.parseImages(we.content)).toString();
-							we.id = MD5Util.MD5Encode(we.platform + "-" + we.media_name + we.title, "UTF-8");
+							essay.insert_time = new Date();
+							essay.update_time = new Date();
+							essay.media_content = essay.media_nick;
+							essay.platform = "WX";
+							essay.media_id = MD5Util.MD5Encode(essay.platform + "-" + essay.media_nick, "UTF-8");
+							essay.platform_id = 1;
+							essay.fav_count = 0;
+							essay.forward_count = 0;
+							essay.images = new JSONArray(essay.parseImages(essay.content)).toString();
+							essay.id = MD5Util.MD5Encode(essay.platform + "-" + essay.media_nick + "-" + essay.title, "UTF-8");
 
 							try {
-								we.insert();
-							} catch (Exception ignored) {
+								essay.insert();
+							} catch (Exception e2) {
+								e2.printStackTrace();
 								logger.info("文章插入失败！");
 							}
 							if (comments_stack.size() > 0) {
 								String comments_src = comments_stack.pop();
 								List<Comments> comments_ = null;
 								try {
-									comments_ = Comments.parseComments(we.src_id, comments_src);
+									comments_ = Comments.parseComments(essay.src_id, comments_src);
 								} catch (ParseException e) {
 									logger.error("----------------------");
 								}

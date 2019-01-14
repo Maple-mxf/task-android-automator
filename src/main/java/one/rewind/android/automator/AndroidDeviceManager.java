@@ -12,12 +12,12 @@ import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.sql.SQLException;
@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
 @ThreadSafe
 public class AndroidDeviceManager {
 
-	private static Logger logger = LoggerFactory.getLogger(AndroidDeviceManager.class);
+	private static Logger logger = LogManager.getLogger(AndroidDeviceManager.class);
 
 	/**
 	 * guava线程池
@@ -98,7 +98,7 @@ public class AndroidDeviceManager {
 			AndroidDevice device = new AndroidDevice(aVar);
 			logger.info("udid: " + device.udid);
 			devices.add(device);
-			logger.info("添加device {} 到容器中", device.udid);
+			logger.info("添加device " + device.udid + " 到容器中");
 		}
 	}
 
@@ -130,12 +130,11 @@ public class AndroidDeviceManager {
 			//初始化任务队列
 			switch (adapter.getDevice().taskType) {
 				case Subscribe: {
-					// 只分配一个任务去订阅   订阅完了之后立马切换到数据采集任务
-					initSubscribeSingleQueue(adapter.getDevice());
+					distributionSubscribeTask(adapter.getDevice());
 					break;
 				}
 				case Fetch: {
-					initCrawlerQueue(adapter.getDevice());
+					distributionFetchTask(adapter.getDevice());
 					break;
 				}
 				default:
@@ -158,9 +157,9 @@ public class AndroidDeviceManager {
 	 * 初始化订阅任务
 	 *
 	 * @param device d
-	 * @throws SQLException
+	 * @throws SQLException e
 	 */
-	private void initSubscribeSingleQueue(AndroidDevice device) throws SQLException {
+	private void distributionSubscribeTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
 
 		if (mediaStack.isEmpty()) {
@@ -228,7 +227,7 @@ public class AndroidDeviceManager {
 	 * @param device d
 	 * @throws SQLException sql e
 	 */
-	private void initCrawlerQueue(AndroidDevice device) throws SQLException {
+	private void distributionFetchTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
 		SubscribeMedia media =
 				Tab.subscribeDao.
@@ -239,7 +238,6 @@ public class AndroidDeviceManager {
 						eq("status", SubscribeMedia.State.NOT_FINISH.status).
 						queryForFirst();
 
-		System.out.println("当前设备 " + device.udid + "分配的任务是: " + media);
 		// 相对于现在没有完成的任务
 		if (media == null) {
 			device.taskType = null;
@@ -311,27 +309,29 @@ public class AndroidDeviceManager {
 		return Integer.parseInt(var);
 	}
 
-	private void reset() throws SQLException {
-		RQueue<Object> taskMedia = redisClient.getQueue(Tab.TOPIC_MEDIA);
-		List<SubscribeMedia> accounts = Tab.subscribeDao.queryForAll();
-		for (SubscribeMedia v : accounts) {
+	private void reset() {
+		try {
+			RQueue<Object> taskMedia = redisClient.getQueue(Tab.TOPIC_MEDIA);
+			List<SubscribeMedia> accounts = Tab.subscribeDao.queryForAll();
+			for (SubscribeMedia v : accounts) {
 
-			if (v.status == 2 && v.number == 0) {
-				if (v.request_id != null) {
-					// 重试
-					taskMedia.add(v.media_name + v.request_id);
+				if (v.status == 2 && v.number == 0) {
+					if (v.request_id != null) {
+						// 重试
+						taskMedia.add(v.media_name + v.request_id);
+					}
+					// 删除记录
+					Tab.subscribeDao.delete(v);
 				}
-				// 删除记录
-				Tab.subscribeDao.delete(v);
-			}
 
-			if (v.status == 0) {
-				if (v.number >= 100) {
-					v.number = v.number * 2;
-				} else {
-					v.number = 100 * 2;
+				if (v.status == 0) {
+					if (v.number >= 100) {
+						v.number = v.number * 2;
+					} else {
+						v.number = 100 * 2;
+					}
 				}
-			}
+				v.update();
 //			try {
 //				if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
 ////                    if (v.number != 0) continue;
@@ -357,11 +357,14 @@ public class AndroidDeviceManager {
 //			} catch (Exception e) {
 //				e.printStackTrace();
 //			}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
 
-	public static class ManagerTask implements Callable<Boolean> {
+	static class Task implements Callable<Boolean> {
 		@Override
 		public Boolean call() throws Exception {
 
@@ -393,7 +396,7 @@ public class AndroidDeviceManager {
 	// 任务启动入口
 
 	public void run() {
-		ListenableFuture<Boolean> result = this.service.submit(new ManagerTask());
+		ListenableFuture<Boolean> result = this.service.submit(new Task());
 
 		Futures.addCallback(result, new FutureCallback<Boolean>() {
 			@Override
