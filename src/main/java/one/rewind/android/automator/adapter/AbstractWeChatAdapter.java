@@ -46,7 +46,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	Set<String> currentTitles = Sets.newHashSet();
 
-	//
 	private ThreadLocal<Integer> countVal = new ThreadLocal<>();
 
 	@Deprecated

@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -147,7 +148,11 @@ public class OCRAdapterTest {
 	// JSON Data
 	@Test
 	public void testJSONData() throws Exception {
-		JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg", false);
+
+//		TODO
+		final List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg", false);
+
+		JSONObject jsonObject = null;
 
 		JSONArray result = jsonObject.getJSONArray("words_result");
 
@@ -310,7 +315,10 @@ public class OCRAdapterTest {
 
 	@Test
 	public void parseImage2() throws Exception {
-		JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1100265578.jpg", true);
+
+//		TODO ====================
+		TesseractOCRAdapter.getInstance().imageOcr("", false);
+		JSONObject jsonObject = null;
 		System.out.println(jsonObject);
 	}
 
@@ -327,7 +335,10 @@ public class OCRAdapterTest {
 
 	@Test
 	public void testOcrResult() throws Exception {
-		final JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", true);
+		final List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", true);
+
+		// TODO
+		final JSONObject jsonObject = null;
 
 		System.out.println(jsonObject);
 
@@ -346,7 +357,10 @@ public class OCRAdapterTest {
 
 	@Test
 	public void testOcrByChi() throws Exception {
-		final JSONObject jsonObject = TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+
+//		TesseractOCRAdapter.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+		List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+		JSONObject jsonObject = null;
 
 		System.out.println(jsonObject);
 	}

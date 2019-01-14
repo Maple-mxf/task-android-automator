@@ -3,14 +3,16 @@ package one.rewind.android.automator.util;
 import io.appium.java_client.android.AndroidDriver;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWeChatAdapter;
-import one.rewind.android.automator.ocr.TesseractOCRAdapter;
+import one.rewind.android.automator.adapter.OCRAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.ocr.TesseractOCRAdapter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -89,7 +91,10 @@ public class AndroidUtil {
 			String path = System.getProperty("user.dir") + "/screen/";
 			AbstractWeChatAdapter.screenshot(fileName, path, device.driver);
 
-			JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+//			TODO =================================
+//			JSONObject jsonObject = TesseractOCRAdapter.imageOcr(path + fileName, false);
+			List<OCRAdapter.TouchableTextArea> textAreas = TesseractOCRAdapter.getInstance().imageOcr(path + fileName, false);
+			JSONObject jsonObject = null;
 
 			JSONArray array = jsonObject.getJSONArray("words_result");
 
