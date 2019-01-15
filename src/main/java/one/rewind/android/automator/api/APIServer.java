@@ -249,12 +249,12 @@ public class APIServer {
 	// 校验设备是否存在
 	private static boolean parseDeviceExist(String udid) {
 
-		AndroidDeviceManager manager = AndroidDeviceManager.me();
+		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 
 		boolean has = false;
 
 		for (AndroidDevice device : manager.devices) {
-			if (device.udid.equalsIgnoreCase(udid) || (device.flag != null && !device.flag.equals(AndroidDevice.Flag.Upper_Limit)))
+			if (device.udid.equalsIgnoreCase(udid) || (device.status != null && !device.status.equals(AndroidDevice.Status.Exceed_Subscribe_Limit)))
 				has = true;
 		}
 		return has;
@@ -355,7 +355,7 @@ public class APIServer {
 
 	public static void main(String[] args) {
 
-		AndroidDeviceManager manage = AndroidDeviceManager.me();
+		AndroidDeviceManager manage = AndroidDeviceManager.getInstance();
 
 		// 启动任务
 		manage.run();

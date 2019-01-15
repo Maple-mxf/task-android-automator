@@ -98,7 +98,7 @@ public class APITransport {
         }
 
 
-        DefaultDeviceManager manager = DefaultDeviceManager.me();
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 
         //   账号限制
         int var = 10000;
@@ -151,7 +151,7 @@ public class APITransport {
 
         List<AndroidDevice> availableDevices = DefaultDeviceManager.obtainAvailableDevices();
 
-        DefaultDeviceManager manager = DefaultDeviceManager.me();
+        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 
         manager.allotCrawlerTask(availableDevices, false);
 

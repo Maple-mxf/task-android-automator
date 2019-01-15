@@ -42,9 +42,9 @@ public class WechatAdapterTest {
 
         device = new AndroidDevice(udid);
 
-        //device.removeWifiProxy();
+        //device.removeRemoteWifiProxy();
         device.startProxy(localProxyPort);
-        device.setupWifiProxy();
+        device.setupRemoteWifiProxy();
 
         /**
          * TODO 请求过滤器
@@ -86,25 +86,25 @@ public class WechatAdapterTest {
                 try {
                     // 正文
                     if (url.contains("https://mp.weixin.qq.com/s")) {
-                        device.setClickEffect(true);
+                        device.setTouchResponse(true);
                         System.err.println(" : " + url);
                         content_stack.push(contents.getTextContents());
                     }
                     // 统计信息
                     else if (url.contains("getappmsgext")) {
-                        device.setClickEffect(true);
+                        device.setTouchResponse(true);
                         System.err.println(" :: " + url);
                         stats_stack.push(contents.getTextContents());
                     }
                     // 评论信息
                     else if (url.contains("appmsg_comment?action=getcomment")) {
-                        device.setClickEffect(true);
+                        device.setTouchResponse(true);
                         System.err.println(" ::: " + url);
                         comments_stack.push(contents.getTextContents());
                     }
 
                     if (content_stack.size() > 0) {
-                        device.setClickEffect(true);
+                        device.setTouchResponse(true);
                         System.out.println("有内容了");
                         String content_src = content_stack.pop();
                         Essays we;
@@ -227,14 +227,14 @@ public class WechatAdapterTest {
     public void testAllotTask() throws InterruptedException {
 //        DefaultDeviceManager.originalAccounts.add("菜鸟教程");
 //        DefaultDeviceManager.originalAccounts.add("Java技术栈");
-//        DefaultDeviceManager manager = DefaultDeviceManager.me();
+//        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
 //        manager.allotTask(DefaultDeviceManager.TaskType.SUBSCRIBE);
 
     }
 
     @Test
     public void testRemoveWifiProxy() {
-        device.removeWifiProxy();
+        device.removeRemoteWifiProxy();
     }
 
     @Test
@@ -245,7 +245,7 @@ public class WechatAdapterTest {
 
     @Test
     public void testSendFile() {
-        device.setupWifiProxy();
+        device.setupRemoteWifiProxy();
     }
 
     @Test

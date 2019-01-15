@@ -29,7 +29,7 @@ public class AndroidDeviceTest {
 	public void setup() throws Exception {
 
 		device = new AndroidDevice(udid);
-		device.removeWifiProxy();
+		device.removeRemoteWifiProxy();
 
 		// 从AppInfo中选择需要启动的程序
 		/*AppInfo appInfo = AppInfo.get(AppInfo.Defaults.Contacts);
@@ -86,7 +86,7 @@ public class AndroidDeviceTest {
 	public void testProxyFilters() throws InterruptedException {
 
 		device.startProxy(localProxyPort);
-		device.setupWifiProxy();
+		device.setupRemoteWifiProxy();
 
 		/**
 		 * TODO 请求过滤器

@@ -268,7 +268,7 @@ public class DBTest {
 
 	@Test
 	public void test2() {
-		AndroidDeviceManager manager = AndroidDeviceManager.me();
+		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 
 		manager.initMediaStack();
 

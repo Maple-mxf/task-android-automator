@@ -68,6 +68,24 @@ dependencies {
     compile group: 'org.apache.spark', name: 'spark-core_2.11', version: '2.3.0'
 
 }
+
+task copyFiles() << {
+	copy {
+		from 'ca.crt'
+		into 'src/main/dist'
+	}
+	copy {
+		from 'pk.crt'
+		into 'src/main/dist'
+	}
+	copy {
+		from fileTree('src/main/resources')
+		into 'src/main/dist'
+	}
+}
+
+jar.dependsOn copyFiles
+
 test {
     useJUnitPlatform()
     failFast = true

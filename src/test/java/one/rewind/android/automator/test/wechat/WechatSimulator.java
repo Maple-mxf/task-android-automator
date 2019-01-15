@@ -194,8 +194,8 @@ public class WechatSimulator {
 					driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'复制')]")).click();
 					Thread.sleep(1500);
 					String centertext2 = driver.getClipboardText();
-					out.write("me:" + centertext2 + "\t");
-					System.out.println("me:" + centertext2 + "\t");
+					out.write("getInstance:" + centertext2 + "\t");
+					System.out.println("getInstance:" + centertext2 + "\t");
 				}
 			}
 			//向上滑动

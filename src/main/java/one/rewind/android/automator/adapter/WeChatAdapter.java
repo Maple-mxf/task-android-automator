@@ -33,6 +33,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 	public WeChatAdapter(AndroidDevice device) {
 		super(device);
+		this.appInfo = new AppInfo("com.tencent.mm", ".ui.LauncherUI");
 	}
 
 	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10, Util.threadFactory("thread-" + device.udid, false)));
@@ -127,9 +128,9 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 					digestionSubscribe(device.queue.poll());
 				}
 			} else {
-				if (device.flag != null) {
+				if (device.status != null) {
 
-					if (device.flag.equals(AndroidDevice.Flag.Frequent_Operation)) {
+					if (device.status.equals(AndroidDevice.Status.Operation_Too_Frequent)) {
 						// 需要计算啥时候到达明天   到达明天的时候需要重新分配任务
 						Date nextDay = DateUtil.buildDate();
 
@@ -139,7 +140,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 						Thread.sleep(waitMills + 1000 * 60 * 5);
 
-					} else if (device.flag.equals(AndroidDevice.Flag.Upper_Limit)) {
+					} else if (device.status.equals(AndroidDevice.Status.Exceed_Subscribe_Limit)) {
 						// 当前设备订阅公众号数量到达上限
 						logger.info("当前设备{}订阅的公众号已经达到上限", udid);
 					}
@@ -201,7 +202,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 			@Override
 			public void onSuccess(@NullableDecl Boolean result) {
 				System.out.println("设备 " + WeChatAdapter.this.device.udid + "已完成任务;添加自己到AndroidDeviceManager容器中");
-				AndroidDeviceManager.me().addIdleAdapter(WeChatAdapter.this);
+				AndroidDeviceManager.getInstance().addIdleAdapter(WeChatAdapter.this);
 			}
 
 			@Override

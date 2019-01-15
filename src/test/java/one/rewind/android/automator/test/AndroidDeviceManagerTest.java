@@ -13,7 +13,7 @@ public class AndroidDeviceManagerTest {
     @Test
     public void testInitDevice() throws InterruptedException, SQLException {
 //
-//        AndroidDeviceManager manager = AndroidDeviceManager.me();
+//        AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 //
 //        manager.startManager();
     }

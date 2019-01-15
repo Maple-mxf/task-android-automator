@@ -1,6 +1,5 @@
 package one.rewind.android.automator.adapter;
 
-import com.google.common.collect.Sets;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
@@ -36,32 +35,33 @@ import java.util.*;
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
 
-	TaskLog taskLog; // ?
-
-	ThreadLocal<Boolean> lastPage = new ThreadLocal<>(); //?
-
-	ThreadLocal<Boolean> firstPage = new ThreadLocal<>(); //?
-
-	/**
-	 * 上一次分析点击坐标记录的集合  每次执行新任务会将此集合进行清空   利用回调机制实现
-	 */
-	Set<String> currentTitles = Sets.newHashSet();
-
-	private ThreadLocal<Integer> countVal = new ThreadLocal<>();
-
-	@Deprecated
-	void setCountVal() {
-		if (countVal.get() != null) {
-			int var = countVal.get();
-			var += 1;
-			countVal.set(var);
-		} else {
-			countVal.set(1);
-		}
+	public static enum Status {
+		Init, 			// 初始化
+		Home,			// 首页
+		Search,			// 首页点进去的搜索
+		PublicAccount_Search_Result,			// 公众号搜索结果
+		PublicAccount_Home,					// 公众号首页
+		Address_List,						// 通讯录
+		Subscribe_PublicAccount_List,			// 我订阅的公众号列表
+		Subscribe_PublicAccount_Search,		// 我订阅的公众号列表搜索
+		Subscribe_PublicAccount_Search_Result, // 我订阅的公众号列表搜索结果
+		PublicAccount_Conversation,			// 公众号回话列表
+		PublicAccount_Essay_List_Top,			// 公众号历史文章列表 头部
+		PublicAccount_Essay_List_Middle,		// 公众号历史文章列表 中间部分
+		PublicAccount_EssayListBottom,		// 公众号历史文章列表 底部
+		PublicAccountEssay,					// 公众号文章
+		Error								// 出错
 	}
 
+	// 状态信息
+	public Status status = Status.Init;
+
+	//
+
+	//
 	public static final int RETRY_COUNT = 5;
 
+	//
 	AbstractWeChatAdapter(AndroidDevice device) {
 		super(device);
 	}
@@ -507,7 +507,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			}
 			clickPoint(320, wordsPoint.top, 8000, device.driver);
 			//所以去判断下是否点击成功    成功：返回上一页面   失败：不返回上一页面  continue
-			if (this.device.isClickEffect()) {
+			if (this.device.isTouchResponse()) {
 
 				System.out.println("文章点进去了....");
 				for (int i = 0; i < 2; i++) {
@@ -523,7 +523,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				this.taskLog.step();
 
 				//设置为默认值
-				this.device.setClickEffect(false);
+				this.device.setTouchResponse(false);
 				this.taskLog.step();
 			} else {
 				++neverClickCount;
@@ -1008,6 +1008,27 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
+	/**
+	 *
+	 */
+	public void reliableTouch(int x, int y, long sleep, int retry) throws Exception {
+
+		// 0 判断retry是否超限
+
+		// A 截图1
+
+		// B1 进行touch 操作
+
+		// B2 休眠 sleep
+
+		// C1 截图2
+
+		// C2 比较 两个截图相似性
+
+		// C2 如果相似 递归调用
+
+	}
+
 	@Deprecated
 	private void sleep(long millis) throws InterruptedException {
 		// 手机睡眠
@@ -1027,7 +1048,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	public void startupDevice() {
 		Optional.of(this.device).ifPresent(t -> {
 			t.startProxy(t.localProxyPort);
-			t.setupWifiProxy();
+			t.setupRemoteWifiProxy();
 			logger.info("Starting....Please wait!");
 			try {
 
@@ -1045,25 +1066,25 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 						// 正文
 						if (url.contains("https://mp.weixin.qq.com/s")) {
-							t.setClickEffect(true);
+							t.setTouchResponse(true);
 							System.err.println(" : " + url);
 							content_stack.push(contents.getTextContents());
 						}
 						// 统计信息
 						else if (url.contains("getappmsgext")) {
-							t.setClickEffect(true);
+							t.setTouchResponse(true);
 							System.err.println(" :: " + url);
 							stats_stack.push(contents.getTextContents());
 						}
 						// 评论信息
 						else if (url.contains("appmsg_comment?action=getcomment")) {
-							t.setClickEffect(true);
+							t.setTouchResponse(true);
 							System.err.println(" ::: " + url);
 							comments_stack.push(contents.getTextContents());
 						}
 
 						if (content_stack.size() > 0) {
-							t.setClickEffect(true);
+							t.setTouchResponse(true);
 							String content_src = content_stack.pop();
 							Essays essay = null;
 							try {

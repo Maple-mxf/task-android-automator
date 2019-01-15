@@ -24,9 +24,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 /**
@@ -52,10 +52,9 @@ public class AndroidDeviceManager {
 	 */
 	private BlockingQueue<WeChatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
-	/**
-	 *
-	 */
-	public Stack<String> mediaStack = new Stack<>();
+	// Adapter - AndroidDevice 记录表，记录哪些设备可使用特定类型的Adapter
+	public ConcurrentHashMap<String, List<AndroidDevice>> adapterAndroidDeviceMap = new ConcurrentHashMap<>();
+
 
 	/**
 	 * 所有设备的信息
@@ -63,29 +62,23 @@ public class AndroidDeviceManager {
 	public List<AndroidDevice> devices = new ArrayList<>();
 
 	/**
-	 * 初始分页参数
-	 */
-	private static int startPage = 20;
-
-	/**
 	 * 单例
 	 */
-	private static AndroidDeviceManager manager;
+	private static AndroidDeviceManager instance;
 
-	public static AndroidDeviceManager me() {
+	public static AndroidDeviceManager getInstance() {
 		synchronized (AndroidDeviceManager.class) {
-			if (manager == null) {
-				manager = new AndroidDeviceManager();
+			if (instance == null) {
+				instance = new AndroidDeviceManager();
 			}
 		}
-		return manager;
+		return instance;
 	}
 
 	/**
 	 *
 	 */
-	private AndroidDeviceManager() {
-	}
+	private AndroidDeviceManager() {}
 
 	/**
 	 * 初始化设备
@@ -174,7 +167,7 @@ public class AndroidDeviceManager {
 		// 处于等待状态
 		if (numToday > 40) {
 
-			device.flag = AndroidDevice.Flag.Upper_Limit;
+			device.status = AndroidDevice.Status.Exceed_Subscribe_Limit;
 
 			device.taskType = null;
 
@@ -242,7 +235,7 @@ public class AndroidDeviceManager {
 		if (media == null) {
 			device.taskType = null;
 			// 处于等待状态
-			device.flag = AndroidDevice.Flag.Upper_Limit;
+			device.status = AndroidDevice.Status.Exceed_Subscribe_Limit;
 			return;
 		}
 		// 限制初始化一个任务
@@ -272,18 +265,18 @@ public class AndroidDeviceManager {
 
 		if (allSubscribe >= 993) {
 			if (notFinishR.size() == 0) {
-				adapter.getDevice().flag = AndroidDevice.Flag.Upper_Limit;
+				adapter.getDevice().status = AndroidDevice.Status.Exceed_Subscribe_Limit;
 				return null;   //当前设备订阅的公众号已经到上限
 			}
 			return AndroidDevice.Task.Type.Fetch;
 		} else if (todaySubscribe >= 40) {
 			if (notFinishR.size() == 0) {
-				adapter.getDevice().flag = AndroidDevice.Flag.Frequent_Operation;
+				adapter.getDevice().status = AndroidDevice.Status.Operation_Too_Frequent;
 				return null;
 			}
 			return AndroidDevice.Task.Type.Fetch;
 		} else {
-			adapter.getDevice().flag = null;
+			adapter.getDevice().status = null;
 			// 当前设备订阅的号没有到达上限则分配订阅任务  有限分配订阅接口任务
 			if (notFinishR.size() == 0) {
 				return AndroidDevice.Task.Type.Subscribe;
@@ -368,7 +361,7 @@ public class AndroidDeviceManager {
 		@Override
 		public Boolean call() throws Exception {
 
-			AndroidDeviceManager manager = AndroidDeviceManager.me();
+			AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
 
 			// 初始化设备
 			manager.init();

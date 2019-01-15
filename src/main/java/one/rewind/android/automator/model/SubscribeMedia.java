@@ -16,10 +16,8 @@ public class SubscribeMedia extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
 	public String udid;
 
-
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
 	public String media_name;
-
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true)
 	public String media_id;

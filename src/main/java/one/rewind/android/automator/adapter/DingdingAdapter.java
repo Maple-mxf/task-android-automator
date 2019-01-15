@@ -18,6 +18,7 @@ public class DingdingAdapter extends Adapter {
 	 */
 	public DingdingAdapter(AndroidDevice androidDevice) {
 		super(androidDevice);
+		this.appInfo = new AppInfo("com.alibaba.android.rimet", "com.alibaba.android.rimet.biz.SplashActivity");
 	}
 
 	/**

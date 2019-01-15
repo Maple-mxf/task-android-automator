@@ -37,7 +37,6 @@ public class DateUtil {
         return startDT.getTime();
     }
 
-
     public static String timestamp() {
         return DateFormatUtils.format(new Date(), "yyyyMMddHHmmssSSS");
     }
