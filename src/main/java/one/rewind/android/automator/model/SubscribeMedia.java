@@ -3,8 +3,8 @@ package one.rewind.android.automator.model;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.data.raw.model.base.ModelL;
 import one.rewind.db.DBName;
+import one.rewind.db.model.ModelL;
 
 /**
  * @author maxuefeng[m17793873123@163.com]

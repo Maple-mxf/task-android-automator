@@ -4,28 +4,25 @@ import io.appium.java_client.android.AndroidDriver;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.AbstractWeChatAdapter;
 import one.rewind.android.automator.ocr.OCRParser;
-import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.ocr.TesseractOCRParser;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
-@SuppressWarnings("JavaDoc")
-public class AndroidUtil {
+public class DeviceUtil {
 
 
 	// 重启手机APP
 	public static void restartWechat(AndroidDevice device) throws InterruptedException {
-		AndroidUtil.clearMemory(device.udid);
-		AndroidUtil.activeWechat(device);
+		DeviceUtil.clearMemory(device.udid);
+		DeviceUtil.activeWechat(device);
 	}
 
 
@@ -89,9 +86,8 @@ public class AndroidUtil {
 			String filePrefix = UUID.randomUUID().toString();
 			String fileName = filePrefix + ".png";
 			String path = System.getProperty("user.dir") + "/screen/";
-			AbstractWeChatAdapter.screenshot(fileName, path, device.driver);
+			AbstractWeChatAdapter.screenshot(device.driver);
 
-//			TODO =================================
 //			JSONObject jsonObject = TesseractOCRParser.imageOcr(path + fileName, false);
 			List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr(path + fileName, false);
 			JSONObject jsonObject = null;
@@ -132,34 +128,6 @@ public class AndroidUtil {
 	public static void activeWechat(AndroidDevice device) throws InterruptedException {
 		device.startActivity("com.tencent.mm", ".ui.LauncherUI");
 		Thread.sleep(8000);
-	}
-
-	/**
-	 * 更新未完成的公众号数据
-	 */
-	public static void updateProcess(String mediaName, String udid) throws Exception {
-
-		SubscribeMedia account = Tab.subscribeDao.
-				queryBuilder().
-				where().
-				eq("media_name", mediaName).
-				and().
-				eq("udid", udid).
-				queryForFirst();
-
-		if (account != null) {
-			long countOf = Tab.essayDao.
-					queryBuilder().
-					where().
-					eq("media_nick", mediaName).
-					countOf();
-			account.number = (int) countOf;
-			account.status = (countOf == 0 ? SubscribeMedia.State.NOT_EXIST.status : SubscribeMedia.State.FINISH.status);
-			account.status = 1;
-			account.update_time = new Date();
-			account.retry_count = 5;
-			account.update();
-		}
 	}
 
 	/**

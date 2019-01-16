@@ -145,7 +145,7 @@ public class APITransport {
    /* @Test
     public void proceedProgram() throws Exception {
 
-        AndroidUtil.updateProcess();
+        DeviceUtil.updateProcess();
 
         Class.forName("one.rewind.android.automator.manager.DefaultDeviceManager");
 

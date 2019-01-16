@@ -7,10 +7,10 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.model.Comments;
+import one.rewind.android.automator.util.DeviceUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.util.AndroidUtil;
 import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.util.MD5Util;
 import one.rewind.android.automator.util.ShellUtil;
@@ -193,9 +193,9 @@ public class WechatAdapterTest {
     @Test
     public void testActiveApp() throws InterruptedException {
         device.driver.closeApp();
-        AndroidUtil.activeWechat(device);
+        DeviceUtil.activeWechat(device);
         //48356
-//        AndroidUtil.enterEssay("Java技术栈", device.driver);
+//        DeviceUtil.enterEssay("Java技术栈", device.driver);
     }
 
 

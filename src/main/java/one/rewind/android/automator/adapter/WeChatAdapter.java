@@ -5,10 +5,11 @@ import com.google.common.util.concurrent.*;
 import okhttp3.internal.Util;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.callback.Callback;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.model.TaskLog;
-import one.rewind.android.automator.util.AndroidUtil;
+import one.rewind.android.automator.util.DeviceUtil;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
@@ -17,8 +18,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
@@ -34,7 +34,18 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 	public WeChatAdapter(AndroidDevice device) {
 		super(device);
 		this.appInfo = new AppInfo("com.tencent.mm", ".ui.LauncherUI");
+
+		// TODO 初始化账号信息
+
 	}
+
+	/**
+	 * 账号列表  不能定义为static的 每个Adapter对应的device不同,而device上登录的账号也不会相同,device跟账号之间存在弱引用的关系
+	 * 对于微信来说,一个微信账号在一个手机上登录之后,第一次之后登录就不会再需要手机验证码了
+	 * key代表账号account,value代表密码password
+	 * 在初始化WeChatAdapter的时候初始化账号信息
+	 */
+	private List<AppAccount> appAccounts = new ArrayList<>();
 
 	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10, Util.threadFactory("thread-" + device.udid, false)));
 
@@ -81,7 +92,7 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 
 						callRedisAndChangeState(media);
 
-						AndroidUtil.restartWechat(device);
+						DeviceUtil.restartWechat(device);
 
 						// 执行成功
 						adapter.taskLog.executeSuccess();
@@ -218,10 +229,28 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 	@Override
 	@Deprecated
 	public void stop() {
-		//启动关闭线程池
+		// 启动关闭线程池
 		while (true) {
 			service.shutdownNow();
 			if (service.isShutdown()) return;
 		}
+	}
+
+	/**
+	 * A 根据当前Adapter获取适宜的Task
+	 * B 获取对应的Device
+	 */
+	public void run() {
+
+	}
+
+	/**
+	 * 切换微信账号;  切换微信账号的前提是当前账号不能使用等等或者其他的一些问题
+	 */
+	public void switchAccount() {
+
+		// A1 获取当前微信账号
+
+		// A2
 	}
 }

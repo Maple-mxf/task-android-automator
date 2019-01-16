@@ -46,7 +46,12 @@ public class ShellUtil {
 		}
 	}
 
-	//进入相应设备的shell
+	/**
+	 * 进入相应设备的shell
+	 *
+	 * @param udid
+	 * @throws IOException
+	 */
 	private static void enterADBShell(String udid) throws IOException {
 		String command = "abd -s " + udid + " shell";
 		exeCmd(command);
@@ -68,14 +73,27 @@ public class ShellUtil {
 		exeCmd("adb shell input swipe 300 1000 300 500");
 	}
 
-
+	/**
+	 * 杀死进程
+	 *
+	 * @param udid
+	 * @param packageName
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	public static void shutdownProcess(String udid, String packageName) throws IOException, InterruptedException {
 		String command = "adb -s " + udid + " shell am force-stop " + packageName;
 		Runtime.getRuntime().exec(command);
 		Thread.sleep(5000);
 	}
 
-	//锁屏
+	/**
+	 * 摁电源键
+	 *
+	 * @param udid
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	public static void clickPower(String udid) throws IOException, InterruptedException {
 		String powerCommand = "adb -s " + udid + " shell input keyevent 26";
 		Runtime runtime = Runtime.getRuntime();
@@ -83,6 +101,14 @@ public class ShellUtil {
 		Thread.sleep(2000);
 	}
 
+	/**
+	 * 唤醒设备
+	 *
+	 * @param udid
+	 * @param driver
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	public static void notifyDevice(String udid, AndroidDriver driver) throws IOException, InterruptedException {
 		Runtime runtime = Runtime.getRuntime();
 		clickPower(udid);

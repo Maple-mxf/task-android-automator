@@ -7,7 +7,7 @@ import com.google.common.util.concurrent.*;
 import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.util.AndroidUtil;
+import one.rewind.android.automator.util.DeviceUtil;
 import one.rewind.android.automator.util.DBUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
@@ -48,7 +48,6 @@ public class AndroidDeviceManager {
 	private static RedissonClient redisClient = RedissonAdapter.redisson;
 
 	/**
-	 * 存储无任务设备信息 利用建监听者模式实现设备管理
 	 */
 	private BlockingQueue<WeChatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
@@ -85,7 +84,7 @@ public class AndroidDeviceManager {
 	 */
 	private void init() {
 
-		String[] var = AndroidUtil.obtainDevices();
+		String[] var = DeviceUtil.obtainDevices();
 
 		for (String aVar : var) {
 			AndroidDevice device = new AndroidDevice(aVar);
@@ -108,7 +107,7 @@ public class AndroidDeviceManager {
 	 */
 	public void initMediaStack() {
 		Set<String> set = Sets.newHashSet();
-		obtainFullData(set, startPage, AndroidUtil.obtainDevices().length);
+		obtainFullData(set, startPage, DeviceUtil.obtainDevices().length);
 		mediaStack.addAll(set);
 	}
 

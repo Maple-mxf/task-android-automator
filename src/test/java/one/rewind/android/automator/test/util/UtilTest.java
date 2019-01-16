@@ -4,11 +4,8 @@ import com.google.common.collect.Sets;
 import one.rewind.android.automator.ocr.BaiDuOCRParser;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduTokens;
-import one.rewind.android.automator.util.Tab;
-import one.rewind.android.automator.util.AndroidUtil;
-import one.rewind.android.automator.util.BaiduAPIUtil;
-import one.rewind.android.automator.util.DBUtil;
-import one.rewind.android.automator.util.ShellUtil;
+import one.rewind.android.automator.util.*;
+import one.rewind.android.automator.util.DeviceUtil;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -30,7 +27,7 @@ public class UtilTest {
      */
     @Test
     public void testShellExecute() {
-        String[] devicesInfoByShell = AndroidUtil.obtainDevices();
+        String[] devicesInfoByShell = DeviceUtil.obtainDevices();
     }
 
 
@@ -83,7 +80,7 @@ public class UtilTest {
 
     @Test
     public void testAccuracySubscribe() throws InvokingBaiduAPIException {
-//        AndroidUtil.accuracySubscribe("故事与道理的磨合");
+//        DeviceUtil.accuracySubscribe("故事与道理的磨合");
     }
 
     @Test

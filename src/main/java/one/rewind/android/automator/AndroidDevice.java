@@ -25,17 +25,10 @@ import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DBName;
 import one.rewind.db.model.ModelL;
-import one.rewind.io.requester.chrome.ChromeAgent;
-import one.rewind.io.requester.exception.ChromeDriverException;
-import one.rewind.json.JSON;
-import one.rewind.json.JSONable;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
-import org.openqa.selenium.remote.RemoteWebDriver;
 import se.vidstige.jadb.JadbConnection;
 import se.vidstige.jadb.JadbDevice;
 import se.vidstige.jadb.JadbException;
@@ -135,7 +128,13 @@ public class AndroidDevice extends ModelL {
 	// Executor
 	private transient ThreadPoolExecutor executor;
 
-	// 可用 adapters
+	/**
+	 * 单个设备对应多个Adapter,Adapter是指手机硬件上安装的可正常运行的APP,Device是指具体物理机,单个Device可对应多个Adapter
+	 * 单个Device可随时切换Adapter,Device只是核心控制控制程序之间的一个桥接,相当于一个连接对象,Device不应该负责去执行任务,
+	 * 任务启动执行在Adapter层,控制Device执行.当前Device在切换Adapter的时候,任务随着Adapter的切换而切换.单个Adapter对应一个
+	 * 账号列表,每个账号都存在一个可用或者不可用的状态,
+	 * Account -> Adapter -> Device
+	 */
 	public transient Map<String, Adapter> adapters = new HashMap<>();
 
 	// 当前正在执行的任务
@@ -221,13 +220,12 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
-	 *
 	 * @throws MalformedURLException
 	 * @throws InterruptedException
 	 */
 	public synchronized AndroidDevice start() throws AndroidDeviceException.IllegalStatusException {
 
-		if(!(status == Status.New || status == Status.Terminated)) {
+		if (!(status == Status.New || status == Status.Terminated)) {
 			throw new AndroidDeviceException.IllegalStatusException();
 		}
 
@@ -242,7 +240,7 @@ public class AndroidDevice extends ModelL {
 
 			status = Status.Idle;
 
-			if(initSuccess) {
+			if (initSuccess) {
 				logger.info("[{}] INIT done.", name);
 			}
 
@@ -274,13 +272,12 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
-	 *
 	 * @throws IOException
 	 */
 	public synchronized AndroidDevice stop() throws AndroidDeviceException.IllegalStatusException {
 
 
-		if(! (status == Status.Idle || status == Status.Busy || status == Status.Failed) ) {
+		if (!(status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
 			throw new AndroidDeviceException.IllegalStatusException();
 		}
 
@@ -294,20 +291,17 @@ public class AndroidDevice extends ModelL {
 			status = Status.Terminated;
 			logger.info("[{}] Stop done.", name);
 
-		}
-		catch (InterruptedException e) {
+		} catch (InterruptedException e) {
 
 			status = Status.Failed;
 			logger.error("[{}] Stop interrupted. ", name, e);
 
-		}
-		catch (ExecutionException e) {
+		} catch (ExecutionException e) {
 
 			status = Status.Failed;
 			logger.error("[{}] Stop failed. ", name, e.getCause());
 
-		}
-		catch (TimeoutException e) {
+		} catch (TimeoutException e) {
 
 			closeFuture.cancel(true);
 			status = Status.Failed;
@@ -405,6 +399,7 @@ public class AndroidDevice extends ModelL {
 
 	/**
 	 * 安装CA证书，否则无法解析https数据
+	 *
 	 * @throws IOException
 	 * @throws JadbException
 	 * @throws InterruptedException
@@ -499,8 +494,8 @@ public class AndroidDevice extends ModelL {
 				.withCapabilities(serviceCapabilities)
 				.usingPort(appiumPort)
 				.withArgument(GeneralServerFlag.LOG_LEVEL, "info")
-				.withAppiumJS(new File("/usr/local/lib/node_modules/appium/build/lib/main.js")) // TimeBomb!!! TODO 这个文件是什么
-				/*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO
+				.withAppiumJS(new File("/usr/local/lib/node_modules/appium/build/lib/main.js")) // TimeBomb!!! TODO
+				/*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO  session覆盖问题解决
 				.build();
 
 		service.start();
@@ -577,7 +572,6 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
-	 *
 	 * @param command
 	 * @param args
 	 * @throws IOException
@@ -680,7 +674,7 @@ public class AndroidDevice extends ModelL {
 
 	/**
 	 * 清空缓存日志
- 	 */
+	 */
 	public void clearCacheLog() {
 		try {
 			String command = "adb -s " + this.udid + " logcat -c -b events";
@@ -693,7 +687,7 @@ public class AndroidDevice extends ModelL {
 
 	/**
 	 * 清空所有日志
- 	 */
+	 */
 	public void clearAllLog() {
 		try {
 			String command = "adb -s " + this.udid + " logcat -c -b main -b events -b radio -b system";
@@ -709,7 +703,9 @@ public class AndroidDevice extends ModelL {
 	 * 返回桌面 am start -a android.intent.action.MAIN -c android.intent.category.HOME
 	 * 清理app进程 am kill <package_name>
 	 */
-	public void clear() {
+	public void clear() throws IOException, InterruptedException {
+
+		ShellUtil.shutdownProcess(udid, "com.tencent.mm");
 
 	}
 

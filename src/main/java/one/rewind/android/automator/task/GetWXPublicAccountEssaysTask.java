@@ -1,6 +1,5 @@
 package one.rewind.android.automator.task;
 
-import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.data.raw.model.Media;
 

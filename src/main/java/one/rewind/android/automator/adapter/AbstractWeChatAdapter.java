@@ -29,113 +29,44 @@ import java.text.ParseException;
 import java.util.*;
 
 /**
- * 采集某个号时  先初始化缓存数据  如果从DB中加载数据会降低效率
- *
  * @author maxuefeng[m17793873123@163.com]
+ * Adapter对应是设备上的APP  任务执行应该放在Adapter层面上
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
 
 	public static enum Status {
-		Init, 			// 初始化
-		Home,			// 首页
-		Search,			// 首页点进去的搜索
-		PublicAccount_Search_Result,			// 公众号搜索结果
-		PublicAccount_Home,					// 公众号首页
-		Address_List,						// 通讯录
-		Subscribe_PublicAccount_List,			// 我订阅的公众号列表
-		Subscribe_PublicAccount_Search,		// 我订阅的公众号列表搜索
+		Init,            // 初始化
+		Home,            // 首页
+		Search,            // 首页点进去的搜索
+		PublicAccount_Search_Result,            // 公众号搜索结果
+		PublicAccount_Home,                    // 公众号首页
+		Address_List,                        // 通讯录
+		Subscribe_PublicAccount_List,            // 我订阅的公众号列表
+		Subscribe_PublicAccount_Search,        // 我订阅的公众号列表搜索
 		Subscribe_PublicAccount_Search_Result, // 我订阅的公众号列表搜索结果
-		PublicAccount_Conversation,			// 公众号回话列表
-		PublicAccount_Essay_List_Top,			// 公众号历史文章列表 头部
-		PublicAccount_Essay_List_Middle,		// 公众号历史文章列表 中间部分
-		PublicAccount_EssayListBottom,		// 公众号历史文章列表 底部
-		PublicAccountEssay,					// 公众号文章
-		Error								// 出错
+		PublicAccount_Conversation,            // 公众号回话列表
+		PublicAccount_Essay_List_Top,            // 公众号历史文章列表 头部
+		PublicAccount_Essay_List_Middle,        // 公众号历史文章列表 中间部分
+		PublicAccount_EssayListBottom,        // 公众号历史文章列表 底部
+		PublicAccountEssay,                    // 公众号文章
+		Error                                // 出错
 	}
 
 	// 状态信息
 	public Status status = Status.Init;
 
 	//
-
-	//
 	public static final int RETRY_COUNT = 5;
+
+
+	// 截图保存的路径
+	public static final String SCREEN_PATH = System.getProperty("user.dir") + "/screen/";
 
 	//
 	AbstractWeChatAdapter(AndroidDevice device) {
 		super(device);
 	}
 
-	/**
-	 * 订阅
-	 * @param mediaName 媒体名称
-	 * @return 点击坐标
-	 * @throws Exception
-	 */
-	/*@Deprecated
-	private WordsPoint accuracySubscribe(String mediaName) throws Exception {
-
-		String fileName = UUID.randomUUID().toString() + ".png";
-
-		String path = System.getProperty("user.dir") + "/screen/";
-
-		// A 截图
-		screenshot(fileName, path, device.driver);
-
-		// B 使用 TesseractOCR 分析图片中的文字信息
-		JSONObject jsonObject = TesseractOCRParser.imageOcr(path + fileName, false);
-
-		FileUtil.deleteFile(path + fileName);
-
-		// C 解析文字信息
-		JSONArray result = jsonObject.getJSONArray("words_result");
-
-		int top;
-		int left;
-		int i = 0;
-
-		// C1 对文字信息进行遍历
-		for (Object v : result) {
-
-			JSONObject b = (JSONObject) v;
-			String words = b.getString("words");
-
-			// 去除开头的半角英文括号 和 结束的半角英文括号 以及 空格符
-			*//*words.replaceAll("^\\(|\\)$| ", "");*//*
-
-			if (words.startsWith("(")) words = words.replace("(", "");
-			if (words.startsWith(")")) words = words.replace(")", "");
-			words = words.replaceAll(" ", "");
-
-			JSONObject location = b.getJSONObject("location");
-			top = location.getInt("top");
-			left = location.getInt("left");
-
-			// C2 第一个成为正确的几率最大
-			// 很有可能是公众号的头像中的文字也被识别了    去除前三个JSON数据，第三个数据也是此处的第一个数据，第一条数据命中率针对于mediaName是最高的
-			// 生成点击坐标并返回
-			if (i == 0) {
-				if (words.endsWith(mediaName)) {
-					return new WordsPoint(top + 30, left + 30, 0, 0, words);
-				}
-			}
-
-			// C3 如果第一个不匹配，还可以再继续遍历结果
-			if (left <= 50 && words.endsWith(mediaName)) {
-				return new WordsPoint(top + 30, left + 30, 0, 0, words);
-			}
-
-			// C4
-			if (words.equalsIgnoreCase(mediaName) || words.equalsIgnoreCase("<" + mediaName)) {
-				return new WordsPoint(top + 30, left + 30, 0, 0, words);
-			}
-
-			i++;
-		}
-
-		return null;
-	}
-*/
 
 	/**
 	 * 获取可点击的点
@@ -153,7 +84,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		logger.info("截图文件路径为: {}", path + fileName);
 
-		screenshot(fileName, path, device.driver);
+		screenshot(device.driver);
 		// 图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
 		return analysisImage(path + fileName);
 	}
@@ -171,7 +102,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		JSONObject origin = null;
 
-		// TODO=================================
 		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().imageOcr(filePath, true);
 
 		// TODO 删除文件放到ocr adapter上做
@@ -186,57 +116,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			logger.error("Error delete image file, ", e);
 		}
 
-		List<WordsPoint> result = analysisWordsPoint(origin.getJSONArray("words_result"));
-
-		// 定位最新任务
-		/*if (this.relativeFlag.history) {
-
-			SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日");
-
-			for (WordsPoint point : result) {
-				// 对于point处理一下  "2018年09月09日 原创"
-				String words = point.words;
-
-				if (words.length() >= 11) {
-
-					// 11代表取前十一个字符[0,11) 取不到第十一个字符  保证得到数据的标准格式是yyyy年MM月dd日
-					words = words.substring(0, 11);
-
-					// 首先比较relativeFlag的record字段是否相等于words
-					if (words.equals(this.relativeFlag.record)) {
-						// 标记任务结束
-						lastPage.set(Boolean.TRUE);
-						//
-						int index = result.indexOf(point);
-
-						for (int i = index + 1; i <= result.size(); i++) {
-							result.remove(i);
-						}
-						// 回调函数  形成闭环
-						this.relativeFlag.callback();
-						return result;
-					}
-				}
-				// 如果因为安卓惯性造成无法对接上一次的记录(需要对于时间的大小进行表)
-				Date d1 = df.parse(words);
-
-				// 或者终止条件按照日期去推断,能保证程序不会继续向下无限走
-				Date d2 = df.parse(this.relativeFlag.record);
-
-				if (d2.compareTo(d1) <= 0) {
-					// TODO  效率优化  去掉重复的坐标点  获取到当前的坐标点  去掉当前坐标数据后面的数据 reduce
-					lastPage.set(Boolean.TRUE);
-
-					int index = result.indexOf(point);
-					for (int i = index + 1; i <= result.size(); i++) {
-						result.remove(i);
-					}
-					this.relativeFlag.callback();
-					return result;
-				}
-			}
-		}*/
-		return result;
+		return analysisWordsPoint(origin.getJSONArray("words_result"));
 	}
 
 	/**
@@ -442,7 +322,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			String path = System.getProperty("user.dir") + "/screen/";
 
-			screenshot(fileName, path, device.driver);
+			screenshot(device.driver);
 
 			// 恢复之前截图分析是否被限流
 //			final JSONObject jsonObject = TesseractOCRParser.imageOcr(path + fileName, false);
@@ -519,7 +399,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				Thread.sleep(1000);
 
 				//关闭文章
-				AndroidUtil.closeEssay(device.driver);
+				DeviceUtil.closeEssay(device.driver);
 				this.taskLog.step();
 
 				//设置为默认值
@@ -535,14 +415,15 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	/**
 	 * 截图
 	 *
-	 * @param fileName file name
-	 * @param path     file absolute path
+	 * @param driver d
 	 */
-	public static void screenshot(String fileName, String path, AndroidDriver driver) {
+	public static void screenshot(AndroidDriver driver) {
 		try {
 			File screenFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 
-			FileUtils.copyFile(screenFile, new File(path + fileName));
+			String imageFullName = SCREEN_PATH + UUID.randomUUID().toString() + ".png";
+
+			FileUtils.copyFile(screenFile, new File(imageFullName));
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -625,7 +506,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		if (Tab.subscribeDao.queryBuilder().where().eq("media_name", mediaName).countOf() >= 1) return;
 
 		//重启
-		AndroidUtil.restartWechat(device);
+		DeviceUtil.restartWechat(device);
 
 		Thread.sleep(3000);
 
@@ -704,8 +585,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			AndroidUtil.closeApp(device);
-			AndroidUtil.activeWechat(device);
+			DeviceUtil.closeApp(device);
+			DeviceUtil.activeWechat(device);
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 		}
 		Thread.sleep(1000);
@@ -886,8 +767,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 */
 	private void retryRecord(String mediaName) {
 		try {
-			AndroidUtil.closeApp(device);
-			AndroidUtil.activeWechat(this.device);
+			DeviceUtil.closeApp(device);
+			DeviceUtil.activeWechat(this.device);
 			SubscribeMedia media = retry(mediaName, this.device.udid);
 			if (media != null) {
 				media.retry_count += 1;
@@ -947,9 +828,9 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 				try {
 					// 截图关闭
-					AndroidUtil.closeApp(device);
+					DeviceUtil.closeApp(device);
 
-					AndroidUtil.restartWechat(device);
+					DeviceUtil.restartWechat(device);
 
 					// 是否是接口任务
 					if (mediaName.contains(Tab.REQUEST_ID_SUFFIX)) {
@@ -976,8 +857,8 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 				try {
 					logger.info("失败原因是NoSuchElementException");
 
-					AndroidUtil.closeApp(device);
-					AndroidUtil.restartWechat(device);
+					DeviceUtil.closeApp(device);
+					DeviceUtil.restartWechat(device);
 				} catch (InterruptedException ignore) {
 					logger.error(ignore);
 				}
@@ -986,27 +867,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
-
-	/**
-	 * 睡眠策略
-	 */
-	@Deprecated
-	private void sleepPolicy() {
-		try {
-			if (this.countVal.get() != null) {
-
-				//  抓取50篇文章休息3分钟
-				Integer var = countVal.get();
-				if (var % 50 == 0) {
-					Thread.sleep(1000 * 60 * 3);
-					// 不推荐的做法
-					sleep(1000 * 60 * 3);
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 
 	/**
 	 *
@@ -1027,15 +887,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		// C2 如果相似 递归调用
 
-	}
-
-	@Deprecated
-	private void sleep(long millis) throws InterruptedException {
-		// 手机睡眠
-		// 线程睡眠
-		Thread.sleep(millis);
-		// 手机唤醒
-//        ShellUtil.notifyDevice(device.udid, device.driver);
 	}
 
 	abstract void start();
@@ -1147,4 +998,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			}
 		});
 	}
+
+
 }
