@@ -12,9 +12,9 @@ import one.rewind.db.model.ModelL;
  *
  * @author maxuefeng [m17793873123@163.com]
  */
-@DBName(value = "raw")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "baidu_tokens")
-public class BaiduTokens extends ModelL {
+public class BaiduToken extends ModelL {
 
     @DatabaseField(dataType = DataType.STRING, width = 255, unique = true)
     public String app_k;

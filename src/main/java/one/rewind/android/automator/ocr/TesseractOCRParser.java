@@ -53,7 +53,7 @@ public class TesseractOCRParser implements OCRParser {
 	 * @throws Exception IOException cropException
 	 */
 	@Override
-	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) throws Exception {
+	public List<TouchableTextArea> getTextBlockArea(String filePath, boolean crop) throws IOException, InterruptedException {
 
 		// 1 裁剪图片
 		File inImage = new File(filePath);
@@ -75,6 +75,9 @@ public class TesseractOCRParser implements OCRParser {
 		List<TouchableTextArea> textAreas = parseHtml(parse2Html(inImage));
 
 		logger.info(JSON.toJson(textAreas));
+
+		// 5 删除.hocr文件
+		FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
 
 		return textAreas;
 	}

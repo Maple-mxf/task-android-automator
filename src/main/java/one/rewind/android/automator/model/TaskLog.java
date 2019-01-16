@@ -3,8 +3,8 @@ package one.rewind.android.automator.model;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.data.raw.model.base.ModelL;
 import one.rewind.db.DBName;
+import one.rewind.db.model.ModelL;
 
 import java.util.Date;
 
@@ -15,7 +15,7 @@ import java.util.Date;
  * @see one.rewind.android.automator.AndroidDevice
  */
 @DBName(value = "raw")
-@DatabaseTable(tableName = "task_log")
+@DatabaseTable(tableName = "task_logs")
 public class TaskLog extends ModelL {
 
 	/**

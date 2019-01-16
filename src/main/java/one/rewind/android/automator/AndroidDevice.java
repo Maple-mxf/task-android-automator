@@ -4,12 +4,14 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.service.local.AppiumDriverLocalService;
 import io.appium.java_client.service.local.AppiumServiceBuilder;
 import io.appium.java_client.service.local.flags.GeneralServerFlag;
+import io.appium.java_client.touch.offset.PointOption;
 import net.lightbody.bmp.BrowserMobProxy;
 import net.lightbody.bmp.BrowserMobProxyServer;
 import net.lightbody.bmp.filters.RequestFilter;
@@ -25,9 +27,13 @@ import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DBName;
 import one.rewind.db.model.ModelL;
+import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import se.vidstige.jadb.JadbConnection;
 import se.vidstige.jadb.JadbDevice;
@@ -63,6 +69,9 @@ public class AndroidDevice extends ModelL {
 	// 关闭超时时间
 	private static int CLOSE_TIMEOUT = 120000;
 
+	// 截图保存的路径
+	public static final String SCREEN_PATH = System.getProperty("user.dir") + "/screen/";
+
 	public enum Status {
 		New,  // 新创建
 		Init, // 初始化中
@@ -92,7 +101,7 @@ public class AndroidDevice extends ModelL {
 	public boolean ca = false; // 是否已经安装CA证书
 
 	// 本地代理服务器
-	private transient BrowserMobProxy bmProxy;
+	private transient BrowserMobProxyServer bmProxy;
 
 	// Appium相关服务对象
 	private transient AppiumDriverLocalService service;
@@ -210,8 +219,7 @@ public class AndroidDevice extends ModelL {
 			stopRemoteAppiumServer();
 
 			// 停止代理服务器
-			bmProxy.stop();
-
+			stopProxy();
 
 			logger.info("[{}] stopped.", name);
 
@@ -318,7 +326,7 @@ public class AndroidDevice extends ModelL {
 	 * 场景: 设备运行时间过程, 没有响应
 	 * </p>
 	 */
-	public void restart() throws AndroidDeviceException.IllegalStatusException {
+	public void restart() throws AndroidDeviceException.IllegalStatusException, IOException, InterruptedException {
 		stop();
 		clear();
 		clearCacheLog();
@@ -365,7 +373,15 @@ public class AndroidDevice extends ModelL {
 		bmProxy.setTrustAllServers(true);
 		bmProxy.setMitmManager(mitmManager);
 		bmProxy.start(proxyPort);
-		proxyPort = bmProxy.getPort(); // 是否有必要
+		proxyPort = bmProxy.getPort(); // TODO 是否有必要?
+
+		// 设定初始 RequestFilter
+		bmProxy.addRequestFilter((request, contents, messageInfo) -> {
+			return null;
+		});
+
+		// 设定初始 ResponseFilter
+		bmProxy.addResponseFilter((response, contents, messageInfo) -> {});
 
 		logger.info("Proxy started @proxyPort {}", proxyPort);
 	}
@@ -377,7 +393,8 @@ public class AndroidDevice extends ModelL {
 	 */
 	public void setProxyRequestFilter(RequestFilter filter) {
 		if (bmProxy == null) return;
-		bmProxy.addFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));
+		//bmProxy.addFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));
+		bmProxy.replaceFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));
 	}
 
 	/**
@@ -387,7 +404,8 @@ public class AndroidDevice extends ModelL {
 	 */
 	public void setProxyResponseFilter(ResponseFilter filter) {
 		if (bmProxy == null) return;
-		bmProxy.addResponseFilter(filter);
+		// bmProxy.addResponseFilter(filter);
+		bmProxy.replaceLastHttpFilter(filter);
 	}
 
 	/**
@@ -490,13 +508,22 @@ public class AndroidDevice extends ModelL {
 		serviceCapabilities.setCapability(MobileCapabilityType.NEW_COMMAND_TIMEOUT, 3600);
 
 		// B 定义AppiumService
-		service = new AppiumServiceBuilder()
-				.withCapabilities(serviceCapabilities)
-				.usingPort(appiumPort)
-				.withArgument(GeneralServerFlag.LOG_LEVEL, "info")
-				.withAppiumJS(new File("/usr/local/lib/node_modules/appium/build/lib/main.js")) // TimeBomb!!! TODO
-				/*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO  session覆盖问题解决
-				.build();
+		if(EnvUtil.isHostLinux()) {
+			service = new AppiumServiceBuilder()
+					.withCapabilities(serviceCapabilities)
+					.usingPort(appiumPort)
+					.withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+					.withAppiumJS(new File("/usr/local/lib/node_modules/appium/build/lib/main.js")) // TODO Ubuntu系统下的固定文件路径，必须添加
+					/*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO  session覆盖问题解决
+					.build();
+		} else {
+			service = new AppiumServiceBuilder()
+					.withCapabilities(serviceCapabilities)
+					.usingPort(appiumPort)
+					.withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+					/*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO  session覆盖问题解决
+					.build();
+		}
 
 		service.start();
 
@@ -704,9 +731,7 @@ public class AndroidDevice extends ModelL {
 	 * 清理app进程 am kill <package_name>
 	 */
 	public void clear() throws IOException, InterruptedException {
-
 		ShellUtil.shutdownProcess(udid, "com.tencent.mm");
-
 	}
 
 	/**
@@ -721,5 +746,79 @@ public class AndroidDevice extends ModelL {
 		String command2 = "adb -s " + this.udid + " shell am force-stop io.appium.uiautomator2.server";
 		Runtime.getRuntime().exec(command2);
 		logger.info("Restart {} Appium Server", udid);
+	}
+
+	/**
+	 * 截图
+	 * @return 获取保存的文件路径
+	 */
+	public String screenShot() throws IOException {
+
+		File screenFile = ((TakesScreenshot) this.driver).getScreenshotAs(OutputType.FILE);
+
+		String imageFullName = SCREEN_PATH + UUID.randomUUID().toString() + ".png";
+
+		FileUtils.copyFile(screenFile, new File(imageFullName));
+
+		return imageFullName;
+	}
+
+	/**
+	 * 点击固定的位置
+	 *
+	 * @param x   x
+	 * @param y   y
+	 * @param sleepTime 睡眠时间
+	 * @throws InterruptedException e
+	 */
+	public void touch(int x, int y, long sleepTime) throws InterruptedException {
+
+		new TouchAction(driver).tap(PointOption.point(x, y)).perform();
+
+		if (sleepTime > 0) {
+			Thread.sleep(sleepTime);
+		}
+	}
+
+	/**
+	 *
+	 */
+	public boolean reliableTouch(int x, int y, long sleep, int retry) throws Exception {
+
+		// 0 判断retry是否超限
+
+		// A 截图1
+
+		// B1 进行touch 操作
+		touch(x, y, sleep);
+
+		// B2 休眠 sleep
+
+		// C1 截图2
+
+		// C2 比较 两个截图相似性
+
+		// C2 如果相似 递归调用
+
+		return true;
+	}
+
+	/**
+	 * 下滑到指定位置
+	 *
+	 * @param startX    start x point
+	 * @param startY    start y point
+	 * @param endX      end x point
+	 * @param endY      end y point
+	 * @param sleepTime thread sleep time by mill
+	 * @throws InterruptedException e
+	 */
+	public void slideToPoint(int startX, int startY, int endX, int endY, int sleepTime) throws InterruptedException {
+		new TouchAction(driver).press(PointOption.point(startX, startY))
+				.waitAction()
+				.moveTo(PointOption.point(endX, endY))
+				.release()
+				.perform();
+		Thread.sleep(sleepTime);
 	}
 }

@@ -43,7 +43,7 @@ public class DBTest {
 
 	@Test
 	public void setupRawTable() throws Exception {
-		Refacter.createTable(BaiduTokens.class);
+		Refacter.createTable(BaiduToken.class);
 	}
 
 
@@ -117,7 +117,7 @@ public class DBTest {
 	 */
 	@Test
 	public void initBaiduTokens() throws Exception {
-		BaiduTokens token1 = new BaiduTokens();
+		BaiduToken token1 = new BaiduToken();
 		token1.app_k = "rDztaDallgGp5GkiZ7mPBUwo";
 		token1.app_s = "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n";
 		token1.count = 0;

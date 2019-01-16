@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter;
 
+import com.google.common.collect.Sets;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.touch.offset.PointOption;
@@ -7,13 +8,20 @@ import joptsimple.internal.Strings;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.exception.*;
 import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.android.automator.ocr.TesseractOCRParser;
 import one.rewind.android.automator.util.*;
+import one.rewind.data.raw.model.Comment;
+import one.rewind.data.raw.model.Essay;
 import one.rewind.db.RedissonAdapter;
+import one.rewind.txt.DateFormatUtil;
+import one.rewind.txt.NumberFormatUtil;
+import one.rewind.txt.StringUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
@@ -24,15 +32,23 @@ import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RedissonClient;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static one.rewind.android.automator.AndroidDevice.SCREEN_PATH;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
  * Adapter对应是设备上的APP  任务执行应该放在Adapter层面上
  */
 public abstract class AbstractWeChatAdapter extends Adapter {
+
+	// 点击无响应重试上限
+	public static final int TOUCH_RETRY_COUNT = 5;
 
 	public static enum Status {
 		Init,            // 初始化
@@ -47,7 +63,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		PublicAccount_Conversation,            // 公众号回话列表
 		PublicAccount_Essay_List_Top,            // 公众号历史文章列表 头部
 		PublicAccount_Essay_List_Middle,        // 公众号历史文章列表 中间部分
-		PublicAccount_EssayListBottom,        // 公众号历史文章列表 底部
+		PublicAccount_Essay_List_Bottom,        // 公众号历史文章列表 底部
 		PublicAccountEssay,                    // 公众号文章
 		Error                                // 出错
 	}
@@ -55,39 +71,52 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	// 状态信息
 	public Status status = Status.Init;
 
-	//
-	public static final int RETRY_COUNT = 5;
+	// 当前使用的账号
+	public AppAccount account;
 
-
-	// 截图保存的路径
-	public static final String SCREEN_PATH = System.getProperty("user.dir") + "/screen/";
-
-	//
+	/**
+	 *
+	 * @param device
+	 */
 	AbstractWeChatAdapter(AndroidDevice device) {
 		super(device);
 	}
 
-
 	/**
-	 * 获取可点击的点
-	 *
-	 * @return 返回坐标集合
-	 * @throws Exception 抛出AndroidException
+	 * 截图 并获取可点击的文本区域信息
+	 * @return
+	 * @throws IOException
 	 */
-	private List<WordsPoint> obtainClickPoints() throws Exception {
+	public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles() throws IOException, InterruptedException, WeChatAdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException {
 
-		String filePrefix = UUID.randomUUID().toString();
+		// A 获取截图
+		String screenShotPath = this.device.screenShot();
 
-		String fileName = filePrefix + ".png";
+		// B 获取可点击文本区域
+		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(screenShotPath, true);
 
-		String path = System.getProperty("user.dir") + "/screen/";
+		// C 删除图片文件
+		FileUtil.deleteFile(screenShotPath);
 
-		logger.info("截图文件路径为: {}", path + fileName);
+		// D 根据返回的文本信息 进行异常判断
+		for(OCRParser.TouchableTextArea area : textAreaList) {
 
-		screenshot(device.driver);
-		// 图像分析   截图完成之后需要去掉头部的截图信息  头部包括一些数据
-		return analysisImage(path + fileName);
+			if(area.content.contains("微信没有响应")) throw new WeChatAdapterException.NoResponseException();
+
+			if(area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
+
+				if(status == Status.PublicAccount_Search_Result) {
+					throw new WeChatAdapterException.SearchPublicAccountFrozenException(account);
+				}
+				else if(status == Status.PublicAccount_Essay_List_Top) {
+					throw new WeChatAdapterException.GetPublicAccountEssayListFrozenException(account);
+				}
+			}
+		}
+
+		return textAreaList;
 	}
+
 
 	/**
 	 * 分析图像  得到{标题区域}中{发布时间}的做坐标集合
@@ -96,13 +125,15 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @param filePath 文件路径
 	 * @return 返回坐标集合
 	 */
-	private List<WordsPoint> analysisImage(String filePath) throws Exception {
+	private List<WordsPoint> analysisImage(String filePath) throws IOException, InterruptedException {
 
 //		JSONObject origin = TesseractOCRParser.imageOcr(filePath, true);
 
 		JSONObject origin = null;
 
-		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().imageOcr(filePath, true);
+		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(filePath, true);
+
+		//
 
 		// TODO 删除文件放到ocr adapter上做
 		try {
@@ -412,43 +443,11 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
-	/**
-	 * 截图
-	 *
-	 * @param driver d
-	 */
-	public static void screenshot(AndroidDriver driver) {
-		try {
-			File screenFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-
-			String imageFullName = SCREEN_PATH + UUID.randomUUID().toString() + ".png";
-
-			FileUtils.copyFile(screenFile, new File(imageFullName));
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * 点击固定的位置
-	 *
-	 * @param xOffset   x
-	 * @param yOffset   y
-	 * @param sleepTime 睡眠时间
-	 * @throws InterruptedException e
-	 */
-	public static void clickPoint(int xOffset, int yOffset, int sleepTime, AndroidDriver driver) throws InterruptedException {
-		new TouchAction(driver).tap(PointOption.point(xOffset, yOffset)).perform();
-		if (sleepTime > 0) {
-			Thread.sleep(sleepTime);
-		}
-	}
-
-
 	@Deprecated
 	public void unsubscribeMedia(String mediaName) {
+
 		try {
+
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 
 			Thread.sleep(1000);
@@ -464,11 +463,11 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			// 搜索
 			device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
-			clickPoint(720, 150, 1000, device.driver);
-			clickPoint(1350, 2250, 1000, device.driver);
+			device.touch(720, 150, 1000);
+			device.touch(1350, 2250, 1000);
 
 			// 进入公众号
-			clickPoint(720, 360, 1000, device.driver);
+			device.touch(720, 360, 1000);
 
 			device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
 
@@ -523,13 +522,14 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		Thread.sleep(3000);
 
 		// C3 点击软键盘的搜索键
-		clickPoint(1350, 2250, 6000, device.driver); //TODO
+		device.touch(1350, 2250, 6000); //TODO
 
 		// 点击第一个位置
-		clickPoint(320, 406, 2000, device.driver);
+		device.touch(320, 406, 2000);
 
 		// 点击订阅
 		try {
+
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
 			Thread.sleep(4000);
 			saveSubscribeRecord(mediaName, topic);
@@ -579,8 +579,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			Thread.sleep(6000);
 
-//			Stream
-
+			// Stream
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
 
 		} catch (Exception e) {
@@ -602,12 +601,12 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		// 搜索
 		device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
 
-		clickPoint(720, 150, 1000, device.driver);
+		device.touch(720, 150, 1000);
 
-		clickPoint(1350, 2250, 1000, device.driver);
+		device.touch(1350, 2250, 1000);
 		try {
 			// 进入公众号
-			clickPoint(720, 360, 1000, device.driver);
+			device.touch(720, 360, 1000);
 
 			device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
 
@@ -633,26 +632,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			e.printStackTrace();
 			return false;
 		}
-	}
-
-	/**
-	 * 下滑到指定位置
-	 *
-	 * @param startX    start x point
-	 * @param startY    start y point
-	 * @param endX      end x point
-	 * @param endY      end y point
-	 * @param driver    AndroidDriver
-	 * @param sleepTime thread sleep time by mill
-	 * @throws InterruptedException e
-	 */
-	private static void slideToPoint(int startX, int startY, int endX, int endY, AndroidDriver driver, int sleepTime) throws InterruptedException {
-		new TouchAction(driver).press(PointOption.point(startX, startY))
-				.waitAction()
-				.moveTo(PointOption.point(endX, endY))
-				.release()
-				.perform();
-		Thread.sleep(sleepTime);
 	}
 
 
@@ -866,138 +845,4 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 		}
 	}
-
-
-	/**
-	 *
-	 */
-	public void reliableTouch(int x, int y, long sleep, int retry) throws Exception {
-
-		// 0 判断retry是否超限
-
-		// A 截图1
-
-		// B1 进行touch 操作
-
-		// B2 休眠 sleep
-
-		// C1 截图2
-
-		// C2 比较 两个截图相似性
-
-		// C2 如果相似 递归调用
-
-	}
-
-	abstract void start();
-
-	abstract void stop();
-
-	/**
-	 * 启动设备
-	 */
-	public void startupDevice() {
-		Optional.of(this.device).ifPresent(t -> {
-			t.startProxy(t.localProxyPort);
-			t.setupRemoteWifiProxy();
-			logger.info("Starting....Please wait!");
-			try {
-
-				RequestFilter requestFilter = (request, contents, messageInfo) -> null;
-
-				Stack<String> content_stack = new Stack<>();
-				Stack<String> stats_stack = new Stack<>();
-				Stack<String> comments_stack = new Stack<>();
-
-				ResponseFilter responseFilter = (response, contents, messageInfo) -> {
-
-					String url = messageInfo.getOriginalUrl();
-
-					if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
-
-						// 正文
-						if (url.contains("https://mp.weixin.qq.com/s")) {
-							t.setTouchResponse(true);
-							System.err.println(" : " + url);
-							content_stack.push(contents.getTextContents());
-						}
-						// 统计信息
-						else if (url.contains("getappmsgext")) {
-							t.setTouchResponse(true);
-							System.err.println(" :: " + url);
-							stats_stack.push(contents.getTextContents());
-						}
-						// 评论信息
-						else if (url.contains("appmsg_comment?action=getcomment")) {
-							t.setTouchResponse(true);
-							System.err.println(" ::: " + url);
-							comments_stack.push(contents.getTextContents());
-						}
-
-						if (content_stack.size() > 0) {
-							t.setTouchResponse(true);
-							String content_src = content_stack.pop();
-							Essays essay = null;
-							try {
-								if (stats_stack.size() > 0) {
-									String stats_src = stats_stack.pop();
-									essay = new Essays().parseContent(content_src).parseStat(stats_src);
-								} else {
-									essay = new Essays().parseContent(content_src);
-									essay.view_count = 0;
-									essay.like_count = 0;
-								}
-							} catch (Exception e) {
-								logger.error("文章解析失败！", e);
-							}
-
-							assert essay != null;
-
-							essay.insert_time = new Date();
-							essay.update_time = new Date();
-							essay.media_content = essay.media_nick;
-							essay.platform = "WX";
-							essay.media_id = MD5Util.MD5Encode(essay.platform + "-" + essay.media_nick, "UTF-8");
-							essay.platform_id = 1;
-							essay.fav_count = 0;
-							essay.forward_count = 0;
-							essay.images = new JSONArray(essay.parseImages(essay.content)).toString();
-							essay.id = MD5Util.MD5Encode(essay.platform + "-" + essay.media_nick + "-" + essay.title, "UTF-8");
-
-							try {
-								essay.insert();
-							} catch (Exception e2) {
-								e2.printStackTrace();
-								logger.info("文章插入失败！");
-							}
-							if (comments_stack.size() > 0) {
-								String comments_src = comments_stack.pop();
-								List<Comments> comments_ = null;
-								try {
-									comments_ = Comments.parseComments(essay.src_id, comments_src);
-								} catch (ParseException e) {
-									logger.error("----------------------");
-								}
-								comments_.stream().forEach(c -> {
-									try {
-										c.insert();
-									} catch (Exception e) {
-										logger.error("----------------评论插入失败！重复key----------------");
-									}
-								});
-							}
-						}
-					}
-				};
-				t.setProxyRequestFilter(requestFilter);
-				t.setProxyResponseFilter(responseFilter);
-				// 启动device
-				t.startAsync();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
-	}
-
-
 }

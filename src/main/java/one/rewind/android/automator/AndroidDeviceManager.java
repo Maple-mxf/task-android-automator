@@ -373,7 +373,7 @@ public class AndroidDeviceManager {
 
 			for (AndroidDevice device : manager.devices) {
 				WeChatAdapter adapter = new WeChatAdapter(device);
-				adapter.startupDevice();
+				adapter.setupDevice();
 				manager.idleAdapters.add(adapter);
 			}
 

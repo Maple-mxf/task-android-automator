@@ -3,7 +3,7 @@ package one.rewind.android.automator.test.util;
 import com.google.common.collect.Sets;
 import one.rewind.android.automator.ocr.BaiDuOCRParser;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.BaiduTokens;
+import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.android.automator.util.*;
 import one.rewind.android.automator.util.DeviceUtil;
 import org.json.JSONObject;
@@ -46,7 +46,7 @@ public class UtilTest {
 
     @Test
     public void testObtainToken() throws Exception {
-        BaiduTokens token = BaiduAPIUtil.obtainToken();
+        BaiduToken token = BaiduAPIUtil.obtainToken();
         System.out.println(token.app_k);
         System.out.println(token.app_s);
     }
@@ -54,7 +54,7 @@ public class UtilTest {
     @Test
     public void testMultiRunnableObtainToken() throws IOException {
         Thread r1 = new Thread(() -> {
-            BaiduTokens baiduTokens = null;
+            BaiduToken baiduTokens = null;
             try {
                 baiduTokens = BaiduAPIUtil.obtainToken();
             } catch (Exception e) {
@@ -65,7 +65,7 @@ public class UtilTest {
         r1.start();
 
         Thread r2 = new Thread(() -> {
-            BaiduTokens baiduTokens = null;
+            BaiduToken baiduTokens = null;
             try {
                 baiduTokens = BaiduAPIUtil.obtainToken();
             } catch (Exception e) {

@@ -1,6 +1,6 @@
 package one.rewind.android.automator.ocr;
 
-import one.rewind.android.automator.model.BaiduTokens;
+import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.android.automator.util.*;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
@@ -45,7 +45,7 @@ public class BaiDuOCRParser implements OCRParser {
 		byte[] imgData = FileUtil.readFileByBytes(filePath);
 		String imgStr = Base64Util.encode(imgData);
 		String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
-		BaiduTokens token = BaiduAPIUtil.obtainToken();
+		BaiduToken token = BaiduAPIUtil.obtainToken();
 		String accessToken = BaiduAPIUtil.getAuth(token.app_k, token.app_s);
 		String rs = HttpUtil.post(otherHost, accessToken, params);
 		return new JSONObject(rs);
@@ -159,8 +159,8 @@ public class BaiDuOCRParser implements OCRParser {
 			@Override
 			public void run() {
 				try {
-					List<BaiduTokens> tokens = Tab.tokenDao.queryForAll();
-					for (BaiduTokens v : tokens) {
+					List<BaiduToken> tokens = Tab.tokenDao.queryForAll();
+					for (BaiduToken v : tokens) {
 						if (!DateUtils.isSameDay(v.update_time, new Date())) {
 							v.count = 0;
 							v.update_time = new Date();

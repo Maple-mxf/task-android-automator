@@ -1,7 +1,7 @@
 package one.rewind.android.automator.util;
 
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.BaiduTokens;
+import one.rewind.android.automator.model.BaiduToken;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -57,9 +57,9 @@ public class BaiduAPIUtil {
 	}
 
 
-	public static BaiduTokens obtainToken() throws InvokingBaiduAPIException {
+	public static BaiduToken obtainToken() throws InvokingBaiduAPIException {
 		synchronized (BaiduAPIUtil.class) {
-			BaiduTokens result = null;
+			BaiduToken result = null;
 			try {
 				result = Tab.tokenDao.
 						queryBuilder().

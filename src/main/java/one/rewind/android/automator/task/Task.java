@@ -1,6 +1,8 @@
 package one.rewind.android.automator.task;
 
 import one.rewind.android.automator.adapter.Adapter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.Callable;
 
@@ -10,6 +12,8 @@ import java.util.concurrent.Callable;
  */
 public abstract class Task<A extends Adapter> implements Callable<Boolean> {
 
+	static final Logger logger = LogManager.getLogger(Task.class.getName());
+
 	public A adapter;
 
 	// Flag 在call()和调用方法中，显式调用，判断任务是否继续执行
@@ -17,8 +21,6 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
 
 
 	// 任务的生命周期
-
-
 	public abstract Boolean call() throws Exception;
 
 }

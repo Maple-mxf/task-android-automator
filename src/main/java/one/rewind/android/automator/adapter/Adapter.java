@@ -14,13 +14,12 @@ public abstract class Adapter {
 
 	static final Logger logger = LogManager.getLogger(Adapter.class.getName());
 
-	AndroidDevice device;
-	String udid;
+	public AndroidDevice device;
+
 	public AppInfo appInfo;
 
 	public Adapter(AndroidDevice device) {
 		this.device = device;
-		this.udid = device.udid;
 	}
 
 	public AndroidDevice getDevice() {
@@ -40,6 +39,10 @@ public abstract class Adapter {
 
 		// C 启动App
 		device.startActivity(appInfo);
+	}
+
+	public void restartApp() {
+
 	}
 
 	/**
