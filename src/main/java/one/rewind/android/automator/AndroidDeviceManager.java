@@ -23,6 +23,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -55,6 +56,10 @@ public class AndroidDeviceManager {
 	public ConcurrentHashMap<String, List<AndroidDevice>> adapterAndroidDeviceMap = new ConcurrentHashMap<>();
 
 
+	// 所有设备的任务
+	public ConcurrentHashMap<AndroidDevice, Queue<String>> task = new ConcurrentHashMap<>();
+
+
 	/**
 	 * 所有设备的信息
 	 */
@@ -77,7 +82,8 @@ public class AndroidDeviceManager {
 	/**
 	 *
 	 */
-	private AndroidDeviceManager() {}
+	private AndroidDeviceManager() {
+	}
 
 	/**
 	 * 初始化设备

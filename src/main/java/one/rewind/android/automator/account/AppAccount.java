@@ -4,15 +4,10 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.db.DBName;
 import one.rewind.db.DaoManager;
 import one.rewind.db.model.ModelL;
-import scala.App;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author maxuefeng [m17793873123@163.com]

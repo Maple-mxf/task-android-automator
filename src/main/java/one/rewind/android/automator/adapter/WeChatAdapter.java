@@ -226,7 +226,6 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 		});
 	}
 
-	@Override
 	@Deprecated
 	public void stop() {
 		// 启动关闭线程池
@@ -236,13 +235,6 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 		}
 	}
 
-	/**
-	 * A 根据当前Adapter获取适宜的Task
-	 * B 获取对应的Device
-	 */
-	public void run() {
-
-	}
 
 	/**
 	 * 切换微信账号;  切换微信账号的前提是当前账号不能使用等等或者其他的一些问题

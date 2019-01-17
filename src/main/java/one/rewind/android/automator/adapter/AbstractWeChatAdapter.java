@@ -1,12 +1,6 @@
 package one.rewind.android.automator.adapter;
 
-import com.google.common.collect.Sets;
-import io.appium.java_client.TouchAction;
-import io.appium.java_client.android.AndroidDriver;
-import io.appium.java_client.touch.offset.PointOption;
 import joptsimple.internal.Strings;
-import net.lightbody.bmp.filters.RequestFilter;
-import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.exception.*;
@@ -14,32 +8,17 @@ import one.rewind.android.automator.model.*;
 import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.android.automator.ocr.TesseractOCRParser;
 import one.rewind.android.automator.util.*;
-import one.rewind.data.raw.model.Comment;
-import one.rewind.data.raw.model.Essay;
 import one.rewind.db.RedissonAdapter;
-import one.rewind.txt.DateFormatUtil;
-import one.rewind.txt.NumberFormatUtil;
-import one.rewind.txt.StringUtil;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RedissonClient;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.text.ParseException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static one.rewind.android.automator.AndroidDevice.SCREEN_PATH;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
@@ -75,7 +54,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	public AppAccount account;
 
 	/**
-	 *
 	 * @param device
 	 */
 	AbstractWeChatAdapter(AndroidDevice device) {
@@ -84,6 +62,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	/**
 	 * 截图 并获取可点击的文本区域信息
+	 *
 	 * @return
 	 * @throws IOException
 	 */
@@ -99,21 +78,19 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		FileUtil.deleteFile(screenShotPath);
 
 		// D 根据返回的文本信息 进行异常判断
-		for(OCRParser.TouchableTextArea area : textAreaList) {
+		for (OCRParser.TouchableTextArea area : textAreaList) {
 
-			if(area.content.contains("微信没有响应")) throw new WeChatAdapterException.NoResponseException();
+			if (area.content.contains("微信没有响应")) throw new WeChatAdapterException.NoResponseException();
 
-			if(area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
+			if (area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
 
-				if(status == Status.PublicAccount_Search_Result) {
+				if (status == Status.PublicAccount_Search_Result) {
 					throw new WeChatAdapterException.SearchPublicAccountFrozenException(account);
-				}
-				else if(status == Status.PublicAccount_Essay_List_Top) {
+				} else if (status == Status.PublicAccount_Essay_List_Top) {
 					throw new WeChatAdapterException.GetPublicAccountEssayListFrozenException(account);
 				}
 			}
 		}
-
 		return textAreaList;
 	}
 
@@ -443,7 +420,11 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 	}
 
-	@Deprecated
+	/**
+	 * 取消订阅公众号方法
+	 *
+	 * @param mediaName
+	 */
 	public void unsubscribeMedia(String mediaName) {
 
 		try {
@@ -612,11 +593,11 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 			Thread.sleep(1000);
 
-			slideToPoint(720, 1196, 720, 170, device.driver, 1000);
+			device.slideToPoint(720, 1196, 720, 170, 1000);
 
 			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
 
-			Thread.sleep(12000); // TODO 此处时间需要调整
+			Thread.sleep(12000);
 			return true;
 		} catch (Exception e) {
 			try {
