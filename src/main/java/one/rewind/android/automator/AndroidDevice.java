@@ -821,4 +821,11 @@ public class AndroidDevice extends ModelL {
 				.perform();
 		Thread.sleep(sleepTime);
 	}
+
+	/**
+	 * 点击安卓原生的导航栏返回按钮
+	 */
+	public void goBack() {
+		driver.navigate().back();
+	}
 }

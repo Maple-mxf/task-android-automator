@@ -39,9 +39,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		Subscribe_PublicAccount_Search,        // 我订阅的公众号列表搜索
 		Subscribe_PublicAccount_Search_Result, // 我订阅的公众号列表搜索结果
 		PublicAccount_Conversation,            // 公众号回话列表
-		PublicAccount_Essay_List_Top,            // 公众号历史文章列表 头部
-		PublicAccount_Essay_List_Middle,        // 公众号历史文章列表 中间部分
-		PublicAccount_Essay_List_Bottom,        // 公众号历史文章列表 底部
+		PublicAccount_Essay_List,            // 公众号历史文章列表
 		PublicAccountEssay,                    // 公众号文章
 		Error                                // 出错
 	}
@@ -92,6 +90,72 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 		}
 		return textAreaList;
 	}
+
+	public void reset() {
+
+	}
+
+	/**
+	 * 点击左上角的返回按钮
+	 */
+	public void returnPreiousPage() {
+
+	}
+
+	public void goToSubscribePublicAccountList() {
+
+		// 从首页点 通讯录
+
+		// 点 公众号
+
+	}
+
+	public void goToPublicAccountHome(String mediaName) {
+
+		// 点搜索
+
+		// 输入名称
+
+		// 点确认
+
+		// 点第一个结果
+
+		// 点右上角的人头图标
+
+	}
+
+	public void goToPublicAccontMoreInfoPage() {
+
+		// 点右上三个点图标
+
+		// 点更多资料
+	}
+
+	/**
+	 * 订阅公众号
+	 */
+	public void subscribePublicAccount() {
+
+	}
+
+	/**
+	 * 取消订阅
+	 */
+	public void unsubscribePublicAccount() {
+
+	}
+
+	/**
+	 *
+	 */
+	public void gotoPublicAccountEssayList() {
+
+		// 向下滑动
+
+		// 点击全部消息
+
+	}
+
 
 
 	/**
@@ -375,32 +439,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 	}
 
-	/**
-	 * save subscribe record
-	 *
-	 * @param mediaName media
-	 * @param topic     redis topic
-	 */
-	private void saveSubscribeRecord(String mediaName, String topic) {
-		try {
-			long tempCount = Tab.subscribeDao.queryBuilder().where()
-					.eq("media_name", mediaName)
-					.countOf();
-			if (tempCount == 0) {
-				SubscribeMedia e = new SubscribeMedia();
-				e.udid = device.udid;
-				e.media_name = mediaName;
-				e.number = 100;
-				e.retry_count = 0;
-				e.status = SubscribeMedia.State.NOT_FINISH.status;
-				e.request_id = topic;
-				e.relative = 1;
-				e.insert();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+
 
 	/**
 	 * @param mediaName media
