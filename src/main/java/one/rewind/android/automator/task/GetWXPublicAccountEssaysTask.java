@@ -3,7 +3,6 @@ package one.rewind.android.automator.task;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
-import one.rewind.android.automator.util.MD5Util;
 import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;
@@ -13,8 +12,6 @@ import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.txt.StringUtil;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.json.JSONArray;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -31,6 +28,7 @@ import java.util.stream.Collectors;
  */
 public class GetWXPublicAccountEssaysTask extends Task {
 
+	// 任务对应的Adapter
 	public WeChatAdapter adapter;
 
 	// 采集的公众号
@@ -70,9 +68,6 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	public Boolean call() throws Exception {
 
 		setupFilters();
-
-
-
 
 		removeFilters();
 
@@ -125,11 +120,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 					Essay essay = null;
 
-					try {
-						essay = parseContent(content_src, f_id);
-					} catch (ParseException e) {
-						logger.error("Error parse content", e);
-					}
+					essay = parseContent(content_src, f_id);
 
 					try {
 						// TODO source 内容无法更新
@@ -148,13 +139,13 @@ public class GetWXPublicAccountEssaysTask extends Task {
 							essay = parseStat(essay, stats_src);
 						}
 					} catch (Exception e) {
-						logger.error("文章解析失败！", e);
+						logger.error("Error parse essay:{},", e);
 					}
 
 					try {
 						essay.insert();
 					} catch (Exception e) {
-						logger.info("文章插入失败！", e);
+						logger.info("Error insert essay:{},", e);
 					}
 
 					// 对评论的处理
@@ -167,14 +158,14 @@ public class GetWXPublicAccountEssaysTask extends Task {
 						try {
 							comments = parseComments(Comment.FType.Essay, essay.id, essay.src_id, comments_src);
 						} catch (ParseException e) {
-							logger.error("----------------------", e);
+							logger.error("Error parse comments:{},", e);
 						}
 
 						comments.stream().forEach(c -> {
 							try {
 								c.insert();
 							} catch (Exception e) {
-								logger.error("----------------评论插入失败！重复key----------------", e);
+								logger.error("Error insert comments:{}", e);
 							}
 						});
 					}
@@ -191,20 +182,20 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	 */
 	public void removeFilters() {
 
-		adapter.device.setProxyRequestFilter((request, contents, messageInfo) -> {
-			return null;
-		});
+		adapter.device.setProxyRequestFilter((request, contents, messageInfo) -> null);
 
-		adapter.device.setProxyResponseFilter((response, contents, messageInfo) -> {});
+		adapter.device.setProxyResponseFilter((response, contents, messageInfo) -> {
+		});
 	}
 
 	/**
 	 * 解析文章主题内容
+	 *
 	 * @param source
 	 * @return
 	 * @throws ParseException
 	 */
-	public Essay parseContent(String source, String f_id) throws ParseException {
+	public Essay parseContent(String source, String f_id) {
 
 		String title = null;
 		String media_nick = null;
@@ -214,32 +205,32 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		// 标题 必须
 		Pattern pattern = Pattern.compile("(?si)<h2.*?</h2>|<title>.*?</title>");
 		Matcher matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			title = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
 		}
 
 		// 公号昵称 必须
 		pattern = Pattern.compile("(?si)<strong class=\"profile_nickname\">.+?</strong>|<div class=\"account_nickname\">.+?</div>");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			media_nick = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
 		}
 
 		// 原始文章id 必须
 		pattern = Pattern.compile("(?si)(?<=mid = \").+?(?=\";)");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			src_id = matcher.group().replaceAll("\"| |\\|", "");
 		}
 
 		// 原始媒体 id
 		pattern = Pattern.compile("(?si)(?<=user_name = \").+?(?=\";)");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			media_src_id = matcher.group().replaceAll("\"| |\\|", "");
 		}
 
-		if(title == null || media_nick == null) {
+		if (title == null || media_nick == null) {
 			return null;
 		}
 
@@ -258,7 +249,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		// 元信息
 		pattern = Pattern.compile("(?si)<div id=\"meta_content\" class=\"rich_media_meta_list\">.*?<div id=\"js_profile_qrcode\" class=\"profile_container\" style=\"display:none;\">");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			essay.meta_content = matcher.group()
 					.replaceAll("<.+?>| +|\r\n|\n", " ")
 					.replaceAll(" +", " ")
@@ -271,7 +262,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		// 如果是转发文章，或随手贴个图，就没有这个name
 		pattern = Pattern.compile("(?si)<span class=\"profile_meta_value\">.*?</span>");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			essay.media_name = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
 		}
 
@@ -284,7 +275,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		// 日期
 		pattern = Pattern.compile("(?si)(?<=createDate=new Date\\(\").+?(?=\")");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			essay.pubdate = DateFormatUtil.parseTime(matcher.group());
 		}
 
@@ -294,7 +285,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		// 内容
 		pattern = Pattern.compile("(?si)(?<=<div class=\"rich_media_content \" id=\"js_content\">).+?(?=</div>)");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			String content = StringUtil.purgeHTML(matcher.group());
 
 			List<String> imgs = new ArrayList<>();
@@ -311,15 +302,14 @@ public class GetWXPublicAccountEssaysTask extends Task {
 			// 下载图片 保存图片
 			List<String> imgs_ = new ArrayList<>();
 
-			for(String img_url : imgs) {
+			for (String img_url : imgs) {
 
 				String img_source_id = StringUtil.MD5(img_url);
 
 				try {
 					// 生成下载图片的任务
 					BasicDistributor.getInstance("download").submit(Source.getDTH(img_url));
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					logger.error("Error download {}", img_url, e);
 				}
 
@@ -336,6 +326,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 	/**
 	 * 解析阅读数和点赞量
+	 *
 	 * @param essay
 	 * @param source
 	 * @return
@@ -344,13 +335,13 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 		Pattern pattern = Pattern.compile("(?si)(?<=\"read_num\":)\\d+");
 		Matcher matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			essay.view_count = NumberFormatUtil.parseInt(matcher.group());
 		}
 
 		pattern = Pattern.compile("(?si)(?<=\"like_num\":)\\d+");
 		matcher = pattern.matcher(source);
-		if(matcher.find()) {
+		if (matcher.find()) {
 			essay.like_count = NumberFormatUtil.parseInt(matcher.group());
 		}
 
@@ -358,7 +349,6 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	}
 
 	/**
-	 *
 	 * @param mid
 	 * @param source
 	 * @return
@@ -371,6 +361,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		source = source.replaceAll("^.+?\"elected_comment\":", "");
 
 		Pattern pattern = Pattern.compile("\\{.+?\"nick_name\":\"(?<nickname>.+?)\",\"logo_url\":\"(?<logourl>.+?)\",\"content\":\"(?<content>.+?)\",\"create_time\":(?<pubdate>.+?),\"content_id\":\"(?<contentid>.+?)\".+?\"like_num\":(?<likecount>.+?),.+?\\}");
+
 		Matcher matcher = pattern.matcher(source);
 
 		while (matcher.find()) {
@@ -395,6 +386,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 	/**
 	 * ID 生成
+	 *
 	 * @param media_nick
 	 * @param title
 	 * @param src_id
@@ -403,4 +395,13 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	public static String genId(String media_nick, String title, String src_id) {
 		return StringUtil.MD5(WXPublicAccountSubscribeTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
 	}
+
+
+	/*************************
+	 * Task模块调用Adapter模块去执行任务
+	 *
+	 * 1：任务执行
+	 * 2：任务失败重试
+	 * 3：
+	 *************************/
 }

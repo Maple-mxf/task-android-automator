@@ -1,6 +1,5 @@
 package one.rewind.android.automator.adapter;
 
-import joptsimple.internal.Strings;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.exception.*;
@@ -96,165 +95,6 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 
 
 	/**
-	 * 分析图像  得到{标题区域}中{发布时间}的做坐标集合
-	 * 原因是 部分情况下，点击标题微信没响应，点击发布时间稳定性更高
-	 *
-	 * @param filePath 文件路径
-	 * @return 返回坐标集合
-	 */
-	private List<WordsPoint> analysisImage(String filePath) throws IOException, InterruptedException {
-
-//		JSONObject origin = TesseractOCRParser.imageOcr(filePath, true);
-
-		JSONObject origin = null;
-
-		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(filePath, true);
-
-		//
-
-		// TODO 删除文件放到ocr adapter上做
-		try {
-			// 删除图片文件
-			/*FileUtil.deleteFile(filePath);*/
-
-			// 删除html文件
-			FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
-
-		} catch (Exception e) {
-			logger.error("Error delete image file, ", e);
-		}
-
-		return analysisWordsPoint(origin.getJSONArray("words_result"));
-	}
-
-	/**
-	 * {"words":"My Bastis三种批量插入方式的性能","location":{"top":1305,"left":42,"width":932,"height":78}}
-	 *
-	 * @param array 图像识别出来的结果
-	 * @return 分析得出的坐标位置
-	 */
-	private List<WordsPoint> analysisWordsPoint(JSONArray array) throws AndroidCollapseException {
-
-		int count = 0;
-
-		JSONArray tmpArray = array;
-
-		List<WordsPoint> wordsPoints = new ArrayList<>();
-
-		// 计算坐标  文章的标题最多有两行  标题过长微信会使用省略号代替掉
-		for (int i = 0; i < array.length(); i++) {
-
-			JSONObject outJSON = (JSONObject) array.get(i);
-
-			JSONObject inJSON = outJSON.getJSONObject("location");
-
-			String words = outJSON.getString("words");
-
-			// 置换为空的提高效率操作
-			if (Strings.isNullOrEmpty(words)) continue;
-
-			if (currentTitles.contains(words)) {
-
-				boolean flag = true;
-
-				int k = i + 1;
-
-				while (flag) {
-
-					if (k > array.length() - 1) break;
-
-					// 如果存在重复记录   删除下一条坐标信息
-					// JSONArray由于逻辑问题不能删除任何元素  将words可以替换
-					JSONObject tmpJSON = (JSONObject) array.get(k);
-
-					String tmpWords1 = tmpJSON.getString("words");
-
-					if (tmpWords1.contains("年") && tmpWords1.contains("月") && (tmpWords1.contains("曰") || tmpWords1.contains("日"))) {
-						count++;
-						flag = false;
-					}
-					// 将内容置换为空字符串  防止在统计坐标时出现重复
-					tmpJSON.put("words", "");
-
-					array.put(k, tmpJSON);
-
-					k++;
-				}
-				continue;
-			}
-
-			if (words.contains("微信没有响应")) throw new AndroidCollapseException("微信没有响应！");
-
-			if (words.contains("操作频繁") || words.contains("请稍后再试")) throw new WeChatRateLimitException("微信接口被限流了!");
-
-			int left = inJSON.getInt("left");
-			int top = inJSON.getInt("top");
-
-			// TODO  判断当前的索引是数组中的最后一个2185,
-			if ((words.contains("已无更") || words.contains("己无更")) && top >= 2000) {
-
-				logger.info("==============翻到最后一页=============");
-
-				lastPage.set(Boolean.TRUE);
-
-				return wordsPoints;
-			}
-
-
-			//确保时间标签的位置   有可能有年月日字符串的在文章标题中   为了防止这种情况   left<=80
-
-			if (words.contains("年") && words.contains("月") && left <= 80 && (words.contains("曰") || words.contains("日"))) {
-
-				count++;
-
-
-				int width = inJSON.getInt("width");
-
-				int height = inJSON.getInt("height");
-
-				wordsPoints.add(new WordsPoint((top), left, width, height, words));
-
-				if (wordsPoints.size() >= 6) return wordsPoints;
-			}
-		}
-
-		// TODO 统计到最后一页
-
-		previousTitles(tmpArray);
-
-		logger.info("count :  {}", count);
-
-		logger.info("wordsPoints size: " + wordsPoints.size());  // wordsPoints的size位0的时候,直接向下翻一页
-
-		// TODO 抛出异常固然不能提高运行效率 但是可以解决问题  更好的解决方案是判断当前页面在那个位置  根据不同的位置进行不同的调整 可以大大提高采集效率
-		if (count < 1) throw new AndroidCollapseException("未知异常!没有检测到任务文章数据!");
-
-		return wordsPoints;
-	}
-
-
-	/**
-	 * 记录上一次的图像识别的结果
-	 *
-	 * @param array 当前的文章标题
-	 */
-	private void previousTitles(JSONArray array) {
-
-		for (int i = 0; i < array.length(); i++) {
-
-			JSONObject tmpJSON = (JSONObject) array.get(i);
-
-			String words = tmpJSON.getString("words");
-
-			if (!words.contains("年") && !words.contains("月") && !(words.contains("曰") || words.contains("日"))) {
-				if (i != array.length() - 1) {
-					currentTitles.add(words);
-				}
-			}
-		}
-	}
-
-	/**
 	 * @param mediaName 公众号名称
 	 * @param retry     是否重试
 	 * @throws Exception e
@@ -322,6 +162,7 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 	 * @return true or false
 	 */
 	private boolean restore(String mediaName) {
+
 		try {
 
 			String filePrefix = UUID.randomUUID().toString();
@@ -416,6 +257,17 @@ public abstract class AbstractWeChatAdapter extends Adapter {
 			} else {
 				++neverClickCount;
 			}
+
+		}
+	}
+
+	/**
+	 * 打开文章
+	 *
+	 * @param textAreas
+	 */
+	public void openEssays(List<OCRParser.TouchableTextArea> textAreas) {
+		for (OCRParser.TouchableTextArea area : textAreas) {
 
 		}
 	}

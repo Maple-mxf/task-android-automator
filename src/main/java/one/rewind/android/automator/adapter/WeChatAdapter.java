@@ -36,7 +36,6 @@ public class WeChatAdapter extends AbstractWeChatAdapter {
 		this.appInfo = new AppInfo("com.tencent.mm", ".ui.LauncherUI");
 
 		// TODO 初始化账号信息
-
 	}
 
 	/**
