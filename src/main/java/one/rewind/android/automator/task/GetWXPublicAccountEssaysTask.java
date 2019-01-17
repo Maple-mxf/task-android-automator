@@ -3,6 +3,8 @@ package one.rewind.android.automator.task;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
+import one.rewind.android.automator.exception.WeChatAdapterException;
+import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;
@@ -13,6 +15,7 @@ import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.txt.StringUtil;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,8 +52,11 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	// 已经保存过的微信公众号文章
 	public List<EssayTitle> collectedEssays = new ArrayList<>();
 
+	// 最大尝试次数
+	public static final int MAX_ATTEMPTS = 5;
+
 	/**
-	 * 内部类 文章标题-发布时间
+	 * 文章标题-发布时间
 	 */
 	class EssayTitle {
 
@@ -64,6 +70,13 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 	}
 
+
+	/**
+	 * 任务执行
+	 *
+	 * @return
+	 * @throws Exception
+	 */
 	@Override
 	public Boolean call() throws Exception {
 
@@ -397,11 +410,63 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	}
 
 
-	/*************************
-	 * Task模块调用Adapter模块去执行任务
-	 *
-	 * 1：任务执行
-	 * 2：任务失败重试
-	 * 3：
-	 *************************/
+	/**
+	 * 具体任务执行
+	 */
+	public void execute() {
+
+		try {
+
+			// 0 重置微信
+			this.adapter.reset();
+
+			// A 进入已订阅公众号的列表页面
+			this.adapter.goToSubscribePublicAccountList();
+
+			// B 根据media name搜索到相关的公众号（已订阅的公众号）
+			this.adapter.goToPublicAccountHome(this.media.name);
+
+			// C 进入历史文章数据列表页
+			this.adapter.gotoPublicAccountEssayList();
+
+			// D 截图分析数据点击文章
+			while (true) {
+
+				// D1 截图分析文章坐标
+				List<OCRParser.TouchableTextArea> textAreas = this.adapter.getPublicAccountEssayListTitles();
+
+				for (OCRParser.TouchableTextArea area : textAreas) {
+
+					// D2 逐个文章去点击
+					this.adapter.goToEssayDetail(area);
+
+					// D3 如果点击无响应则不会返回
+
+					// D4 如果当前页是最后一页  则需要返回标记任务完成 执行钩子函数即可
+
+				}
+			}
+		} catch (WeChatAdapterException.IllegalException e1) {
+
+			logger.error("Error task execute failed [{}]", e1);
+
+		} catch (WeChatAdapterException.NoResponseException e2) {
+
+			logger.error("Error task execute failed [{}]", e2);
+		} catch (WeChatAdapterException.SearchPublicAccountFrozenException e3) {
+
+			logger.error("Error task execute failed [{}]", e3);
+		} catch (WeChatAdapterException.GetPublicAccountEssayListFrozenException e4) {
+
+			logger.error("Error task execute failed [{}]", e4);
+		} catch (IOException e5) {
+
+			logger.error("Error task execute failed [{}]", e5);
+		} catch (InterruptedException e6) {
+
+			logger.error("Error task execute failed [{}]", e6);
+		}
+	}
+
+
 }

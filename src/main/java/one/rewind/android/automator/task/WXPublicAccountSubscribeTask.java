@@ -7,21 +7,21 @@ import one.rewind.txt.StringUtil;
 
 /**
  * @author scisaga@gmail.com
- * @date 2019/1/14
  */
 public class WXPublicAccountSubscribeTask extends Task {
 
+	// 点击无响应重试上限
+	public static final int TOUCH_RETRY_COUNT = 5;
+
 	public static Platform platform;
 
-	// TODO 此处处理有问题
 	static {
 		try {
 			platform = new Platform("微信公众号平台", "WX");
 			platform.id = 1;
 			platform.insert();
-		}
-		catch (Exception e) {
-
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -47,7 +47,7 @@ public class WXPublicAccountSubscribeTask extends Task {
 					.countOf();
 			if (tempCount == 0) {
 				SubscribeMedia e = new SubscribeMedia();
-				e.udid = device.udid;
+				e.udid = adapter.device.udid;
 				e.media_name = mediaName;
 				e.number = 100;
 				e.retry_count = 0;

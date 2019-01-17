@@ -29,4 +29,9 @@ public class WeChatAdapterException extends Exception {
 			this.account = account;
 		}
 	}
+
+	public static class IllegalException extends Exception {
+
+
+	}
 }

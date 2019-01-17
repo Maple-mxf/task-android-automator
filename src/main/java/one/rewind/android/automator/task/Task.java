@@ -1,6 +1,7 @@
 package one.rewind.android.automator.task;
 
 import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.db.model.ModelL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,7 +13,7 @@ import java.util.concurrent.Callable;
  * @author scisaga@gmail.com
  * @date 2019/1/14
  */
-public abstract class Task<A extends Adapter> implements Callable<Boolean> {
+public abstract class Task<A extends Adapter> extends ModelL implements Callable<Boolean> {
 
 	static final Logger logger = LogManager.getLogger(Task.class.getName());
 

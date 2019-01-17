@@ -1,247 +1,249 @@
 package one.rewind.android.automator.adapter;
 
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.*;
-import okhttp3.internal.Util;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.account.AppAccount;
-import one.rewind.android.automator.callback.Callback;
-import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.model.TaskLog;
-import one.rewind.android.automator.util.DeviceUtil;
-import one.rewind.android.automator.util.DateUtil;
-import one.rewind.android.automator.util.Tab;
-import one.rewind.db.RedissonAdapter;
-import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
-import org.redisson.api.RTopic;
-import org.redisson.api.RedissonClient;
+import one.rewind.android.automator.exception.WeChatAdapterException;
+import one.rewind.android.automator.ocr.OCRParser;
+import one.rewind.android.automator.ocr.TesseractOCRParser;
+import one.rewind.android.automator.util.FileUtil;
+import org.openqa.selenium.By;
 
-import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-
+import java.io.IOException;
+import java.util.List;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
- * @see AndroidDevice
+ * Adapter对应是设备上的APP  任务执行应该放在Adapter层面上
  */
-public class WeChatAdapter extends AbstractWeChatAdapter {
+public class WeChatAdapter extends Adapter {
 
-	private static final RedissonClient client = RedissonAdapter.redisson;
 
-	public WeChatAdapter(AndroidDevice device) {
+
+	public static enum Status {
+		Init,            // 初始化
+		Home,            // 首页
+		Search,            // 首页点进去的搜索
+		PublicAccount_Search_Result,            // 公众号搜索结果
+		PublicAccount_Home,                    // 公众号首页
+		Address_List,                        // 通讯录
+		Subscribe_PublicAccount_List,            // 我订阅的公众号列表
+		Subscribe_PublicAccount_Search,        // 我订阅的公众号列表搜索
+		Subscribe_PublicAccount_Search_Result, // 我订阅的公众号列表搜索结果
+		PublicAccount_Conversation,            // 公众号回话列表
+		PublicAccount_Essay_List,            // 公众号历史文章列表
+		PublicAccountEssay,                    // 公众号文章
+		Error                                // 出错
+	}
+
+	// 状态信息
+	public Status status = Status.Init;
+
+	// 当前使用的账号
+	public AppAccount account;
+
+	/**
+	 * @param device
+	 */
+	WeChatAdapter(AndroidDevice device) {
 		super(device);
-		this.appInfo = new AppInfo("com.tencent.mm", ".ui.LauncherUI");
-
-		// TODO 初始化账号信息
 	}
 
 	/**
-	 * 账号列表  不能定义为static的 每个Adapter对应的device不同,而device上登录的账号也不会相同,device跟账号之间存在弱引用的关系
-	 * 对于微信来说,一个微信账号在一个手机上登录之后,第一次之后登录就不会再需要手机验证码了
-	 * key代表账号account,value代表密码password
-	 * 在初始化WeChatAdapter的时候初始化账号信息
+	 * 截图 并获取可点击的文本区域信息
+	 *
+	 * @return
+	 * @throws IOException
 	 */
-	private List<AppAccount> appAccounts = new ArrayList<>();
+	public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles() throws IOException, InterruptedException, WeChatAdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException {
 
-	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10, Util.threadFactory("thread-" + device.udid, false)));
+		// A 获取截图
+		String screenShotPath = this.device.screenShot();
 
-	class Task implements Callable<Boolean> {
+		// B 获取可点击文本区域
+		final List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(screenShotPath, true);
 
-		/**
-		 * @return isSuccess
-		 * @throws Exception ex
-		 */
-		@Override
-		public Boolean call() throws Exception {
+		// C 删除图片文件
+		FileUtil.deleteFile(screenShotPath);
 
-			execute(begin -> {
+		// D 根据返回的文本信息 进行异常判断
+		for (OCRParser.TouchableTextArea area : textAreaList) {
 
-				WeChatAdapter adapter = (WeChatAdapter) begin;
+			if (area.content.contains("微信没有响应")) throw new WeChatAdapterException.NoResponseException();
 
-				adapter.lastPage.set(Boolean.FALSE);
+			if (area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
 
-				adapter.currentTitles.clear();
-
-				// peek
-				String media = adapter.device.queue.peek();
-
-				if (StringUtils.isNotBlank(media) && (AndroidDevice.Task.Type.Fetch.equals(adapter.device.taskType) || AndroidDevice.Task.Type.Subscribe.equals(adapter.device.taskType))) {
-
-					adapter.taskLog = new TaskLog();
-
-					String topic = Tab.topic(media);
-
-					media = Tab.realMedia(media);
-
-					// 1代表订阅  2代表数据采集任务
-					adapter.taskLog.buildLog(null, media, topic, adapter.device.udid, adapter.device.taskType.equals(AndroidDevice.Task.Type.Subscribe) ? 1 : 2);
-				}
-			}, end -> {
-				try {
-					WeChatAdapter adapter = (WeChatAdapter) end;
-					// peek
-					String media = adapter.device.queue.peek();
-
-					if ((AndroidDevice.Task.Type.Fetch.equals(adapter.device.taskType) || AndroidDevice.Task.Type.Subscribe.equals(adapter.device.taskType)) && StringUtils.isNotBlank(media)) {
-
-						logger.info("当前任务 : {}执行完成", media);
-
-						callRedisAndChangeState(media);
-
-						DeviceUtil.restartWechat(device);
-
-						// 执行成功
-						adapter.taskLog.executeSuccess();
-					}
-				} catch (Exception e1) {
-					e1.printStackTrace();
-				}
-			});
-			return true;
-		}
-
-
-		// 执行任务
-		private void execute(Callback startCallback, Callback stopCallback) throws Exception {
-
-			startCallback.call(WeChatAdapter.this);
-
-			executeTask();
-
-			stopCallback.call(WeChatAdapter.this);
-		}
-
-
-		// execute task
-		private void executeTask() throws Exception {
-
-			if (device.taskType != null) {
-
-				if (device.taskType.equals(AndroidDevice.Task.Type.Fetch)) {
-
-					String media = device.queue.poll();
-
-					System.out.println("=-----------------------关键位置-----" + media);
-
-					SubscribeMedia var0 = Tab.subscribeDao.queryBuilder().where().eq("udid", device.udid).and().eq("media_name", media).queryForFirst();
-
-					Optional.ofNullable(var0).ifPresent(v -> {
-						while (!lastPage.get()) {
-							// 等于1说明非历史任务  retry代表是否重试
-							digestionCrawler(media, var0.relative == 1);
-						}
-					});
-				} else if (device.taskType.equals(AndroidDevice.Task.Type.Subscribe)) {
-					digestionSubscribe(device.queue.poll());
-				}
-			} else {
-				if (device.status != null) {
-
-					if (device.status.equals(AndroidDevice.Status.Operation_Too_Frequent)) {
-						// 需要计算啥时候到达明天   到达明天的时候需要重新分配任务
-						Date nextDay = DateUtil.buildDate();
-
-						Date thisDay = new Date();
-
-						long waitMills = Math.abs(nextDay.getTime() - thisDay.getTime());
-
-						Thread.sleep(waitMills + 1000 * 60 * 5);
-
-					} else if (device.status.equals(AndroidDevice.Status.Exceed_Subscribe_Limit)) {
-						// 当前设备订阅公众号数量到达上限
-						logger.info("当前设备{}订阅的公众号已经达到上限", udid);
-					}
+				if (status == Status.PublicAccount_Search_Result) {
+					throw new WeChatAdapterException.SearchPublicAccountFrozenException(account);
+				} else if (status == Status.PublicAccount_Essay_List) {
+					throw new WeChatAdapterException.GetPublicAccountEssayListFrozenException(account);
 				}
 			}
 		}
+		return textAreaList;
+	}
 
-		private void callRedisAndChangeState(String mediaName) throws Exception {
-			SubscribeMedia media = Tab.subscribeDao.
-					queryBuilder().
-					where().
-					eq("media_name", mediaName).
-					and().
-					eq("udid", udid).
-					queryForFirst();
+	/**
+	 * 返回微信首页
+	 */
+	public void reset() {
+
+		// 关闭Wechat
 
 
-			if (media != null) {
+		// 重新打开WeChat
 
-				if (!Strings.isNullOrEmpty(media.request_id) && media.request_id.contains(Tab.REQUEST_ID_SUFFIX)) {
-					doCallRedis(media);
-				}
+		this.status = Status.Home;
+	}
 
-				long countOf = Tab.essayDao.
-						queryBuilder().
-						where().
-						eq("media_nick", mediaName).
-						countOf();
-				media.number = (int) countOf;
-				media.status = (countOf == 0 ? SubscribeMedia.State.NOT_EXIST.status : SubscribeMedia.State.FINISH.status);
-				media.status = 1;
-				media.update_time = new Date();
-				media.retry_count = 5;
-				media.update();
-			}
-		}
-
-		// 利用redis的消息发布订阅实现消息通知
-		// publish subscribe
-		private void doCallRedis(SubscribeMedia media) {
-			String requestID = media.request_id;
-			// topic name :requestIDk
-			RTopic<Object> topic = client.getTopic(requestID);
-
-			long k = topic.publish(media.media_name);
-
-			logger.info("发布完毕！k: {}", k);
-		}
+	/**
+	 * 点击左上角的返回按钮
+	 */
+	public void returnPreiousPage() {
 
 	}
 
-	@Override
-	public void start() {
+	/**
+	 * 点击左上角的叉号
+	 */
+	public void touchCloseButton() {
 
-		ListenableFuture<Boolean> future = service.submit(new Task());
-
-		Futures.addCallback(future, new FutureCallback<Boolean>() {
-
-			@Override
-			public void onSuccess(@NullableDecl Boolean result) {
-				System.out.println("设备 " + WeChatAdapter.this.device.udid + "已完成任务;添加自己到AndroidDeviceManager容器中");
-				AndroidDeviceManager.getInstance().addIdleAdapter(WeChatAdapter.this);
-			}
-
-			@Override
-			public void onFailure(Throwable t) {
-				//任务失败
-				t.printStackTrace();
-
-				System.out.println("设备" + WeChatAdapter.this.device.udid + "执行任务失败了!");
-			}
-		});
 	}
 
-	@Deprecated
-	public void stop() {
-		// 启动关闭线程池
-		while (true) {
-			service.shutdownNow();
-			if (service.isShutdown()) return;
-		}
+	/**
+	 * 进入已订阅公众号的列表页面  改变Adapter  status
+	 */
+	public void goToSubscribePublicAccountList() throws InterruptedException, WeChatAdapterException.IllegalException {
+
+		if (this.status != Status.Home || this.status != Status.Address_List)
+			throw new WeChatAdapterException.IllegalException();
+
+		// 从首页点 通讯录
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'通讯录')]")).click();
+
+		Thread.sleep(1000);
+		// 点公众号
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+
+		this.status = Status.Subscribe_PublicAccount_List;
 	}
 
 
 	/**
-	 * 切换微信账号;  切换微信账号的前提是当前账号不能使用等等或者其他的一些问题
+	 * @param mediaName 根据media name搜索到相关的公众号（已订阅的公众号）
 	 */
-	public void switchAccount() {
+	public void goToPublicAccountHome(String mediaName) throws InterruptedException, WeChatAdapterException.IllegalException {
 
-		// A1 获取当前微信账号
+		if (this.status != Status.Home || this.status != Status.Address_List)
+			throw new WeChatAdapterException.IllegalException();
 
-		// A2
+		// 点搜索
+		device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
+
+		Thread.sleep(1000);
+
+		// 输入名称
+		device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
+
+		// 点确认
+		device.touch(720, 150, 1000);
+
+		// 点第一个结果
+		device.touch(1350, 2250, 1000);
+
+		// 点右上角的人头图标
+		device.touch(720, 360, 1000);
+
+		device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+
+		Thread.sleep(1000);
+
+		this.status = Status.PublicAccount_Home;
+	}
+
+	/**
+	 * 查看公众号更多资料
+	 */
+	public void goToPublicAccontMoreInfoPage() {
+
+		// 点右上三个点图标
+
+		// 点更多资料
+	}
+
+	/**
+	 * 订阅公众号
+	 */
+	public void subscribePublicAccount() throws InterruptedException, WeChatAdapterException.IllegalException {
+
+		if (this.status != Status.PublicAccount_Home) throw new WeChatAdapterException.IllegalException();
+
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+
+		Thread.sleep(1000);
+
+		this.status = Status.PublicAccount_Conversation;
+	}
+
+	/**
+	 * 取消订阅
+	 */
+	public void unsubscribePublicAccount() throws InterruptedException, WeChatAdapterException.IllegalException {
+
+		if (this.status != Status.PublicAccount_Home) throw new WeChatAdapterException.IllegalException();
+
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'取消关注')]")).click();
+
+		Thread.sleep(1000);
+
+		this.status = Status.Init;
+	}
+
+	/**
+	 * 公众号历史消息页面
+	 */
+	public void gotoPublicAccountEssayList() throws InterruptedException, WeChatAdapterException.IllegalException {
+
+		if (this.status != Status.PublicAccount_Home) throw new WeChatAdapterException.IllegalException();
+
+		// 向下滑动
+		device.slideToPoint(720, 1196, 720, 170, 1000);
+
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'全部消息')]")).click();
+
+		Thread.sleep(12000); // TODO 此处时间需要调整
+
+		this.status = Status.PublicAccount_Essay_List;
+	}
+
+
+	/**
+	 * 进入文章详情页面
+	 */
+	public void goToEssayDetail(OCRParser.TouchableTextArea textArea) throws InterruptedException, WeChatAdapterException.IllegalException {
+
+		if (this.status != Status.PublicAccount_Essay_List) throw new WeChatAdapterException.IllegalException();
+
+		// A 点击文章
+		device.touch(textArea.left, textArea.height, 6000);
+
+		// B 向下滑拿到文章热度数据和评论数据
+		for (int i = 0; i < 2; i++) {
+			device.touch(1413, 2369, 500);
+		}
+
+		this.status = Status.PublicAccountEssay;
+	}
+
+
+	/**
+	 * 从文章详情页返回到上一个页面   点击叉号
+	 */
+	public void goToEssayPreviousPage() throws WeChatAdapterException.IllegalException {
+
+		if (this.status != Status.PublicAccountEssay) throw new WeChatAdapterException.IllegalException();
+
+		// A 点击叉号  TODO
+
+		this.status = Status.PublicAccount_Essay_List;
 	}
 }

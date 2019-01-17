@@ -1,6 +1,5 @@
 package one.rewind.android.automator.test.db;
 
-import one.rewind.android.automator.model.FailRecord;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
 import org.junit.Test;

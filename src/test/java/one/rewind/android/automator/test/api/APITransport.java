@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.Essays;
 import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.model.FailRecord;
 import one.rewind.db.DaoManager;
 import org.junit.Test;
 

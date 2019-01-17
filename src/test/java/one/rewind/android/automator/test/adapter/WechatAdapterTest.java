@@ -5,7 +5,6 @@ import io.netty.handler.codec.http.HttpHeaders;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.model.Comments;
 import one.rewind.android.automator.util.DeviceUtil;
 import one.rewind.android.automator.util.Tab;

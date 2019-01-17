@@ -1,7 +1,7 @@
 package one.rewind.android.automator.util;
 
 import io.appium.java_client.android.AndroidDriver;
-import one.rewind.android.automator.adapter.AbstractWeChatAdapter;
+import one.rewind.android.automator.adapter.WeChatAdapter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -122,7 +122,7 @@ public class ShellUtil {
 		runtime.exec(loginCommand);
 		Thread.sleep(4000);
 		//点击确认
-		AbstractWeChatAdapter.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
+		WeChatAdapter.clickPoint(1350, 2250, 6000, driver); //TODO 时间适当调整
 		Thread.sleep(2000);
 	}
 }

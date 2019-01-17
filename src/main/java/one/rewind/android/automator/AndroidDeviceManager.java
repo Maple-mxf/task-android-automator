@@ -5,7 +5,6 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.*;
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.DeviceUtil;
 import one.rewind.android.automator.util.DBUtil;
@@ -330,31 +329,6 @@ public class AndroidDeviceManager {
 					}
 				}
 				v.update();
-//			try {
-//				if (v.status == 2 || v.status == 1 || v.retry_count >= 5) {
-////                    if (v.number != 0) continue;
-//					// 有些公众号一片文章也没有
-//					continue;
-//				}
-//
-//				long countOf = Tab.essayDao.
-//						queryBuilder().
-//						where().
-//						eq("media_nick", v.media_name).
-//						countOf();
-//				if ((countOf >= v.number || Math.abs(v.number - countOf) <= 5) && countOf > 0) {
-//					v.retry_count = 5;
-//					v.status = SubscribeMedia.State.FINISH.status;
-//					v.number = (int) countOf;
-//				} else {
-//					v.status = SubscribeMedia.State.NOT_FINISH.status;
-//					v.retry_count = 0;
-//					if (v.number == 0) v.number = 100;
-//				}
-//				v.update();
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
