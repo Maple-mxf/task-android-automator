@@ -2,6 +2,7 @@ package one.rewind.android.automator.ocr;
 
 import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.android.automator.util.*;
+import one.rewind.util.FileUtil;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,7 +43,7 @@ public class BaiDuOCRParser implements OCRParser {
 
 
 		String otherHost = "https://aip.baidubce.com/rest/2.0/imageOcr/v1/general";
-		byte[] imgData = FileUtil.readFileByBytes(filePath);
+		byte[] imgData = FileUtil.readBytesFromFile(filePath);
 		String imgStr = Base64Util.encode(imgData);
 		String params = URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(imgStr, "UTF-8");
 		BaiduToken token = BaiduAPIUtil.obtainToken();

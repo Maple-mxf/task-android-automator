@@ -30,7 +30,7 @@ public class WeChatAdapterException extends Exception {
 		}
 	}
 
-	public static class IllegalException extends Exception {
+	public static class IllegalStateException extends Exception {
 
 
 	}

@@ -73,7 +73,7 @@ public class AndroidDeviceTest {
 		String filePath = "newFriend.txt";
 
 		AppInfo info = AppInfo.get(AppInfo.Defaults.Contacts);
-		device.startActivity(info);
+		device.startApp(info);
 
 		ContactsAdapter ca = new ContactsAdapter(device);
 		ca.clearContacts();

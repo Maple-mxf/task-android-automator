@@ -4,6 +4,7 @@ package one.rewind.android.automator.util;
  * @author maxuefeng[m17793873123@163.com]
  */
 public class Base64Util {
+
 	private static final char last2byte = (char) Integer.parseInt("00000011", 2);
 	private static final char last4byte = (char) Integer.parseInt("00001111", 2);
 	private static final char last6byte = (char) Integer.parseInt("00111111", 2);

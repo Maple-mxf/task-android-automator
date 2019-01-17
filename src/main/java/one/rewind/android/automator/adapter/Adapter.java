@@ -6,9 +6,7 @@ import one.rewind.json.JSONable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.io.IOException;
 
 public abstract class Adapter {
 
@@ -30,19 +28,19 @@ public abstract class Adapter {
 		this.device = device;
 	}
 
-	public void startApp() throws Exception {
-
-		// A
-		if(device == null) throw new Exception("Device is null");
-
-		// B TODO 检验设备状态，抛出对应异常
-
-		// C 启动App
-		device.startActivity(appInfo);
+	/**
+	 * 启动应用
+	 */
+	public void start() {
+		device.startApp(appInfo);
 	}
 
-	public void restartApp() {
-
+	/**
+	 *
+	 */
+	public void restart() {
+		device.stopApp(appInfo);
+		device.startApp(appInfo);
 	}
 
 	/**

@@ -33,8 +33,6 @@ public class DBUtil {
         }
     }
 
-
-
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = Tab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",

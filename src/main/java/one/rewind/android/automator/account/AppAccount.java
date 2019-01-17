@@ -20,6 +20,9 @@ public class AppAccount extends ModelL {
 
 	public static long Default_Get_Public_Account_Essay_List_Frozen_Time = 24 * 3600 * 1000;
 
+	@DatabaseField(dataType = DataType.STRING, width = 32)
+	public String src_id;
+
 	// 用户名
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String username;
@@ -30,7 +33,7 @@ public class AppAccount extends ModelL {
 
 	// 账号类型
 	@DatabaseField(dataType = DataType.STRING, width = 128)
-	public String AdapterClassName;
+	public String adapter_class_name;
 
 	// 账号状态
 	@DatabaseField(dataType = DataType.ENUM_STRING, width = 64)

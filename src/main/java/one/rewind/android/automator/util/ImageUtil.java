@@ -23,27 +23,35 @@ public class ImageUtil {
 	 * @return BufferedImage
 	 */
 	public static BufferedImage cropImage(BufferedImage bufferedImage, int startX, int startY, int endX, int endY) {
+
 		int width = bufferedImage.getWidth();
 		int height = bufferedImage.getHeight();
+
 		if (startX == -1) {
 			startX = 0;
 		}
+
 		if (startY == -1) {
 			startY = 0;
 		}
+
 		if (endX == -1) {
 			endX = width - 1;
 		}
+
 		if (endY == -1) {
 			endY = height - 1;
 		}
+
 		BufferedImage result = new BufferedImage(endX - startX, endY - startY, 4);
+
 		for (int x = startX; x < endX; ++x) {
 			for (int y = startY; y < endY; ++y) {
 				int rgb = bufferedImage.getRGB(x, y);
 				result.setRGB(x - startX, y - startY, rgb);
 			}
 		}
+
 		return result;
 	}
 
@@ -97,7 +105,6 @@ public class ImageUtil {
 		try {
 
 			input = new FileImageInputStream(new File(path));
-
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 
 			byte[] buf = new byte[1024];
@@ -107,10 +114,10 @@ public class ImageUtil {
 			while ((numBytesRead = input.read(buf)) != -1) {
 				output.write(buf, 0, numBytesRead);
 			}
+
 			data = output.toByteArray();
 
 			output.close();
-
 			input.close();
 
 		} catch (IOException ex1) {
@@ -126,7 +133,9 @@ public class ImageUtil {
 	 * @param path file will be apply path; path must contain file suffix(file type)
 	 */
 	public static void byte2Image(byte[] data, String path) {
+
 		if (data.length < 3 || path.equals("")) return;
+
 		try {
 
 			FileImageOutputStream imageOutput = new FileImageOutputStream(new File(path));
@@ -136,9 +145,12 @@ public class ImageUtil {
 			imageOutput.close();
 
 			System.out.println("Make Picture success,Please find image in " + path);
+
 		} catch (Exception ex) {
+
 			System.out.println("Exception: " + ex);
 			ex.printStackTrace();
+
 		}
 	}
 }

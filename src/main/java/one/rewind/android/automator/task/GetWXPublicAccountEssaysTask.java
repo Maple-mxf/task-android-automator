@@ -417,8 +417,8 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 		try {
 
-			// 0 重置微信
-			this.adapter.reset();
+			// 0 重置微信进入首页
+			// this.adapter.reset();
 
 			// A 进入已订阅公众号的列表页面
 			this.adapter.goToSubscribePublicAccountList();
@@ -446,22 +446,22 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 				}
 			}
-		} catch (WeChatAdapterException.IllegalException e1) {
+		} catch (WeChatAdapterException.IllegalStateException e) {
 
-			logger.error("Error task execute failed [{}]", e1);
+			logger.error("Error task execute failed [{}]", e);
 
-		} catch (WeChatAdapterException.NoResponseException e2) {
+		} catch (WeChatAdapterException.NoResponseException e) {
 
-			logger.error("Error task execute failed [{}]", e2);
-		} catch (WeChatAdapterException.SearchPublicAccountFrozenException e3) {
+			logger.error("Error task execute failed [{}]", e);
+		} catch (WeChatAdapterException.SearchPublicAccountFrozenException e) {
 
-			logger.error("Error task execute failed [{}]", e3);
-		} catch (WeChatAdapterException.GetPublicAccountEssayListFrozenException e4) {
+			logger.error("Error task execute failed [{}]", e);
+		} catch (WeChatAdapterException.GetPublicAccountEssayListFrozenException e) {
 
-			logger.error("Error task execute failed [{}]", e4);
-		} catch (IOException e5) {
+			logger.error("Error task execute failed [{}]", e);
+		} catch (IOException e) {
 
-			logger.error("Error task execute failed [{}]", e5);
+			logger.error("Error task execute failed [{}]", e);
 		} catch (InterruptedException e6) {
 
 			logger.error("Error task execute failed [{}]", e6);

@@ -22,7 +22,7 @@ public class ContactsAdapter extends Adapter {
 	 * 该方法是利用adb命令中的clear，同时可以以应用程序的包名为参数，修改为重置app的方法
 	 */
 	public void clearContacts() {
-		String commandStr = "adb -s " + udid + " shell pm clear com.android.providers.contacts";
+		String commandStr = "adb -s " + device.udid + " shell pm clear com.android.providers.contacts";
 		ShellUtil.exeCmd(commandStr);
 	}
 

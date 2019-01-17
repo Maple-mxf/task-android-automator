@@ -25,6 +25,7 @@ public class BaiduAPIUtil {
 	 * @return
 	 */
 	public static String getAuth(String ak, String sk) {
+
 		// 获取token地址
 		String authHost = "https://aip.baidubce.com/oauth/2.0/token?";
 		String getAccessTokenUrl = authHost
@@ -34,8 +35,11 @@ public class BaiduAPIUtil {
 				+ "&client_id=" + ak
 				// 3. 官网获取的 Secret Key
 				+ "&client_secret=" + sk;
+
 		try {
+
 			URL realUrl = new URL(getAccessTokenUrl);
+
 			// 打开和URL之间的连接
 			HttpURLConnection connection = (HttpURLConnection) realUrl.openConnection();
 			connection.setRequestMethod("GET");
@@ -45,21 +49,34 @@ public class BaiduAPIUtil {
 			BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 			StringBuilder result = new StringBuilder();
 			String line;
+
 			while ((line = in.readLine()) != null) {
 				result.append(line);
 			}
+
 			JSONObject jsonObject = new JSONObject(result.toString());
+
 			return jsonObject.getString("access_token");
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
+
 			e.printStackTrace();
 		}
+
 		return null;
 	}
 
-
+	/**
+	 *
+	 * @return
+	 * @throws InvokingBaiduAPIException
+	 */
 	public static BaiduToken obtainToken() throws InvokingBaiduAPIException {
+
 		synchronized (BaiduAPIUtil.class) {
+
 			BaiduToken result = null;
+
 			try {
 				result = Tab.tokenDao.
 						queryBuilder().
@@ -69,16 +86,21 @@ public class BaiduAPIUtil {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
+
 			if (result == null) {
 				throw new InvokingBaiduAPIException("当前没有可用的token");
 			}
+
 			result.count += 1;
+
 			result.update_time = new Date();
+
 			try {
 				result.update();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+
 			return result;
 		}
 	}

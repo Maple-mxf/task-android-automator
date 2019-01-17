@@ -215,7 +215,7 @@ public class WechatAdapterTest {
 
 //		device.driver.terminateApp(udid);
 
-//		device.driver.closeApp();
+//		device.driver.stopApp();
 
 //		Route postAccounts = PublicAccountsHandler.postAccounts;
 

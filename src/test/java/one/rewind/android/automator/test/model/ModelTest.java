@@ -1,6 +1,6 @@
 package one.rewind.android.automator.test.model;
 
-import one.rewind.android.automator.model.WechatFriend;
+import one.rewind.android.automator.model.WechatContact;
 import org.junit.Test;
 
 
@@ -14,7 +14,7 @@ public class ModelTest {
 
         try {
 
-            WechatFriend wf = new WechatFriend(
+            WechatContact wf = new WechatContact(
                     "123", "1", "", "2", "21");
             wf.insert();
 

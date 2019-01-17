@@ -13,6 +13,12 @@ public class ThreadPoolProxy {
 	private int maximumPoolSize;
 	private long keepAliveTime;
 
+	/**
+	 *
+	 * @param corePoolSize
+	 * @param maximumPoolSize
+	 * @param keepAliveTime
+	 */
 	public ThreadPoolProxy(int corePoolSize, int maximumPoolSize, long keepAliveTime) {
 		this.corePoolSize = corePoolSize;
 		this.maximumPoolSize = maximumPoolSize;
@@ -20,9 +26,16 @@ public class ThreadPoolProxy {
 		initExecutor();
 	}
 
+	/**
+	 *
+	 * @return
+	 */
 	private ThreadPoolExecutor initExecutor() {
+
 		if (mThreadPoolExecutor == null) {
+
 			synchronized (ThreadPoolProxy.class) {
+
 				if (mThreadPoolExecutor == null) {
 
 					TimeUnit unit = TimeUnit.MILLISECONDS;

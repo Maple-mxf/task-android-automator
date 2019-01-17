@@ -10,7 +10,7 @@ import one.rewind.db.model.ModelL;
  * @author maxuefeng[m17793873123@163.com]
  */
 @DBName(value = "raw")
-@DatabaseTable(tableName = "wechat_subscribe_account")
+@DatabaseTable(tableName = "wechat_account_subscribes")
 public class SubscribeMedia extends ModelL {
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)

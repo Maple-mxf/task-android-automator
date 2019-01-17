@@ -8,6 +8,7 @@ import com.j256.ormlite.dao.GenericRawResults;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.DeviceUtil;
 import one.rewind.android.automator.util.DBUtil;
+import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
 import org.apache.commons.lang3.StringUtils;
@@ -19,6 +20,8 @@ import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,14 +45,6 @@ public class AndroidDeviceManager {
 	 */
 	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
 
-	/**
-	 * redis 客户端
-	 */
-	private static RedissonClient redisClient = RedissonAdapter.redisson;
-
-	/**
-	 */
-	private BlockingQueue<WeChatAdapter> idleAdapters = Queues.newLinkedBlockingDeque(Integer.MAX_VALUE);
 
 	// Adapter - AndroidDevice 记录表，记录哪些设备可使用特定类型的Adapter
 	public ConcurrentHashMap<String, List<AndroidDevice>> adapterAndroidDeviceMap = new ConcurrentHashMap<>();
@@ -89,11 +84,12 @@ public class AndroidDeviceManager {
 	 */
 	private void init() {
 
-		String[] var = DeviceUtil.obtainDevices();
+		String[] udids = getAvailableDeviceUdids();
 
-		for (String aVar : var) {
-			AndroidDevice device = new AndroidDevice(aVar);
+		for (String udid : udids) {
+			AndroidDevice device = new AndroidDevice(udid);
 			logger.info("udid: " + device.udid);
+
 			devices.add(device);
 			logger.info("添加device " + device.udid + " 到容器中");
 		}
@@ -383,4 +379,42 @@ public class AndroidDeviceManager {
 		});
 	}
 
+	/**
+	 * 获取可用的设备 udid 列表
+	 * @return
+	 */
+	public static String[] getAvailableDeviceUdids() {
+
+		ShellUtil.exeCmd("adb"); // 有可能需要先启动 adb 服务器
+
+		ShellUtil.exeCmd("adb usb"); // 有可能需要刷新 adb udb 连接
+
+		BufferedReader br = null;
+		StringBuilder sb = new StringBuilder();
+
+		try {
+
+			Process p = Runtime.getRuntime().exec("adb devices");
+			br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			String line;
+			while ((line = br.readLine()) != null) {
+				sb.append(line);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (br != null) {
+				try {
+					br.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		String r = sb.toString().replace("List of devices attached", "").replace("\t", "");
+
+		return r.split("device");
+	}
 }

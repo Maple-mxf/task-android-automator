@@ -21,6 +21,7 @@ import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.exception.AndroidDeviceException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
@@ -669,6 +670,93 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
+	 * 进入相应设备的shell
+	 *
+	 * @param udid
+	 * @throws IOException
+	 */
+	private static void enterADBShell(String udid) throws IOException {
+		String command = "adb -s " + udid + " shell";
+		ShellUtil.exeCmd(command);
+	}
+
+	/**
+	 * 摁电源键
+	 *
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void clickPower() throws IOException, InterruptedException {
+		String powerCommand = "adb -s " + udid + " shell input keyevent 26";
+		Runtime runtime = Runtime.getRuntime();
+		runtime.exec(powerCommand);
+		Thread.sleep(2000);
+	}
+
+	/**
+	 * 重启设备
+	 * @param udid
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public static void reboot(String udid) throws IOException, InterruptedException {
+
+		enterADBShell(udid);
+
+		ShellUtil.exeCmd("reboot");
+
+		Thread.sleep(120000);
+
+		enterADBShell(udid);
+
+		// TODO 执行 adb usb
+
+		// 滑动解锁 TODO 如果不设定密码 就可以不用解锁了 默认到Home界面
+		ShellUtil.exeCmd("adb shell input swipe 300 1000 300 500");
+	}
+
+
+	/**
+	 * 唤醒设备
+	 *
+	 * @param driver
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void notifyDevice(AndroidDriver driver) throws IOException, InterruptedException {
+		Runtime runtime = Runtime.getRuntime();
+
+		clickPower();
+		Thread.sleep(2000);
+
+		// 滑动解锁  728 2356  728 228  adb shell -s  input swipe  300 1500 300 200
+		String unlockCommand = "adb -s " + udid + " shell input swipe  300 1500 300 200";
+		runtime.exec(unlockCommand);
+		Thread.sleep(2000);
+
+		// 输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
+		String loginCommand = "adb -s " + udid + " shell input text szqj";
+		runtime.exec(loginCommand);
+		Thread.sleep(4000);
+
+		// 点击确认
+		touch(1350, 2250, 6000); //TODO 时间适当调整
+		Thread.sleep(2000);
+	}
+
+	/**
+	 * 杀死进程
+	 *
+	 * @param packageName
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void shutdownProcess(String packageName) {
+		String command = "adb -s " + udid + " shell am force-stop " + packageName;
+		ShellUtil.exeCmd(command);
+	}
+
+	/**
 	 * 以app的包名为参数，卸载选择的应用程序
 	 *
 	 * @param appPackage 卸载选择的app com.ss.android.ugc.aweme
@@ -684,7 +772,7 @@ public class AndroidDevice extends ModelL {
 	 * @param appPackage  包名
 	 * @param appActivity 主窗体名
 	 */
-	public void startActivity(String appPackage, String appActivity) {
+	public void startApp(String appPackage, String appActivity) {
 		String commandStr = "adb -s " + udid + " shell am start " + appPackage + "/" + appActivity;
 		ShellUtil.exeCmd(commandStr);
 	}
@@ -694,9 +782,19 @@ public class AndroidDevice extends ModelL {
 	 *
 	 * @param appInfo 应用信息
 	 */
-	public void startActivity(Adapter.AppInfo appInfo) {
+	public void startApp(Adapter.AppInfo appInfo) {
 		String commandStr = "adb -s " + udid + " shell am start " + appInfo.appPackage + "/" + appInfo.appActivity;
 		ShellUtil.exeCmd(commandStr);
+	}
+
+	/**
+	 *
+	 * @param appInfo
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void stopApp(Adapter.AppInfo appInfo) {
+		shutdownProcess(appInfo.appPackage);
 	}
 
 	/**
@@ -731,7 +829,7 @@ public class AndroidDevice extends ModelL {
 	 * 清理app进程 am kill <package_name>
 	 */
 	public void clear() throws IOException, InterruptedException {
-		ShellUtil.shutdownProcess(udid, "com.tencent.mm");
+
 	}
 
 	/**
