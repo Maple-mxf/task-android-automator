@@ -67,7 +67,6 @@ public class GetWXPublicAccountEssaysTask extends Task {
 			this.title = title;
 			this.pubdate = pubdate;
 		}
-
 	}
 
 
@@ -81,6 +80,9 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	public Boolean call() throws Exception {
 
 		setupFilters();
+
+		// 任务执行
+		execute();
 
 		removeFilters();
 

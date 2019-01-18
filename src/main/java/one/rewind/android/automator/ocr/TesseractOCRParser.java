@@ -1,7 +1,7 @@
 package one.rewind.android.automator.ocr;
 
 import com.google.common.base.Strings;
-import one.rewind.android.automator.util.FileUtil;
+import jodd.io.FileUtil;
 import one.rewind.android.automator.util.ImageUtil;
 import one.rewind.json.JSON;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -113,7 +113,8 @@ public class TesseractOCRParser implements OCRParser {
 		process.waitFor();
 
 		// 识别得出文字集合
-		return FileUtil.allLines(file.getAbsolutePath().replace(fileName, "") + filePrefix + ".hocr");
+
+		return one.rewind.util.FileUtil.readFileByLines(file.getAbsolutePath().replace(fileName, "") + filePrefix + ".hocr");
 	}
 
 	/**

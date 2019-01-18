@@ -11,9 +11,7 @@ import one.rewind.android.automator.model.WechatMoment;
 import one.rewind.android.automator.model.WechatMsg;
 import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.android.automator.ocr.TesseractOCRParser;
-import one.rewind.io.server.User;
 import one.rewind.txt.NumberFormatUtil;
-import one.rewind.util.FileUtil;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.Point;
@@ -34,7 +32,7 @@ public class WeChatAdapter extends Adapter {
 
 	public static enum Status {
 		Init,                                  // 初始化
-		Home_Login,		                       // 登陆
+		Home_Login,                               // 登陆
 		Home,                                  // 首页
 		Search,                                // 首页点进去的搜索
 		PublicAccount_Search_Result,           // 公众号搜索结果
@@ -58,7 +56,8 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 构造方法
-	 * @param device 加载设备
+	 *
+	 * @param device     加载设备
 	 * @param appAccount 加载账号
 	 */
 	public WeChatAdapter(AndroidDevice device, AppAccount appAccount) {
@@ -67,7 +66,6 @@ public class WeChatAdapter extends Adapter {
 	}
 
 	/**
-	 *
 	 * @throws Exception
 	 */
 	public void start() {
@@ -83,8 +81,7 @@ public class WeChatAdapter extends Adapter {
 	 * @throws IOException
 	 */
 	public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
-			throws IOException, InterruptedException, WeChatAdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException
-	{
+			throws IOException, InterruptedException, WeChatAdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException {
 
 		// A 获取截图
 		String screenShotPath = this.device.screenShot();
@@ -135,6 +132,7 @@ public class WeChatAdapter extends Adapter {
 	/**
 	 * 从 首页/通讯录
 	 * 进入已订阅公众号的列表页面
+	 *
 	 * @throws InterruptedException
 	 * @throws WeChatAdapterException.IllegalStateException
 	 */
@@ -156,6 +154,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 已订阅公众号的列表页面 搜索到相关的公众号
+	 *
 	 * @param mediaName 搜索参数
 	 */
 	public void goToPublicAccountHome(String mediaName) throws InterruptedException, WeChatAdapterException.IllegalStateException {
@@ -234,20 +233,20 @@ public class WeChatAdapter extends Adapter {
 		// 对公众号首页信息进行处理
 		List<WebElement> els = device.driver.findElementsByClassName("android.widget.TextView");
 
-		if(els.size() == 0) {
+		if (els.size() == 0) {
 			logger.info("Not into public account page.");
 			throw new WeChatAdapterException.IllegalStateException();
 		}
 
 		PublicAccountInfo wpa = new PublicAccountInfo();
 
-		for(WebElement we : els) {
+		for (WebElement we : els) {
 			System.err.println(els.indexOf(we) + " --> " + we.getText());
 		}
 
 		wpa.name = els.get(0).getText();
 
-		if(!name.equals(wpa.name)) {
+		if (!name.equals(wpa.name)) {
 			logger.info("Public account name is not the same.");
 		}
 
@@ -260,27 +259,25 @@ public class WeChatAdapter extends Adapter {
 		// 对更多资料内容进行处理
 		els = device.driver.findElementsByClassName("android.widget.TextView");
 
-		els = els.stream().filter(el -> {
-			return !el.getText().equals("更多资料") && el.getLocation().x != 0;
-		}).collect(Collectors.toList());
+		els = els.stream().filter(el -> !el.getText().equals("更多资料") && el.getLocation().x != 0).collect(Collectors.toList());
 
 		List<String> info = new ArrayList<>();
 
-		for(int i=0; i<els.size()-1; i=i+2) {
-			info.add(els.get(i).getText() + "" + els.get(i+1).getText());
+		for (int i = 0; i < els.size() - 1; i = i + 2) {
+			info.add(els.get(i).getText() + "" + els.get(i + 1).getText());
 		}
 
-		for(String info_item: info) {
-			if(info_item.contains("微信号")) {
+		for (String info_item : info) {
+			if (info_item.contains("微信号")) {
 				wpa.wechat_id = info_item.replaceAll("微信号", "");
 			}
-			if(info_item.contains("帐号主体")) {
+			if (info_item.contains("帐号主体")) {
 				wpa.subject = info_item.replaceAll("帐号主体", "");
 			}
-			if(info_item.contains("商标保护")) {
+			if (info_item.contains("商标保护")) {
 				wpa.trademark = info_item.replaceAll("商标保护", "");
 			}
-			if(info_item.contains("客服电话")) {
+			if (info_item.contains("客服电话")) {
 				wpa.phone = info_item.replaceAll("客服电话", "");
 			}
 		}
@@ -293,6 +290,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 公众号首页 订阅公众号
+	 *
 	 * @throws InterruptedException
 	 * @throws WeChatAdapterException.IllegalStateException
 	 */
@@ -344,6 +342,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 公众号 文章列表页面 进入文章详情页面
+	 *
 	 * @param textArea
 	 * @throws InterruptedException
 	 * @throws WeChatAdapterException.IllegalStateException
@@ -366,6 +365,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 从文章详情页返回到上一个页面 点击叉号
+	 *
 	 * @throws WeChatAdapterException.IllegalStateException
 	 */
 	public void goToEssayPreviousPage() throws WeChatAdapterException.IllegalStateException, InterruptedException {
@@ -507,7 +507,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 获取群组中的成员信息
-	 *
+	 * <p>
 	 * TODO 向下滑动的方法处理不完善
 	 *
 	 * @throws InterruptedException 中断异常
@@ -571,6 +571,7 @@ public class WeChatAdapter extends Adapter {
 	/**
 	 * 进入聊天回话界面 群组 单个人
 	 * （这个方法同时可以用于进入与朋友的单人聊天）
+	 *
 	 * @param name 群聊名称
 	 * @throws InterruptedException 中断异常
 	 */
@@ -770,6 +771,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 发送一条消息（在聊天回话界面）
+	 *
 	 * @param msg
 	 * @throws InterruptedException
 	 */
@@ -785,6 +787,7 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 如果需要发送备注，则再使用制表符分隔后输入备注信息，并去掉代码中的注释
+	 *
 	 * @param contacts
 	 * @param verification
 	 * @throws Exception
@@ -792,7 +795,7 @@ public class WeChatAdapter extends Adapter {
 	public void addContacts(List<String> contacts, String verification) throws Exception {
 
 		//设定验证信息和备注
-		if(verification == null) verification = "自动化测试账号";
+		if (verification == null) verification = "自动化测试账号";
 
 		Thread.sleep(1500);
 
@@ -879,7 +882,7 @@ public class WeChatAdapter extends Adapter {
 	 * 由于最上方的文字没有对应的头像，因此不做考虑，判断文字，图片，url等的不同方法根据X值或是长按出现的选项数
 	 * 判断标准可以根据微信的更新随时更改
 	 * 在本页面所有元素全部判定完成之后，根据第二个，即判定完成的最后一个元素的位置向下滑动，直至该元素不再显示
-	 *
+	 * <p>
 	 * TODO 这个方法需要大量测试
 	 *
 	 * @throws Exception

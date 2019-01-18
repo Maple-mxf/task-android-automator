@@ -21,8 +21,6 @@ import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.adapter.Adapter;
-import one.rewind.android.automator.adapter.WeChatAdapter;
-import one.rewind.android.automator.exception.AndroidDeviceException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
