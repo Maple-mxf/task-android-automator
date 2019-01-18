@@ -14,7 +14,7 @@ public class AndroidException extends Exception {
         }
     }
 
-    public class AndroidCollapseException extends AndroidException {
+    public static class AndroidCollapseException extends AndroidException {
         public AndroidCollapseException(String message) {
             super(message);
         }

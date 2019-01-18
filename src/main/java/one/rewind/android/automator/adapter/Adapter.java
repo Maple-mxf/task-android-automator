@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter;
 
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.account.AppAccount;
 import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
 import org.apache.logging.log4j.LogManager;
@@ -11,12 +12,22 @@ public abstract class Adapter {
 
 	static final Logger logger = LogManager.getLogger(Adapter.class.getName());
 
+	public static boolean NeedAccount = false;
+
 	public AndroidDevice device;
 
 	public AppInfo appInfo;
 
+	// 当前使用的账号
+	public AppAccount account;
+
 	public Adapter(AndroidDevice device) {
 		this.device = device;
+	}
+
+	public Adapter(AndroidDevice device, AppAccount account) {
+		this.device = device;
+		this.account = account;
 	}
 
 	public AndroidDevice getDevice() {
@@ -25,6 +36,10 @@ public abstract class Adapter {
 
 	public void setDevice(AndroidDevice device) {
 		this.device = device;
+	}
+
+	public void init() {
+
 	}
 
 	/**

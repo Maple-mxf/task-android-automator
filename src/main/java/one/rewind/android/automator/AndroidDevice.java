@@ -97,6 +97,9 @@ public class AndroidDevice extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String name; // 名称
 
+	@DatabaseField(dataType = DataType.BOOLEAN)
+	public boolean online = true;
+
 	@DatabaseField(dataType = DataType.BOOLEAN, width = 2)
 	public boolean ca = false; // 是否已经安装CA证书
 

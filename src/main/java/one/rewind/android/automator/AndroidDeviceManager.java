@@ -6,14 +6,18 @@ import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
+import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.db.DaoManager;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import one.rewind.io.requester.task.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +31,13 @@ import java.util.concurrent.Executors;
 @ThreadSafe
 public class AndroidDeviceManager {
 
-	private static Logger logger = LogManager.getLogger(AndroidDeviceManager.class);
+	private static final Logger logger = LogManager.getLogger(AndroidDeviceManager.class.getName());
+
+	public static List<String> DefaultAdapterClassNameList = new ArrayList<>();
+
+	static {
+		DefaultAdapterClassNameList.add(WeChatAdapter.class.getName());
+	}
 
 	/**
 	 * guava线程池
@@ -70,16 +80,70 @@ public class AndroidDeviceManager {
 	/**
 	 * 初始化设备
 	 */
-	private void init() {
+	private void init() throws Exception {
 
+		// A 先找设备
 		String[] udids = getAvailableDeviceUdids();
 
 		for (String udid : udids) {
+
+			// A1 创建 AndroidDevice 对象
 			AndroidDevice device = new AndroidDevice(udid);
 			logger.info("udid: " + device.udid);
 
 			androidDevices.add(device);
-			logger.info("添加device " + device.udid + " 到容器中");
+			logger.info("添加 device " + device.udid + " 到容器中");
+
+			// A2 TODO 同步数据库对应记录
+
+		}
+
+		// B 设备INIT
+		androidDevices.parallelStream().forEach(d -> {
+			try {
+				d.start();
+			} catch (AndroidException.IllegalStatusException e) {
+				// 其实此处不会抛出异常
+				logger.error("Start Device[{}] failed, ", d.udid, e);
+			}
+		});
+
+		// B 加载默认的Adapters
+		for(AndroidDevice ad: androidDevices) {
+
+			for(String className : DefaultAdapterClassNameList) {
+
+				Adapter adapter;
+
+				Class<?> clazz = Class.forName(className);
+
+				Constructor<?> cons;
+
+				Field[] fields = clazz.getFields();
+
+				boolean needAccount = false;
+
+				for( Field field : fields ){
+					if(field.getName().equals("NeedAccount")) {
+						needAccount = field.getBoolean(clazz);
+						break;
+					}
+				}
+
+				// 如果Adapter必须使用Account
+				if(needAccount) {
+					cons = clazz.getConstructor(AndroidDevice.class, AppAccount.class);
+					adapter = (Adapter) cons.newInstance(ad, AppAccount.getAccount(ad.udid, className));
+				}
+				else {
+					cons = clazz.getConstructor(AndroidDevice.class);
+					adapter = (Adapter) cons.newInstance(ad);
+				}
+
+				ad.adapters.put(className, adapter);
+
+				adapter.init();
+			}
 		}
 	}
 
@@ -445,18 +509,6 @@ public class AndroidDeviceManager {
 	 * @param device
 	 */
 	public static void loadTask(AndroidDevice device) {
-	}
-
-
-	/**
-	 * 在当前机器上登录过的账号查询   根据app的类型查询账号
-	 */
-	public static List<AppAccount> getAccounts(String udid, Adapter.AppType appType) throws Exception {
-
-		Dao<AppAccount, String> accountDao = DaoManager.getDao(AppAccount.class);
-
-		// 查询当前机器上登陆过的账号
-		return accountDao.queryBuilder().where().eq("udid", udid).and().eq("appType", appType).query();
 	}
 }
 

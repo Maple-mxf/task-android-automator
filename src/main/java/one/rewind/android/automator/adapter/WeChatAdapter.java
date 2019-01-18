@@ -51,8 +51,7 @@ public class WeChatAdapter extends Adapter {
 	// 状态信息
 	public Status status = Status.Init;
 
-	// 当前使用的账号
-	public AppAccount account;
+
 
 	/**
 	 * 构造方法
