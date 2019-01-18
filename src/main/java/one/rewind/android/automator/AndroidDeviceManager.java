@@ -2,18 +2,14 @@ package one.rewind.android.automator;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.util.ShellUtil;
-import one.rewind.db.DaoManager;
-import one.rewind.io.requester.task.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.concurrent.ThreadSafe;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
@@ -28,7 +24,6 @@ import java.util.concurrent.Executors;
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
-@ThreadSafe
 public class AndroidDeviceManager {
 
 	private static final Logger logger = LogManager.getLogger(AndroidDeviceManager.class.getName());
@@ -109,9 +104,9 @@ public class AndroidDeviceManager {
 		});
 
 		// B 加载默认的Adapters
-		for(AndroidDevice ad: androidDevices) {
+		for (AndroidDevice ad : androidDevices) {
 
-			for(String className : DefaultAdapterClassNameList) {
+			for (String className : DefaultAdapterClassNameList) {
 
 				Adapter adapter;
 
@@ -123,19 +118,18 @@ public class AndroidDeviceManager {
 
 				boolean needAccount = false;
 
-				for( Field field : fields ){
-					if(field.getName().equals("NeedAccount")) {
+				for (Field field : fields) {
+					if (field.getName().equals("NeedAccount")) {
 						needAccount = field.getBoolean(clazz);
 						break;
 					}
 				}
 
 				// 如果Adapter必须使用Account
-				if(needAccount) {
+				if (needAccount) {
 					cons = clazz.getConstructor(AndroidDevice.class, AppAccount.class);
 					adapter = (Adapter) cons.newInstance(ad, AppAccount.getAccount(ad.udid, className));
-				}
-				else {
+				} else {
 					cons = clazz.getConstructor(AndroidDevice.class);
 					adapter = (Adapter) cons.newInstance(ad);
 				}
@@ -145,6 +139,8 @@ public class AndroidDeviceManager {
 				adapter.init();
 			}
 		}
+
+		//
 	}
 
 	/*private static void obtainFullData(Set<String> accounts, int page, int var) {
@@ -477,7 +473,7 @@ public class AndroidDeviceManager {
 	 * Android Device 和 AppAccount之间存在弱引用的关系（逻辑上定义的弱引用关系）
 	 */
 
-	public static void initialize() throws Exception {
+	/*public static void initialize() throws Exception {
 		// A 加载所有安卓设备
 		String[] udids = getAvailableDeviceUdids();
 
@@ -502,6 +498,7 @@ public class AndroidDeviceManager {
 
 		}
 	}
+*/
 
 	/**
 	 * 加载历史任务

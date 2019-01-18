@@ -195,7 +195,7 @@ public class AndroidDevice extends ModelL {
 			setupRemoteWifiProxy();
 
 			// 启动相关服务
-			initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI", Adapter.AppType.WeChat));
+			initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI", Adapter.AppType.WeChat)); // TODO  Appinfo应该放在外部指定？
 
 			init_time = new Date();
 

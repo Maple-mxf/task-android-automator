@@ -52,7 +52,6 @@ public class WeChatAdapter extends Adapter {
 	public Status status = Status.Init;
 
 
-
 	/**
 	 * 构造方法
 	 *
@@ -409,6 +408,47 @@ public class WeChatAdapter extends Adapter {
 		}
 	}
 
+
+	/**
+	 * 退出登录
+	 *
+	 * @throws InterruptedException
+	 */
+	public void loginOut() throws InterruptedException {
+
+		// A 点击我
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
+		Thread.sleep(500);
+
+		// B 点击设置
+		device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
+		Thread.sleep(500);
+
+		// C 向下滑
+		device.slideToPoint(500, 1800, 600, 1000, 500);
+
+		// D 点击退出
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+		Thread.sleep(1000);
+	}
+
+	/**
+	 * 登录
+	 */
+	public void login() {
+
+		// A 输入账号密码  appAccount
+
+		// B 点击登录
+
+		// C 验证是否存在拖拽操作
+
+		// D 人工拖拽
+
+		// F 进入首页  完成登录操作
+	}
+
+
 	/**
 	 * 获取本台机器udid对应的微信号id和微信名
 	 *
@@ -599,8 +639,8 @@ public class WeChatAdapter extends Adapter {
 		device.touch(1064, 532, 1000);
 
 		Thread.sleep(1000);
-
 	}
+
 
 	/**
 	 * 获取朋友圈并存入数据库
@@ -1128,4 +1168,56 @@ public class WeChatAdapter extends Adapter {
 			}
 		}
 	}
+
+
+	/**
+	 * 切换微信账号
+	 */
+	public void switchAccount() throws InterruptedException {
+
+		// A 退出登录
+		loginOut();
+
+		// B 登录账号
+		login();
+	}
+
+	/**
+	 * 判断首页是否存在更新提示    Adapter的Home状态回调函数
+	 *
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws WeChatAdapterException.SearchPublicAccountFrozenException
+	 * @throws WeChatAdapterException.GetPublicAccountEssayListFrozenException
+	 * @throws WeChatAdapterException.NoResponseException
+	 * @throws WeChatAdapterException.IllegalStateException
+	 */
+	public void handUpdateTip() throws IOException, InterruptedException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException, WeChatAdapterException.NoResponseException, WeChatAdapterException.IllegalStateException {
+
+		if (this.status != Status.Home) throw new WeChatAdapterException.IllegalStateException();
+
+		boolean hasUpdateTipWindow = false;
+
+		OCRParser.TouchableTextArea cellButtonArea = null;
+
+		// A 文字识别
+		List<OCRParser.TouchableTextArea> textAreas = getPublicAccountEssayListTitles();
+
+		for (OCRParser.TouchableTextArea area : textAreas) {
+			if (area.content.contains("下载安装")) {
+				hasUpdateTipWindow = true;
+			}
+			if (hasUpdateTipWindow) {
+				if (area.content.contains("取消")) {
+					cellButtonArea = area;
+				}
+			}
+		}
+
+		// B 点击取消
+		if (cellButtonArea != null) {
+			device.touch(cellButtonArea.left, cellButtonArea.top, 500);
+		}
+	}
+
 }

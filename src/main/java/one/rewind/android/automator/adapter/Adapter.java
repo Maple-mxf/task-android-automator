@@ -6,6 +6,7 @@ import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.By;
 
 
 public abstract class Adapter {
@@ -38,8 +39,40 @@ public abstract class Adapter {
 		this.device = device;
 	}
 
+
+	// TODO 声明成abstract？  每个Adapter的具体处理方式也不一样
 	public void init() {
 
+		// A 启动Adapter   启动Adapter之后确认在APP首页
+		start();
+
+		// B 验证是否在微信首页
+		boolean home = false;
+		try {
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
+			home = true;
+		} catch (Exception ignore) {
+		}
+
+
+		// C 需要根据具体的Appinfo来判定当前页在什么位置？
+
+		// C1 登录页 ---> 输入账户密码  --->点击登录 ---> 当前页是否存在拖拽或者验证码之内的安全验证
+
+		// D 如果不在首页，则一定在Adapter登录页(针对于WeChat而言 不在首页则一定在登录页)
+		if (!home) {
+
+
+		} else {
+
+			// D1  如果在首页 判断是否有App更新提示
+
+			// D2  如果存在更新提示的弹窗  则需要关掉
+
+			// D3 验证当前账号是否跟Adapter中初始化的账号一直
+
+			// D4 Adapter初始化完毕 ，可以正常执行任务
+		}
 	}
 
 	/**
