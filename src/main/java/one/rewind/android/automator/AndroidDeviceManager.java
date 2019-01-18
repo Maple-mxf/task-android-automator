@@ -430,8 +430,31 @@ public class AndroidDeviceManager {
 	}
 
 	/**
-	 * 在当前机器上登录过的账号查询   根据Appinfo查询
+	 * 在当前机器上登录过的账号查询   根据app的类型查询账号
 	 */
-	public static void queryAccountByUdid(String udid, Adapter.AppInfo appInfo) {
+	public static void queryAccountByUdid(String udid, Adapter.AppType appType) {
+
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
