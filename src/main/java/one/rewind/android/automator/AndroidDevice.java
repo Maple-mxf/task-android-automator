@@ -379,9 +379,7 @@ public class AndroidDevice extends ModelL {
 		proxyPort = bmProxy.getPort(); // TODO 是否有必要?
 
 		// 设定初始 RequestFilter
-		bmProxy.addRequestFilter((request, contents, messageInfo) -> {
-			return null;
-		});
+		bmProxy.addRequestFilter((request, contents, messageInfo) -> null);
 
 		// 设定初始 ResponseFilter
 		bmProxy.addResponseFilter((response, contents, messageInfo) -> {
