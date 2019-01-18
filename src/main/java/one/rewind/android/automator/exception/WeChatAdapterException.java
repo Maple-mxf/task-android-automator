@@ -1,6 +1,6 @@
 package one.rewind.android.automator.exception;
 
-import one.rewind.android.automator.account.AppAccount;
+import one.rewind.android.automator.account.Account;
 
 /**
  * @author scisaga@gmail.com
@@ -14,18 +14,18 @@ public class WeChatAdapterException extends Exception {
 
 	public static class SearchPublicAccountFrozenException extends Exception {
 
-		public AppAccount account;
+		public Account account;
 
-		public SearchPublicAccountFrozenException(AppAccount account) {
+		public SearchPublicAccountFrozenException(Account account) {
 			this.account = account;
 		}
 	}
 
 	public static class GetPublicAccountEssayListFrozenException extends Exception {
 
-		public AppAccount account;
+		public Account account;
 
-		public GetPublicAccountEssayListFrozenException(AppAccount account) {
+		public GetPublicAccountEssayListFrozenException(Account account) {
 			this.account = account;
 		}
 	}

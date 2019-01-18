@@ -1,6 +1,6 @@
 package one.rewind.android.automator.task;
 
-import one.rewind.android.automator.model.SubscribeMedia;
+import one.rewind.android.automator.model.AccountMediaSubscribe;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.txt.StringUtil;
@@ -8,7 +8,7 @@ import one.rewind.txt.StringUtil;
 /**
  * @author scisaga@gmail.com
  */
-public class WXPublicAccountSubscribeTask extends Task {
+public class WXMediaSubscribeTask extends Task {
 
 	// 点击无响应重试上限
 	public static final int TOUCH_RETRY_COUNT = 5;
@@ -46,12 +46,12 @@ public class WXPublicAccountSubscribeTask extends Task {
 					.eq("media_name", mediaName)
 					.countOf();
 			if (tempCount == 0) {
-				SubscribeMedia e = new SubscribeMedia();
+				AccountMediaSubscribe e = new AccountMediaSubscribe();
 				e.udid = adapter.device.udid;
 				e.media_name = mediaName;
 				e.number = 100;
 				e.retry_count = 0;
-				e.status = SubscribeMedia.State.NOT_FINISH.status;
+				e.status = AccountMediaSubscribe.State.NOT_FINISH.status;
 				e.topic = topic;
 				e.relative = 1;
 				e.insert();

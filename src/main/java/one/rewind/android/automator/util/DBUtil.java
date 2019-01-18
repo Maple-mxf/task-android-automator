@@ -9,7 +9,7 @@ import java.sql.SQLException;
  */
 public class DBUtil {
 
-   /* public static void sendAccounts(Set<String> accounts, int page) {
+	/*public static void sendAccounts(Set<String> accounts, int page) {
         try {
             Set<String> collect = Tab.subscribeDao.
                     queryForAll().
@@ -27,8 +27,8 @@ public class DBUtil {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-*/
+    }*/
+
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = Tab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -37,4 +37,11 @@ public class DBUtil {
         String var = firstResult[0];
         return Integer.parseInt(var);
     }
+
+	/**
+	 * 初始化表
+	 */
+	public static void initDB() {
+
+	}
 }

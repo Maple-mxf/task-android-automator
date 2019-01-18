@@ -234,8 +234,8 @@ public class WechatAdapterTest {
         instance.set(Calendar.MINUTE, 0);
         instance.set(Calendar.SECOND, 0);
         Date time = instance.getTime();
-        List<SubscribeMedia> query = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).and().ge("insert_time", time).query();
-        for (SubscribeMedia media : query) {
+        List<AccountMediaSubscribe> query = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).and().ge("insert_time", time).query();
+        for (AccountMediaSubscribe media : query) {
             adapter.unsubscribeMedia(media.media_name);
         }
     }

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * @author scisaga@gmail.com
  * @date 2019/1/14
  */
-public class GetWXPublicAccountEssaysTask extends Task {
+public class WXGetMediaEssaysTask extends Task {
 
 	// 任务对应的Adapter
 	public WeChatAdapter adapter;
@@ -251,14 +251,14 @@ public class GetWXPublicAccountEssaysTask extends Task {
 
 		// 生成文章
 		Essay essay = new Essay();
-		essay.platform_id = WXPublicAccountSubscribeTask.platform.id;
-		essay.platform = WXPublicAccountSubscribeTask.platform.short_name;
+		essay.platform_id = WXMediaSubscribeTask.platform.id;
+		essay.platform = WXMediaSubscribeTask.platform.short_name;
 		essay.title = title;
 		essay.media_nick = media_nick;
 		essay.src_id = src_id;
 		essay.media_src_id = media_src_id;
 		essay.f_id = f_id;
-		essay.media_id = WXPublicAccountSubscribeTask.genId(media_nick);
+		essay.media_id = WXMediaSubscribeTask.genId(media_nick);
 		essay.id = genId(media_nick, title, src_id);
 
 		// 元信息
@@ -408,7 +408,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 	 * @return
 	 */
 	public static String genId(String media_nick, String title, String src_id) {
-		return StringUtil.MD5(WXPublicAccountSubscribeTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
+		return StringUtil.MD5(WXMediaSubscribeTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
 	}
 
 
@@ -420,7 +420,7 @@ public class GetWXPublicAccountEssaysTask extends Task {
 		try {
 
 			// 0 重置微信进入首页
-			// this.adapter.reset();
+			this.adapter.start();
 
 			// A 进入已订阅公众号的列表页面
 			this.adapter.goToSubscribePublicAccountList();

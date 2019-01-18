@@ -20,8 +20,12 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.callback.AndroidDeviceCallBack;
+import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
@@ -149,8 +153,20 @@ public class AndroidDevice extends ModelL {
 	 */
 	public transient Map<String, Adapter> adapters = new HashMap<>();
 
+	//
+	public transient List<AndroidDeviceCallBack> initCallbacks = new ArrayList<>();
+
+	//
+	public transient List<AndroidDeviceCallBack> idleCallbacks = new ArrayList<>();
+
+	//
+	public transient List<AndroidDeviceCallBack> failedCallbacks = new ArrayList<>();
+
+	//
+	public transient List<AndroidDeviceCallBack> terminatedCallbacks = new ArrayList<>();
+
 	// 当前正在执行的任务
-	public transient Task currentRunningTask;
+	public transient Future<Boolean> taskFuture;
 
 	/**
 	 * 构造方法
@@ -174,6 +190,51 @@ public class AndroidDevice extends ModelL {
 		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
 		executor.setThreadFactory(new ThreadFactoryBuilder()
 				.setNameFormat(name + "-%d").build());
+
+	}
+
+	/**
+	 * 添加Adapter
+	 * 只有在 New 状态才能添加
+	 * @param adapter
+	 * @return
+	 */
+	public AndroidDevice addAdapter(Adapter adapter) throws AndroidException.IllegalStatusException {
+
+		if (status != Status.New) {
+			throw new AndroidException.IllegalStatusException();
+		}
+
+		this.adapters.put(adapter.getClass().getName(), adapter);
+
+		this.initCallbacks.add((d) -> {
+
+			try {
+				adapter.init();
+			}
+			catch (InterruptedException e) {
+
+				logger.error("Interrupted, ", e);
+
+			}
+			// 对应的Adapter操作定义的有问题，已经与app对应不上
+			catch (AdapterException.OperationException e) {
+
+				logger.error("Adapter operation exception, ", e);
+
+				this.adapters.remove(adapter.getClass().getName());
+
+			}
+			// 没有可用账号了
+			catch (AccountException.NoAvailableAccount e) {
+
+				logger.error("{} No Available Account, ", adapter.getClass().getSimpleName(), e);
+
+				this.adapters.remove(adapter.getClass().getName());
+			}
+		});
+
+		return this;
 	}
 
 	/**
@@ -195,7 +256,9 @@ public class AndroidDevice extends ModelL {
 			setupRemoteWifiProxy();
 
 			// 启动相关服务
-			initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI", Adapter.AppType.WeChat)); // TODO  Appinfo应该放在外部指定？
+			initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI"));
+
+			runCallbacks(initCallbacks);
 
 			init_time = new Date();
 
@@ -231,8 +294,9 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
-	 * @throws MalformedURLException
-	 * @throws InterruptedException
+	 * 同步方法
+	 * @return
+	 * @throws AndroidException.IllegalStatusException
 	 */
 	public synchronized AndroidDevice start() throws AndroidException.IllegalStatusException {
 
@@ -256,7 +320,7 @@ public class AndroidDevice extends ModelL {
 			}
 
 			// 执行状态回调函数
-			// runCallbacks(newCallbacks);
+			runCallbacks(idleCallbacks);
 
 		} catch (InterruptedException e) {
 
@@ -283,12 +347,23 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
-	 * @throws IOException
+	 *
+	 * @return
+	 * @throws AndroidException.IllegalStatusException
 	 */
 	public synchronized AndroidDevice stop() throws AndroidException.IllegalStatusException {
+		return stop(true);
+	}
+
+	/**
+	 *
+	 * @return
+	 * @throws AndroidException.IllegalStatusException
+	 */
+	public synchronized AndroidDevice stop(boolean runCallbacks) throws AndroidException.IllegalStatusException {
 
 
-		if (!(status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
+		if (!(status == Status.Init || status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
 			throw new AndroidException.IllegalStatusException();
 		}
 
@@ -301,6 +376,8 @@ public class AndroidDevice extends ModelL {
 			closeFuture.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
 			status = Status.Terminated;
 			logger.info("[{}] Stop done.", name);
+
+			if(runCallbacks) runCallbacks(terminatedCallbacks);
 
 		} catch (InterruptedException e) {
 
@@ -335,6 +412,50 @@ public class AndroidDevice extends ModelL {
 		clearCacheLog();
 		clearAllLog();
 		start();
+	}
+
+	public synchronized void submit(Task task) throws AndroidException.IllegalStatusException {
+
+		if (!(status == Status.Idle || status == Status.Busy)) {
+			throw new AndroidException.IllegalStatusException();
+		}
+
+		this.status = Status.Busy;
+
+		taskFuture = executor.submit(task);
+
+		try {
+
+			taskFuture.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+			status = Status.Idle;
+			logger.info("[{}] Stop done.", name);
+
+			runCallbacks(idleCallbacks);
+
+		}
+		//
+		catch (InterruptedException e) {
+
+			status = Status.Failed;
+			logger.error("[{}] Stop interrupted. ", name, e);
+
+		}
+		// TODO 对执行时异常的精细处理
+		catch (ExecutionException e) {
+
+			status = Status.Failed;
+			logger.error("[{}] Stop failed. ", name, e.getCause());
+
+		}
+		//
+		catch (TimeoutException e) {
+
+			taskFuture.cancel(true);
+			status = Status.Failed;
+			logger.error("[{}] Stop failed. ", name, e);
+		}
+
+		taskFuture = null;
 	}
 
 	/**
@@ -538,7 +659,7 @@ public class AndroidDevice extends ModelL {
 		// C 定义Driver Capabilities
 		DesiredCapabilities capabilities = new DesiredCapabilities();
 		capabilities.setCapability("app", "");
-		capabilities.setCapability("appPackage", appInfo.appPackage); // App包名
+		capabilities.setCapability("appPackage", appInfo.appPackage);   // App包名
 		capabilities.setCapability("appActivity", appInfo.appActivity); // App启动Activity
 		capabilities.setCapability("fastReset", false);
 		capabilities.setCapability("fullReset", false);
@@ -927,5 +1048,34 @@ public class AndroidDevice extends ModelL {
 	 */
 	public void goBack() {
 		driver.navigate().back();
+	}
+
+
+	public AndroidDevice addInitCallback(AndroidDeviceCallBack callBack) {
+		this.initCallbacks.add(callBack);
+		return this;
+	}
+
+	public AndroidDevice addIdleCallback(AndroidDeviceCallBack callBack) {
+		this.idleCallbacks.add(callBack);
+		return this;
+	}
+
+	public AndroidDevice addFailedCallback(AndroidDeviceCallBack callBack) {
+		this.failedCallbacks.add(callBack);
+		return this;
+	}
+
+	public AndroidDevice addTerminatedCallback(AndroidDeviceCallBack callBack) {
+		this.terminatedCallbacks.add(callBack);
+		return this;
+	}
+
+	private void runCallbacks(List<AndroidDeviceCallBack> callbacks) {
+
+		if(callbacks == null) return;
+		for(AndroidDeviceCallBack callback : callbacks) {
+			callback.call(this);
+		}
 	}
 }

@@ -4,7 +4,10 @@ import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.account.AppAccount;
+import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.exception.AdapterException;
+import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.WeChatAdapterException;
 import one.rewind.android.automator.model.WechatContact;
 import one.rewind.android.automator.model.WechatMoment;
@@ -30,6 +33,8 @@ import java.util.stream.Collectors;
  */
 public class WeChatAdapter extends Adapter {
 
+	public static boolean NeedAccount = true;
+
 	public static enum Status {
 		Init,                                  // 初始化
 		Home_Login,                               // 登陆
@@ -51,25 +56,72 @@ public class WeChatAdapter extends Adapter {
 	// 状态信息
 	public Status status = Status.Init;
 
-
 	/**
 	 * 构造方法
 	 *
 	 * @param device     加载设备
-	 * @param appAccount 加载账号
+	 * @param account 加载账号
 	 */
-	public WeChatAdapter(AndroidDevice device, AppAccount appAccount) {
+	public WeChatAdapter(AndroidDevice device, Account account) throws AndroidException.IllegalStatusException {
 		super(device);
-		this.account = appAccount;
+		this.account = account;
+	}
+
+	/**
+	 *
+	 */
+	public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+
+		// A 启动Adapter   启动Adapter之后确认在APP首页
+		start();
+
+		Thread.sleep(5000);
+
+		// B1 验证是否在微信首页
+		if (atHome()) {
+			status = Status.Home;
+
+			// B11 验证当前微信用户 与 account 相对应
+			UserInfo userInfo = getLocalUserInfo();
+			// 微信昵称 与 微信号 有一个不对应
+			if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
+				loginOut();
+				login();
+			}
+		}
+		// B2 验证是否时登陆页面
+		// 此时假设设备上的微信都登陆过账号
+		// 如果是登陆页面，使用当前account进行登陆
+		else {
+			login();
+		}
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public boolean atHome() {
+		try {
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
+			return true;
+		} catch (Exception e) {
+			logger.warn("Can't find '微信' tab, ", e);
+			return false;
+		}
 	}
 
 	/**
 	 * @throws Exception
 	 */
-	public void start() {
+	public void start() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
 		super.start();
 		// 验证到首页 或者 首页登陆界面 并更改状态
-		status = Status.Home;
+		if(!atHome()) {
+			restart();
+		} else {
+			status = Status.Home;
+		}
 	}
 
 	/**
@@ -79,7 +131,8 @@ public class WeChatAdapter extends Adapter {
 	 * @throws IOException
 	 */
 	public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
-			throws IOException, InterruptedException, WeChatAdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException {
+			throws IOException, InterruptedException, WeChatAdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException
+	{
 
 		// A 获取截图
 		String screenShotPath = this.device.screenShot();
@@ -111,10 +164,14 @@ public class WeChatAdapter extends Adapter {
 	/**
 	 * 重启微信
 	 */
-	public void restart() {
+	public void restart() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
 
 		super.restart();
-		this.status = Status.Home;
+
+		// 无法正常进入主页
+		if(!atHome()) {
+			init();
+		}
 	}
 
 	/**
@@ -414,38 +471,96 @@ public class WeChatAdapter extends Adapter {
 	 *
 	 * @throws InterruptedException
 	 */
-	public void loginOut() throws InterruptedException {
+	public void loginOut() throws InterruptedException, AdapterException.OperationException {
 
-		// A 点击我
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
-		Thread.sleep(500);
+		try {
+			// A 点击我
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
+			Thread.sleep(500);
 
-		// B 点击设置
-		device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
-		Thread.sleep(500);
+			// B 点击设置
+			device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
+			Thread.sleep(500);
 
-		// C 向下滑
-		device.slideToPoint(500, 1800, 600, 1000, 500);
+			// C 向下滑
+			device.slideToPoint(500, 1800, 600, 1000, 500);
 
-		// D 点击退出
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
-		Thread.sleep(1000);
+			// D 点击退出
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出')]")).click();
+			Thread.sleep(1000);
+
+			// D 点击退出
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出登录')]")).click();
+			Thread.sleep(5000);
+			// 不能正常执行上述操作
+		} catch (Exception e) {
+			logger.error("Failure to perform required operations, ", e);
+			throw new AdapterException.OperationException();
+		}
 	}
 
 	/**
 	 * 登录
 	 */
-	public void login() {
+	public void login() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
 
-		// A 输入账号密码  appAccount
+		try {
 
-		// B 点击登录
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多')]")).click();
+			Thread.sleep(2000);
 
-		// C 验证是否存在拖拽操作
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录其他帐号')]")).click();
+			Thread.sleep(2000);
+
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
+			Thread.sleep(2000);
+
+			// A 输入账号密码  appAccount
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).sendKeys(account.src_id);
+			Thread.sleep(1000);
+
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'请填写密码')]")).sendKeys(account.password);
+			Thread.sleep(1000);
+
+			// B 点击登录
+			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录')]")).click();
+			Thread.sleep(5000);
+
+		}
+		// 不能正常执行上述操作
+		catch (Exception e) {
+			logger.error("Failure to perform required operations, ", e);
+			throw new AdapterException.OperationException();
+		}
+
+		// C 验证是否存在拖拽操作等安全验证操作
 
 		// D 人工拖拽
 
 		// F 进入首页  完成登录操作
+		if(atHome()) {
+			return;
+		}
+		// 无法进入首页，应该是账号问题
+		else {
+
+			account.status = Account.Status.Broken;
+			try {
+				account.update();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			Account new_account = Account.getAccount(device.udid, WeChatAdapter.class.getName());
+			if(new_account != null) {
+				account = new_account;
+				login();
+			}
+			// 没有合适的Account了
+			else {
+				throw new AccountException.NoAvailableAccount();
+			}
+		}
 	}
 
 
@@ -1172,8 +1287,11 @@ public class WeChatAdapter extends Adapter {
 
 	/**
 	 * 切换微信账号
+	 * TODO 之前账号的状态需要妥善处理
 	 */
-	public void switchAccount() throws InterruptedException {
+	public void switchAccount(Account account) throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+
+		this.account = account;
 
 		// A 退出登录
 		loginOut();

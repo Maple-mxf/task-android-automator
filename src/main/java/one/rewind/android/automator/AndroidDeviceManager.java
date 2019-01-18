@@ -2,8 +2,7 @@ package one.rewind.android.automator;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import one.rewind.android.automator.account.AppAccount;
-import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.util.ShellUtil;
@@ -50,7 +49,7 @@ public class AndroidDeviceManager {
 	/**
 	 * 所有设备的信息
 	 */
-	public static List<AndroidDevice> androidDevices = new ArrayList<>();
+	public List<AndroidDevice> androidDevices = new ArrayList<>();
 
 	/**
 	 * 单例
@@ -70,6 +69,8 @@ public class AndroidDeviceManager {
 	 *
 	 */
 	private AndroidDeviceManager() {
+
+
 	}
 
 	/**
@@ -93,22 +94,10 @@ public class AndroidDeviceManager {
 
 		}
 
-		// B 设备INIT
-		androidDevices.parallelStream().forEach(d -> {
-			try {
-				d.start();
-			} catch (AndroidException.IllegalStatusException e) {
-				// 其实此处不会抛出异常
-				logger.error("Start Device[{}] failed, ", d.udid, e);
-			}
-		});
-
 		// B 加载默认的Adapters
 		for (AndroidDevice ad : androidDevices) {
 
 			for (String className : DefaultAdapterClassNameList) {
-
-				Adapter adapter;
 
 				Class<?> clazz = Class.forName(className);
 
@@ -127,34 +116,42 @@ public class AndroidDeviceManager {
 
 				// 如果Adapter必须使用Account
 				if (needAccount) {
-					cons = clazz.getConstructor(AndroidDevice.class, AppAccount.class);
-					adapter = (Adapter) cons.newInstance(ad, AppAccount.getAccount(ad.udid, className));
+
+					cons = clazz.getConstructor(AndroidDevice.class, Account.class);
+
+					Account account = Account.getAccount(ad.udid, className);
+
+					if(account != null) {
+						cons.newInstance(ad, account);
+					}
+					// 找不到账号，对应设备无法启动
+					else {
+						ad.status = AndroidDevice.Status.Failed;
+					}
+
 				} else {
 					cons = clazz.getConstructor(AndroidDevice.class);
-					adapter = (Adapter) cons.newInstance(ad);
+					cons.newInstance(ad);
 				}
-
-				ad.adapters.put(className, adapter);
-
-				adapter.init();
 			}
 		}
 
-		//
+		// C 设备INIT
+		androidDevices.parallelStream()
+			.filter(d -> d.status != AndroidDevice.Status.Failed)
+			.forEach(d -> {
+				try {
+					d.start();
+				} catch (AndroidException.IllegalStatusException e) {
+					logger.error("Start Device[{}] failed, ", d.udid, e);
+				}
+			});
 	}
-
-	/*private static void obtainFullData(Set<String> accounts, int page, int var) {
-		// TODO 可能出现死循环
-		while (accounts.size() <= var) {
-			DBUtil.sendAccounts(accounts, page);
-			++page;
-		}
-	}*/
 
 	/**
 	 * 加载数据库中,上一次未完成的任务
 	 */
-/*	public void initMediaStack() {
+	/* public void initMediaStack() {
 		Set<String> set = Sets.newHashSet();
 		obtainFullData(set, startPage, DeviceUtil.obtainDevices().length);
 		mediaStack.addAll(set);
@@ -270,13 +267,13 @@ public class AndroidDeviceManager {
 	 *//*
 	private void distributionFetchTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
-		SubscribeMedia media =
+		AccountMediaSubscribe media =
 				Tab.subscribeDao.
 						queryBuilder().
 						where().
 						eq("udid", device.udid).
 						and().
-						eq("status", SubscribeMedia.State.NOT_FINISH.status).
+						eq("status", AccountMediaSubscribe.State.NOT_FINISH.status).
 						queryForFirst();
 
 		// 相对于现在没有完成的任务
@@ -304,9 +301,9 @@ public class AndroidDeviceManager {
 
 		long allSubscribe = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
-		List<SubscribeMedia> notFinishR = Tab.subscribeDao.queryBuilder().where().
+		List<AccountMediaSubscribe> notFinishR = Tab.subscribeDao.queryBuilder().where().
 				eq("udid", udid).and().
-				eq("status", SubscribeMedia.State.NOT_FINISH.status).
+				eq("status", AccountMediaSubscribe.State.NOT_FINISH.status).
 				query();
 
 		int todaySubscribe = obtainSubscribeNumToday(udid);
@@ -353,8 +350,8 @@ public class AndroidDeviceManager {
 	private void reset() {
 		try {
 			RQueue<Object> taskMedia = redisClient.getQueue(Tab.TOPIC_MEDIA);
-			List<SubscribeMedia> accounts = Tab.subscribeDao.queryForAll();
-			for (SubscribeMedia v : accounts) {
+			List<AccountMediaSubscribe> accounts = Tab.subscribeDao.queryForAll();
+			for (AccountMediaSubscribe v : accounts) {
 
 				if (v.status == 2 && v.number == 0) {
 					if (v.topic != null) {
@@ -465,47 +462,6 @@ public class AndroidDeviceManager {
 		String r = sb.toString().replace("List of androidDevices attached", "").replace("\t", "");
 
 		return r.split("device");
-	}
-
-
-	/**
-	 * 加载所有的AndroidDevice
-	 * Android Device 和 AppAccount之间存在弱引用的关系（逻辑上定义的弱引用关系）
-	 */
-
-	/*public static void initialize() throws Exception {
-		// A 加载所有安卓设备
-		String[] udids = getAvailableDeviceUdids();
-
-		for (String udid : udids) {
-
-			AndroidDevice device = new AndroidDevice(udid);
-
-			androidDevices.add(device);
-		}
-
-		// B 加载所有设备的任务   AndroidDevice--->Account--->media  name
-		for (AndroidDevice device : androidDevices) {
-
-			// A 查询当前的账号列表
-			List<AppAccount> accounts = getAccounts(device.udid, Adapter.AppType.WeChat);
-
-			// B 为当前设备寻找Adapter
-			// C 需要计算当前使用的账号
-			WeChatAdapter weChatAdapter = new WeChatAdapter(device, accounts.get(0));
-
-			// D 初始化任务队列
-
-		}
-	}
-*/
-
-	/**
-	 * 加载历史任务
-	 *
-	 * @param device
-	 */
-	public static void loadTask(AndroidDevice device) {
 	}
 }
 

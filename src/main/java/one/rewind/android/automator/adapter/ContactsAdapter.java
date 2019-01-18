@@ -3,6 +3,9 @@ package one.rewind.android.automator.adapter;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.exception.AccountException;
+import one.rewind.android.automator.exception.AdapterException;
+import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.util.FileUtil;
 import org.openqa.selenium.By;
@@ -12,12 +15,16 @@ import java.util.List;
 
 public class ContactsAdapter extends Adapter {
 
-	public ContactsAdapter(AndroidDevice androidDevice) {
+	public ContactsAdapter(AndroidDevice androidDevice) throws AndroidException.IllegalStatusException {
 		super(androidDevice);
 		this.appInfo = new AppInfo(
 				"com.google.android.contacts",
-				"com.android.contacts.activities.PeopleActivity",
-				AppType.Contacts);
+				"com.android.contacts.activities.PeopleActivity");
+	}
+
+	@Override
+	public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+
 	}
 
 	/**

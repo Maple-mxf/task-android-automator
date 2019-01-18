@@ -50,7 +50,6 @@ public class RequestRecord extends ModelL {
 	@DatabaseField(dataType = DataType.BOOLEAN)
 	public boolean is_finish_history;
 
-
 	/**
 	 * 上一次采集时间
 	 */

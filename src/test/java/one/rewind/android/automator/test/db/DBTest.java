@@ -2,10 +2,9 @@ package one.rewind.android.automator.test.db;
 
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.account.AppAccount;
-import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.model.AccountMediaSubscribe;
 import one.rewind.android.automator.model.BaiduToken;
-import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
@@ -28,7 +27,7 @@ public class DBTest {
 
 	@Test
 	public void setupTables() throws Exception {
-		Refacter.createTable(AppAccount.class);
+		Refacter.createTable(Account.class);
 	}
 
 
@@ -47,7 +46,7 @@ public class DBTest {
 		calendar.set(Calendar.SECOND, 0);
 		Date zero = calendar.getTime();
 		Date current = DateUtils.addDays(zero, 1);
-		Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
+		Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
 		long count = dao.queryBuilder().where().between("insert_time", zero, current).countOf();
 		System.out.println(count);
 	}
@@ -55,27 +54,27 @@ public class DBTest {
 
 	@Test
 	public void updateData() throws Exception {
-		Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
+		Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
 
-		SubscribeMedia subscribeMedia = dao.queryBuilder().where().
+		AccountMediaSubscribe accountSubscribe = dao.queryBuilder().where().
 				eq("udid", "ZX1G22PQLH").
 				and().
 				eq("media_name", "北京理工大学研究生教育").
 				queryForFirst();
 
-		System.out.println(subscribeMedia);
+		System.out.println(accountSubscribe);
 
-		subscribeMedia.status = SubscribeMedia.State.FINISH.status;
+		accountSubscribe.status = AccountMediaSubscribe.State.FINISH.status;
 
-		System.out.println(subscribeMedia);
+		System.out.println(accountSubscribe);
 
-		subscribeMedia.update();
+		accountSubscribe.update();
 	}
 
 
 	@Test
 	public void byTimeQuery() throws Exception {
-		Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
+		Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
 
 		Date date = new Date();
 
@@ -85,7 +84,7 @@ public class DBTest {
 
 		Date parse = df.parse(result);
 
-		List<SubscribeMedia> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
+		List<AccountMediaSubscribe> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
 
 		System.out.println(insert_time.size());
 	}
@@ -118,7 +117,7 @@ public class DBTest {
 		Date time = instance.getTime();
 
 
-		List<SubscribeMedia> query = Tab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
+		List<AccountMediaSubscribe> query = Tab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
 
 		System.out.println(query);
 	}
@@ -253,13 +252,13 @@ public class DBTest {
 
 	@Test
 	public void test3() throws Exception {
-		SubscribeMedia media =
+		AccountMediaSubscribe media =
 				Tab.subscribeDao.
 						queryBuilder().
 						where().
 						eq("udid", "ZX1G22PQLH").
 						and().
-						eq("status", SubscribeMedia.State.NOT_FINISH.status).
+						eq("status", AccountMediaSubscribe.State.NOT_FINISH.status).
 						queryForFirst();
 		System.out.println(media.media_name);
 
@@ -268,15 +267,15 @@ public class DBTest {
 
 	@Test
 	public void testCreateTable() throws Exception {
-		Refacter.createTable(AppAccount.class);
+		Refacter.createTable(Account.class);
 //		Refacter.createTable(RequestRecord.class);
-////		Refacter.createTable(SubscribeMedia.class);
+////		Refacter.createTable(AccountMediaSubscribe.class);
 //		Refacter.createTable(WechatGroup.class);
 //		Refacter.createTable(WechatMsg.class);
 //		Refacter.createTable(TaskLog.class);
 //		Refacter.createTable(WechatMomentComment.class);
 //		Refacter.createTable(AndroidDevice.class);
-//		Refacter.createTable(AppAccount.class);
+//		Refacter.createTable(Account.class);
 	}
 
 	@Test
@@ -294,21 +293,19 @@ public class DBTest {
 	@Test
 	public void testAppAccountInsert() throws Exception {
 
-		AppAccount appAccount = new AppAccount();
+		Account account = new Account();
 
-		appAccount.username = "sdyk_applessed";
+		account.username = "sdyk_applessed";
 
-		appAccount.mobile = "";
+		account.mobile = "";
 
-		appAccount.password = "123456abc";
+		account.password = "123456abc";
 
-		appAccount.appType = Adapter.AppType.WeChat;
+		account.status = Account.Status.Normal;
 
-		appAccount.status = AppAccount.Status.Normal;
+		account.udid = "ZX1G323GNB";
 
-		appAccount.udid = "ZX1G323GNB";
-
-		appAccount.insert();
+		account.insert();
 	}
 }
 

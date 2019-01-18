@@ -7,13 +7,17 @@ import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
 import one.rewind.db.DaoManager;
 import one.rewind.db.model.ModelL;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
 @DBName("android_automator")
 @DatabaseTable(tableName = "app_accounts")
-public class AppAccount extends ModelL {
+public class Account extends ModelL {
+
+	private static final Logger logger = LogManager.getLogger(Account.class.getName());
 
 	// 搜索公众号限流 账号冻结时间间隔
 	public static long Default_Search_Public_Account_Frozen_Time = 72 * 3600 * 1000;
@@ -48,6 +52,9 @@ public class AppAccount extends ModelL {
 	@DatabaseField(dataType = DataType.ENUM_STRING, width = 64, indexName = "udid-adapter-status")
 	public Status status = Status.Normal;
 
+	@DatabaseField(dataType = DataType.BOOLEAN)
+	public boolean occupied = false;
+
 	/**
 	 * 账号状态
 	 */
@@ -68,20 +75,34 @@ public class AppAccount extends ModelL {
 	 * @return
 	 * @throws Exception
 	 */
-	public static AppAccount getAccount(String udid, String adapter_class_name) throws Exception {
+	public static synchronized Account getAccount(String udid, String adapter_class_name) {
 
 		long t = System.currentTimeMillis();
+		Account account = null;
 
-		Dao<AppAccount, String> dao = DaoManager.getDao(AppAccount.class);
+		try {
 
-		return dao.queryBuilder().where()
-				.and(
-						dao.queryBuilder().where().eq("udid", udid),
-						dao.queryBuilder().where().eq("adapter_class_name", adapter_class_name),
-						dao.queryBuilder().where().eq("status", "Normal")
-								.or().eq("status", "Search_Public_Account_Frozen").and().le("update_time", t - Default_Search_Public_Account_Frozen_Time)
-								.or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
-				)
-				.queryForFirst();
+			Dao<Account, String> dao = DaoManager.getDao(Account.class);
+
+			account = dao.queryBuilder().where()
+					.and(
+							dao.queryBuilder().where().eq("udid", udid),
+							dao.queryBuilder().where().eq("adapter_class_name", adapter_class_name),
+							dao.queryBuilder().where().eq("status", "Normal")
+									.or().eq("status", "Search_Public_Account_Frozen").and().le("update_time", t - Default_Search_Public_Account_Frozen_Time)
+									.or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
+					)
+					.queryForFirst();
+
+			if (account != null) {
+				account.occupied = true;
+				account.update();
+			}
+
+		} catch (Exception e) {
+			logger.error("Error get account, ", e);
+		}
+
+		return account;
 	}
 }
