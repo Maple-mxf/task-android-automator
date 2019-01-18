@@ -2,8 +2,12 @@ package one.rewind.android.automator;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.j256.ormlite.dao.Dao;
+import one.rewind.android.automator.account.AppAccount;
 import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.util.ShellUtil;
+import one.rewind.db.DaoManager;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -36,7 +40,7 @@ public class AndroidDeviceManager {
 
 
 	// 所有设备的任务
-	public ConcurrentHashMap<AndroidDevice, Queue<String>> task = new ConcurrentHashMap<>();
+	public ConcurrentHashMap<String, Queue<String>> deviceTaskMap = new ConcurrentHashMap<>();
 
 	/**
 	 * 所有设备的信息
@@ -406,13 +410,10 @@ public class AndroidDeviceManager {
 
 	/**
 	 * 加载所有的AndroidDevice
-	 *
 	 * Android Device 和 AppAccount之间存在弱引用的关系（逻辑上定义的弱引用关系）
-	 *
-	 *
 	 */
-	static {
 
+	public static void initialize() throws Exception {
 		// A 加载所有安卓设备
 		String[] udids = getAvailableDeviceUdids();
 
@@ -426,14 +427,36 @@ public class AndroidDeviceManager {
 		// B 加载所有设备的任务   AndroidDevice--->Account--->media  name
 		for (AndroidDevice device : androidDevices) {
 
+			// A 查询当前的账号列表
+			List<AppAccount> accounts = getAccounts(device.udid, Adapter.AppType.WeChat);
+
+			// B 为当前设备寻找Adapter
+			// C 需要计算当前使用的账号
+			WeChatAdapter weChatAdapter = new WeChatAdapter(device, accounts.get(0));
+
+			// D 初始化任务队列
+
 		}
 	}
 
 	/**
+	 * 加载历史任务
+	 *
+	 * @param device
+	 */
+	public static void loadTask(AndroidDevice device) {
+	}
+
+
+	/**
 	 * 在当前机器上登录过的账号查询   根据app的类型查询账号
 	 */
-	public static void queryAccountByUdid(String udid, Adapter.AppType appType) {
+	public static List<AppAccount> getAccounts(String udid, Adapter.AppType appType) throws Exception {
 
+		Dao<AppAccount, String> accountDao = DaoManager.getDao(AppAccount.class);
+
+		// 查询当前机器上登陆过的账号
+		return accountDao.queryBuilder().where().eq("udid", udid).and().eq("appType", appType).query();
 	}
 }
 

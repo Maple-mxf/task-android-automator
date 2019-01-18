@@ -82,6 +82,4 @@ public class AppAccount extends ModelL {
 				.or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
 				.queryForFirst();
 	}
-
-
 }
