@@ -21,6 +21,7 @@ import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
@@ -57,7 +58,7 @@ import java.util.concurrent.*;
  * AndroidDriver --> AppiumDriverLocalService(HTTP) --> (ADB/HTTP Wired JSON) --> AppiumServer
  */
 @DBName("android_automator")
-@DatabaseTable(tableName = "devices")
+@DatabaseTable(tableName = "androidDevices")
 public class AndroidDevice extends ModelL {
 
 	private static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
@@ -191,7 +192,7 @@ public class AndroidDevice extends ModelL {
 			setupRemoteWifiProxy();
 
 			// 启动相关服务
-			initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI"));
+			initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI", Adapter.AppType.WeChat));
 
 			init_time = new Date();
 
@@ -230,10 +231,10 @@ public class AndroidDevice extends ModelL {
 	 * @throws MalformedURLException
 	 * @throws InterruptedException
 	 */
-	public synchronized AndroidDevice start() throws AndroidDeviceException.IllegalStatusException {
+	public synchronized AndroidDevice start() throws AndroidException.IllegalStatusException {
 
 		if (!(status == Status.New || status == Status.Terminated)) {
-			throw new AndroidDeviceException.IllegalStatusException();
+			throw new AndroidException.IllegalStatusException();
 		}
 
 		status = Status.Init;
@@ -281,11 +282,11 @@ public class AndroidDevice extends ModelL {
 	/**
 	 * @throws IOException
 	 */
-	public synchronized AndroidDevice stop() throws AndroidDeviceException.IllegalStatusException {
+	public synchronized AndroidDevice stop() throws AndroidException.IllegalStatusException {
 
 
 		if (!(status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
-			throw new AndroidDeviceException.IllegalStatusException();
+			throw new AndroidException.IllegalStatusException();
 		}
 
 		this.status = Status.Terminating;
@@ -325,7 +326,7 @@ public class AndroidDevice extends ModelL {
 	 * 场景: 设备运行时间过程, 没有响应
 	 * </p>
 	 */
-	public void restart() throws AndroidDeviceException.IllegalStatusException, IOException, InterruptedException {
+	public void restart() throws IOException, InterruptedException, AndroidException.IllegalStatusException {
 		stop();
 		clear();
 		clearCacheLog();
@@ -380,7 +381,8 @@ public class AndroidDevice extends ModelL {
 		});
 
 		// 设定初始 ResponseFilter
-		bmProxy.addResponseFilter((response, contents, messageInfo) -> {});
+		bmProxy.addResponseFilter((response, contents, messageInfo) -> {
+		});
 
 		logger.info("Proxy started @proxyPort {}", proxyPort);
 	}
@@ -507,7 +509,7 @@ public class AndroidDevice extends ModelL {
 		serviceCapabilities.setCapability(MobileCapabilityType.NEW_COMMAND_TIMEOUT, 3600);
 
 		// B 定义AppiumService
-		if(EnvUtil.isHostLinux()) {
+		if (EnvUtil.isHostLinux()) {
 			service = new AppiumServiceBuilder()
 					.withCapabilities(serviceCapabilities)
 					.usingPort(appiumPort)
@@ -693,6 +695,7 @@ public class AndroidDevice extends ModelL {
 
 	/**
 	 * 重启设备
+	 *
 	 * @param udid
 	 * @throws IOException
 	 * @throws InterruptedException
@@ -786,7 +789,6 @@ public class AndroidDevice extends ModelL {
 	}
 
 	/**
-	 *
 	 * @param appInfo
 	 * @throws IOException
 	 * @throws InterruptedException
@@ -846,6 +848,7 @@ public class AndroidDevice extends ModelL {
 
 	/**
 	 * 截图
+	 *
 	 * @return 获取保存的文件路径
 	 */
 	public String screenShot() throws IOException {
@@ -862,8 +865,8 @@ public class AndroidDevice extends ModelL {
 	/**
 	 * 点击固定的位置
 	 *
-	 * @param x   x
-	 * @param y   y
+	 * @param x         x
+	 * @param y         y
 	 * @param sleepTime 睡眠时间
 	 * @throws InterruptedException e
 	 */

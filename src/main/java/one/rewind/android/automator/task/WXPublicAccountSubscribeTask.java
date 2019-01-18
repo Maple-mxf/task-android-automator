@@ -52,7 +52,7 @@ public class WXPublicAccountSubscribeTask extends Task {
 				e.number = 100;
 				e.retry_count = 0;
 				e.status = SubscribeMedia.State.NOT_FINISH.status;
-				e.request_id = topic;
+				e.topic = topic;
 				e.relative = 1;
 				e.insert();
 			}

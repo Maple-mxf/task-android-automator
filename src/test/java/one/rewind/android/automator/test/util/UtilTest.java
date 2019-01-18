@@ -1,11 +1,9 @@
 package one.rewind.android.automator.test.util;
 
-import com.google.common.collect.Sets;
-import one.rewind.android.automator.ocr.BaiDuOCRParser;
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduToken;
-import one.rewind.android.automator.util.*;
-import one.rewind.android.automator.util.DeviceUtil;
+import one.rewind.android.automator.ocr.BaiDuOCRParser;
+import one.rewind.android.automator.util.BaiduAPIUtil;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -20,15 +18,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class UtilTest {
 
 
-    /**
-     * List of devicesInfo attached
-     * 9YJ7N17429007528	device
-     * ZX1G323GNB	device
-     */
-    @Test
-    public void testShellExecute() {
-        String[] devicesInfoByShell = DeviceUtil.obtainDevices();
-    }
 
 
     @Test
@@ -83,19 +72,6 @@ public class UtilTest {
 //        DeviceUtil.accuracySubscribe("故事与道理的磨合");
     }
 
-    @Test
-    public void testMath() throws SQLException {
-        long countOf = Tab.essayDao.
-                queryBuilder().
-                where().
-                eq("media_nick", "云南省驻越南商务代表处").countOf();
-
-        if (countOf >= 17 || Math.abs(17 - countOf) <= 5) {
-            System.out.println("1");
-        } else {
-            System.out.println("2");
-        }
-    }
 
     @Test
     public void testString() {
@@ -105,10 +81,6 @@ public class UtilTest {
         System.out.println(b);
     }
 
-    @Test
-    public void testExecuteCommand() throws IOException, InterruptedException {
-        ShellUtil.shutdownProcess("ZX1G42BX4R", "com.tencent.mm");
-    }
 
 
     @Test
@@ -143,12 +115,6 @@ public class UtilTest {
         System.out.println(queue.size());
     }
 
-    @Test
-    public void testDBQueryMedia() {
-        Set<String> set = Sets.newHashSet();
-
-        DBUtil.sendAccounts(set, 10);
-    }
 
     @Test
     public void testList() {

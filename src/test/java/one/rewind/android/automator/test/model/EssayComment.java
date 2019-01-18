@@ -4,10 +4,10 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.data.raw.model.base.ModelD;
-import one.rewind.data.raw.util.JSONableListPersister;
 import one.rewind.db.DBName;
 import one.rewind.db.DaoManager;
+import one.rewind.db.model.ModelD;
+import one.rewind.db.persister.JSONableListPersister;
 
 import java.util.List;
 

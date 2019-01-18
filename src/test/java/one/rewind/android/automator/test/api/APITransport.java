@@ -1,16 +1,11 @@
 package one.rewind.android.automator.test.api;
 
 import com.google.common.collect.Lists;
-import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.db.DaoManager;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.sql.*;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -163,7 +158,7 @@ public class APITransport {
     }*/
 
 
-    @Test
+   /* @Test
     public void updateNotFinish() throws Exception {
         Dao<SubscribeMedia, String> dao = DaoManager.getDao(SubscribeMedia.class);
 
@@ -186,5 +181,5 @@ public class APITransport {
 
             }
         }
-    }
+    }*/
 }

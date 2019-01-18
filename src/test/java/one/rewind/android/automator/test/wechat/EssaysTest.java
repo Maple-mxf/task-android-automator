@@ -1,13 +1,7 @@
 package one.rewind.android.automator.test.wechat;
 
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.Comments;
-import one.rewind.json.JSON;
 import one.rewind.util.FileUtil;
 import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
 
 
 /**
@@ -26,7 +20,7 @@ public class EssaysTest {
 		comments = FileUtil.readFileByLines("tmp/wx_essay_comments_demo.txt");
 	}
 
-	@Test
+	/*@Test
 	public void testParseWechatEssay() throws Exception {
 
 		Essays we = new Essays().parseContent(content).parseStat(stats);
@@ -45,5 +39,5 @@ public class EssaysTest {
 			}
 		});
 
-	}
+	}*/
 }

@@ -1,41 +1,21 @@
 package one.rewind.android.automator.test.adapter;
 
-import com.google.common.collect.Queues;
-import io.netty.handler.codec.http.HttpHeaders;
-import net.lightbody.bmp.filters.RequestFilter;
-import net.lightbody.bmp.filters.ResponseFilter;
-import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.util.DeviceUtil;
-import one.rewind.android.automator.util.Tab;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.util.AppInfo;
-import one.rewind.android.automator.util.MD5Util;
-import one.rewind.android.automator.util.ShellUtil;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.*;
-
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
 public class WechatAdapterTest {
 
-    String udid = "ZX1G323GNB";
+   /* String udid = "ZX1G323GNB";
     int appiumPort = 47356;
     int localProxyPort = 48356;
     AndroidDevice device;
     WeChatAdapter adapter;
 
-    /**
+    *//**
      * 初始化设备
      *
      * @throws Exception
-     */
+     *//*
     @Before
     public void setup() throws Exception {
 
@@ -45,9 +25,9 @@ public class WechatAdapterTest {
         device.startProxy(localProxyPort);
         device.setupRemoteWifiProxy();
 
-        /**
+        *//**
          * TODO 请求过滤器
-         */
+         *//*
         RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
             String url = messageInfo.getOriginalUrl();
@@ -73,9 +53,9 @@ public class WechatAdapterTest {
         Stack<String> stats_stack = new Stack<>();
         Stack<String> comments_stack = new Stack<>();
 
-        /**
+        *//**
          * TODO 返回过滤器
-         */
+         *//*
         ResponseFilter responseFilter = (response, contents, messageInfo) -> {
 
             String url = messageInfo.getOriginalUrl();
@@ -279,6 +259,6 @@ public class WechatAdapterTest {
     @Test
     public void testGetEssays() {
         adapter.digestionCrawler("阿里巴巴", true);
-    }
+    }*/
 
 }

@@ -2,9 +2,8 @@ package one.rewind.android.automator.test.db;
 
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.AndroidDeviceManager;
-import one.rewind.android.automator.model.*;
-import one.rewind.android.automator.util.MD5Util;
+import one.rewind.android.automator.model.BaiduToken;
+import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DaoManager;
 import one.rewind.db.Refacter;
@@ -32,27 +31,12 @@ public class DBTest {
 		Refacter.createTables(packageName);
 	}
 
-	@Test
-	public void setupTable() throws Exception {
-		Refacter.dropTable(Comments.class);
-		Refacter.createTable(Comments.class);
-		Refacter.dropTable(Essays.class);
-		Refacter.createTable(Essays.class);
-	}
-
 
 	@Test
 	public void setupRawTable() throws Exception {
 		Refacter.createTable(BaiduToken.class);
 	}
 
-
-	@Test
-	public void testSQLInject() throws Exception {
-		Dao<Essays, String> dao = DaoManager.getDao(Essays.class);
-		long countOf = dao.queryBuilder().where().eq("media_nick", "IPP评论").countOf();
-		System.out.println(countOf);
-	}
 
 	@Test
 	public void queryByCondition() throws Exception {
@@ -161,8 +145,8 @@ public class DBTest {
 				String media_nick = rs.getString("media_nick");
 				String content = rs.getString("content");
 				String images = new JSONArray(getImgStr(content)).toString();
-				String media_id = MD5Util.MD5Encode(platform + "-" + media_nick, "UTF-8");
-				ps2.setString(1, media_id);
+//				String media_id = MD5Util.MD5Encode(platform + "-" + media_nick, "UTF-8");
+//				ps2.setString(1, media_id);
 				ps2.setString(2, images);
 				ps2.setString(3, id);
 			}
@@ -266,17 +250,6 @@ public class DBTest {
 		conn.close();
 	}
 
-	@Test
-	public void test2() {
-		AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
-
-		manager.initMediaStack();
-
-		for (String var : manager.mediaStack) {
-			System.out.println(var);
-			System.out.println(manager.mediaStack.size());
-		}
-	}
 
 	@Test
 	public void test3() throws Exception {
@@ -290,5 +263,31 @@ public class DBTest {
 						queryForFirst();
 		System.out.println(media.media_name);
 
+	}
+
+
+	@Test
+	public void testCreateTable() throws Exception {
+		Refacter.createTable(BaiduToken.class);
+//		Refacter.createTable(RequestRecord.class);
+//		Refacter.createTable(SubscribeMedia.class);
+//		Refacter.createTable(WechatGroup.class);
+//		Refacter.createTable(WechatMsg.class);
+//		Refacter.createTable(TaskLog.class);
+//		Refacter.createTable(WechatMomentComment.class);
+//		Refacter.createTable(AndroidDevice.class);
+//		Refacter.createTable(AppAccount.class);
+	}
+
+	@Test
+	public void testConnection() throws SQLException {
+
+		Connection connection = DriverManager.getConnection("jdbc:mysql://10.0.0.110:3306/android_automator?userSSL=false", "root", "root");
+
+		System.out.println(connection);
+
+		final int i = connection.hashCode();
+
+		System.out.println(i);
 	}
 }

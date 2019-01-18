@@ -381,8 +381,20 @@ public class WeChatAdapter extends Adapter {
 	 * TODO 获取当前订阅的微信公众号列表
 	 */
 	public List<String> getCurrentSubscribePublicAccountList() {
+
+		// A 从通讯中点击公众号
+
+		// B 到达已订阅的公众号列表
+
+		// C 截图识别
+
+		// D 翻到最后一个
+
+		// 依次重复执行若干次
+
 		return new ArrayList<>();
 	}
+
 
 	/**
 	 *

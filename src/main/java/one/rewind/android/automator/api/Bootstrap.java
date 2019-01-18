@@ -48,10 +48,10 @@ public class Bootstrap {
 
 	public static void main(String[] args) {
 
-		AndroidDeviceManager manage = AndroidDeviceManager.getInstance();
+	/*	AndroidDeviceManager manage = AndroidDeviceManager.getInstance();
 
 		// 启动任务
-		manage.run();
+		manage.run();*/
 
 		port(56789);
 
@@ -145,6 +145,8 @@ public class Bootstrap {
 	};
 
 
+
+
 	/**
 	 * 解析Topic
 	 *
@@ -176,7 +178,7 @@ public class Bootstrap {
 
 		boolean has = false;
 
-		for (AndroidDevice device : manager.devices) {
+		for (AndroidDevice device : manager.androidDevices) {
 			if (device.udid.equalsIgnoreCase(udid) || (device.status != null && !device.status.equals(AndroidDevice.Status.Exceed_Subscribe_Limit)))
 				has = true;
 		}
@@ -214,7 +216,7 @@ public class Bootstrap {
 
 				if (var1 != null) {
 					requestRecord.is_follow = true;
-					requestRecord.is_queue = false;
+					requestRecord.in_queue = false;
 
 					// 任务状态为0:  未完成
 					// 任务状态为1:  已完成
@@ -263,11 +265,11 @@ public class Bootstrap {
 
 					// 当前任务正在排队
 					if (!var2.equals(topic)) {
-						requestRecord.is_queue = true;
+						requestRecord.in_queue = true;
 						topic = var2;
 
 					} else {
-						requestRecord.is_queue = false;
+						requestRecord.in_queue = false;
 						// 当前任务没有排队 并且当前任务也非历史任务  分配到制定设备去做
 						// 将当前任务存放到redis中指定设备去做   #realMedia
 						// mediaName + topic + "_udid" + udid
@@ -290,7 +292,7 @@ public class Bootstrap {
 				single.put("media", requestRecord.media);
 				single.put("is_finish", requestRecord.is_finish);
 				single.put("is_follow", requestRecord.is_follow);
-				single.put("in_queue", requestRecord.is_queue);
+				single.put("in_queue", requestRecord.in_queue);
 				single.put("is_finish_history", requestRecord.is_finish_history);
 				single.put("last", requestRecord.last == null ? "" : DateFormatUtils.format(requestRecord.last, "yyyy-MM-dd HH:mm:ss"));
 				single.put("udid", requestRecord.udid);

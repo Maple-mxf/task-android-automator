@@ -6,7 +6,7 @@ import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
 import one.rewind.db.model.ModelD;
 
-@DBName(value = "wechat")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_moment_comments")
 public class WechatMomentComment extends ModelD {
 

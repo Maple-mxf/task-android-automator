@@ -14,7 +14,10 @@ public class ContactsAdapter extends Adapter {
 
 	public ContactsAdapter(AndroidDevice androidDevice) {
 		super(androidDevice);
-		this.appInfo = new AppInfo("com.google.android.contacts", "com.android.contacts.activities.PeopleActivity");
+		this.appInfo = new AppInfo(
+				"com.google.android.contacts",
+				"com.android.contacts.activities.PeopleActivity",
+				AppType.Contacts);
 	}
 
 	/**

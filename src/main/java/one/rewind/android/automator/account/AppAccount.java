@@ -16,8 +16,10 @@ import one.rewind.db.model.ModelL;
 @DatabaseTable(tableName = "app_accounts")
 public class AppAccount extends ModelL {
 
+	// 搜索公众号限流
 	public static long Default_Search_Public_Account_Frozen_Time = 72 * 3600 * 1000;
 
+	// 点击 “全部消息过于频繁”
 	public static long Default_Get_Public_Account_Essay_List_Frozen_Time = 24 * 3600 * 1000;
 
 	@DatabaseField(dataType = DataType.STRING, width = 32)
@@ -43,6 +45,13 @@ public class AppAccount extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String udid;
 
+	// APP的类型
+	@DatabaseField(dataType = DataType.ENUM_STRING)
+	public Adapter.AppType appType;
+
+	// App info  包括app的类型等等
+	public transient Adapter.AppInfo appInfo;
+
 	/**
 	 * 账号状态
 	 */
@@ -55,7 +64,6 @@ public class AppAccount extends ModelL {
 	}
 
 	/**
-	 *
 	 * @param adapter
 	 * @return
 	 * @throws Exception

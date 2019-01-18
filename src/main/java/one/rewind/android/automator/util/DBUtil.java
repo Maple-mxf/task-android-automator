@@ -1,19 +1,15 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.model.Media;
 
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
 public class DBUtil {
 
-    public static void sendAccounts(Set<String> accounts, int page) {
+   /* public static void sendAccounts(Set<String> accounts, int page) {
         try {
             Set<String> collect = Tab.subscribeDao.
                     queryForAll().
@@ -32,7 +28,7 @@ public class DBUtil {
             e.printStackTrace();
         }
     }
-
+*/
     public static int obtainSubscribeNumToday(String udid) throws SQLException {
         GenericRawResults<String[]> results = Tab.subscribeDao.
                 queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",

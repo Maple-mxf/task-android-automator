@@ -14,7 +14,7 @@ import java.util.Date;
  * @author maxuefeng [m17793873123@163.com]
  * @see one.rewind.android.automator.AndroidDevice
  */
-@DBName(value = "raw")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "task_logs")
 public class TaskLog extends ModelL {
 

@@ -9,7 +9,7 @@ import one.rewind.db.model.ModelL;
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
-@DBName(value = "raw")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_account_subscribes")
 public class SubscribeMedia extends ModelL {
 
@@ -22,19 +22,24 @@ public class SubscribeMedia extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32, index = true)
 	public String media_id;
 
-	@DatabaseField(dataType = DataType.INTEGER)
+	@DatabaseField(dataType = DataType.INTEGER, width = 11)
 	public int status;
 
 	//文章总量
-	@DatabaseField(dataType = DataType.INTEGER)
+	@DatabaseField(dataType = DataType.INTEGER, width = 11)
 	public int number;
 
 	//重试次数
-	@DatabaseField(dataType = DataType.INTEGER)
+	@DatabaseField(dataType = DataType.INTEGER, width = 11)
 	public int retry_count;
 
-	@DatabaseField(dataType = DataType.STRING)
-	public String request_id;
+	// 当前主题如果是通过接口传输过来的  则需要redis  topic
+	@DatabaseField(dataType = DataType.STRING, width = 50)
+	public String topic;
+
+	// 对应的账号
+	@DatabaseField(dataType = DataType.STRING, width = 50)
+	public String appAccpunt;
 
 
 	// 此字段用来标记公众号的相对状态,相对于过去处于完成状态 相对于现在处于未完成状态

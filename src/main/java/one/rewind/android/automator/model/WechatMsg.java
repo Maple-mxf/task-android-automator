@@ -7,11 +7,10 @@ import one.rewind.db.DBName;
 import one.rewind.db.model.ModelD;
 
 /**
- *
  * @author zhouxinhao33@gmail.com
  * @date
  */
-@DBName(value = "wechat")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_msgs")
 public class WechatMsg extends ModelD {
 
@@ -41,7 +40,8 @@ public class WechatMsg extends ModelD {
 	@DatabaseField(dataType = DataType.BYTE_ARRAY)
 	public byte[] content;
 
-	public WechatMsg() {}
+	public WechatMsg() {
+	}
 
 	public WechatMsg(String device_id, String user_id, String user_name) {
 		this.device_id = device_id;

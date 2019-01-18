@@ -11,7 +11,7 @@ import java.util.Date;
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
-@DBName(value = "raw")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "request_record")
 public class RequestRecord extends ModelL {
 	/**
@@ -36,7 +36,7 @@ public class RequestRecord extends ModelL {
 	 * 是否放在队列
 	 */
 	@DatabaseField(dataType = DataType.BOOLEAN)
-	public boolean is_queue;
+	public boolean in_queue;
 
 	/**
 	 * 相对于当前时间是否完成

@@ -1,17 +1,11 @@
 package one.rewind.android.automator.test.adapter;
 
-import one.rewind.android.automator.ocr.OCRParser;
-import one.rewind.android.automator.ocr.TesseractOCRParser;
-import one.rewind.android.automator.exception.AndroidCollapseException;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.Test;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -146,7 +140,7 @@ public class OCRAdapterTest {
 	}
 
 	// JSON Data
-	@Test
+	/*@Test
 	public void testJSONData() throws Exception {
 
 //		TODO
@@ -363,5 +357,5 @@ public class OCRAdapterTest {
 		JSONObject jsonObject = null;
 
 		System.out.println(jsonObject);
-	}
+	}*/
 }

@@ -6,7 +6,6 @@ import one.rewind.json.JSONable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
 
 public abstract class Adapter {
 
@@ -48,17 +47,40 @@ public abstract class Adapter {
 	 */
 	public static class AppInfo implements JSONable<AppInfo> {
 
+
 		public String appPackage;
 		public String appActivity;
+		public AppType appType;
 
-		public AppInfo(String appPackage, String appActivity) {
+		public AppInfo(String appPackage, String appActivity, AppType appType) {
 			this.appPackage = appPackage;
 			this.appActivity = appActivity;
+			this.appType = appType;
 		}
 
 		@Override
 		public String toJSON() {
 			return JSON.toJson(this);
+		}
+	}
+
+	/**
+	 * 账号类型
+	 */
+	public enum AppType {
+
+		QQ("QQ"),
+		WeiBo("WeiBo"),
+		TouTiao("Toutiao"),
+		Contacts("Contacts"),
+		Dingding("Dingding"),
+		WeChat("WeChat");
+
+		private String appName;
+
+
+		AppType(String appName) {
+			this.appName = appName;
 		}
 	}
 }

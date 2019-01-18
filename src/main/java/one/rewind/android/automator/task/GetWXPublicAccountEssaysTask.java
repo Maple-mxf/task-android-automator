@@ -469,6 +469,4 @@ public class GetWXPublicAccountEssaysTask extends Task {
 			logger.error("Error task execute failed [{}]", e6);
 		}
 	}
-
-
 }

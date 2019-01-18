@@ -3,7 +3,6 @@ package one.rewind.android.automator.test.util;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import one.rewind.android.automator.model.Essays;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -90,12 +89,6 @@ public class CollectionsTest {
     }
 
 
-    public void test1() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-
-        Method method = Essays.class.getMethod("parseContent", String.class);
-
-        this.testMethod(method, new Essays());
-    }
 
     /**
      * 微信公众号：Java技术栈

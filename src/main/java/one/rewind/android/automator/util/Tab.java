@@ -2,8 +2,6 @@ package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.BaiduToken;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.Media;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.db.DaoManager;
 
@@ -16,13 +14,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Tab {
 
-	public static Dao<Essays, String> essayDao;
 
 	public static Dao<SubscribeMedia, String> subscribeDao;
 
 	public static Dao<BaiduToken, String> tokenDao;
 
-	public static Dao<Media, String> mediaDao;
 
 	public static final String REQUEST_ID_SUFFIX = "Android-Automator-Topic-";
 
@@ -42,10 +38,8 @@ public class Tab {
 
 	static {
 		try {
-			essayDao = DaoManager.getDao(Essays.class);
 			subscribeDao = DaoManager.getDao(SubscribeMedia.class);
 			tokenDao = DaoManager.getDao(BaiduToken.class);
-			mediaDao = DaoManager.getDao(Media.class);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

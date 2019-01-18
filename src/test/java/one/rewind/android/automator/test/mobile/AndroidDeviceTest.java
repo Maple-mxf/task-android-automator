@@ -1,17 +1,8 @@
 package one.rewind.android.automator.test.mobile;
 
-import one.rewind.android.automator.adapter.ContactsAdapter;
-import one.rewind.android.automator.model.Essays;
-import one.rewind.android.automator.model.Comments;
-import one.rewind.android.automator.util.AppInfo;
 import one.rewind.android.automator.AndroidDevice;
-import net.lightbody.bmp.filters.RequestFilter;
-import net.lightbody.bmp.filters.ResponseFilter;
-import one.rewind.json.JSON;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.*;
 
 public class AndroidDeviceTest {
 
@@ -65,7 +56,7 @@ public class AndroidDeviceTest {
 	 * 测试通讯录功能
 	 * @throws InterruptedException
 	 */
-	@Test
+	/*@Test
 	public void testAddContact() throws InterruptedException {
 
 		String name = "name";
@@ -88,9 +79,9 @@ public class AndroidDeviceTest {
 		device.startProxy(localProxyPort);
 		device.setupRemoteWifiProxy();
 
-		/**
+		*//**
 		 * TODO 请求过滤器
-		 */
+		 *//*
 		RequestFilter requestFilter = (request, contents, messageInfo) -> {
 
 			String url = messageInfo.getOriginalUrl();
@@ -105,9 +96,9 @@ public class AndroidDeviceTest {
 		Stack<String> stats_stack = new Stack<>();
 		Stack<String> comments_stack = new Stack<>();
 
-		/**
+		*//**
 		 * TODO 返回过滤器
-		 */
+		 *//*
 		ResponseFilter responseFilter = (response, contents, messageInfo) -> {
 
 			String url = messageInfo.getOriginalUrl();
@@ -173,6 +164,6 @@ public class AndroidDeviceTest {
 		Thread.sleep(10000000);
 
 	}
-
+*/
 }
 

@@ -8,7 +8,7 @@ import one.rewind.db.model.ModelL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@DBName(value = "wechat")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_contacts")
 public class WechatContact extends ModelL {
 

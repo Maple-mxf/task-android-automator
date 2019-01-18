@@ -47,7 +47,7 @@ public class APIClient {
 	 * "is_finish": false,
 	 * "is_finish_history": false,
 	 * "media": "阿里巴巴",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104152236676"
 	 * }
@@ -88,7 +88,7 @@ public class APIClient {
 	 * "is_finish": false,
 	 * "is_finish_history": true,
 	 * "media": "北京理工大学研究生教育",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104152555867"* 	}
 	 * }
@@ -129,7 +129,7 @@ public class APIClient {
 	 * "is_finish": false,
 	 * "is_finish_history": false,
 	 * "media": "鹿鸣财经",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104152747076"* 	}
 	 * }
@@ -203,7 +203,7 @@ public class APIClient {
 	 * "is_finish_history": false,
 	 * "media": "谷歌开发者",
 	 * "udid": "ZX1G22PQLH",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104083039214"* 	}
 	 * }
@@ -247,7 +247,7 @@ public class APIClient {
 	 * "is_finish_history": false,
 	 * "media": "中诚宝捷思货币经纪有限公司",
 	 * "udid": "ZX1G22PQLH",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104083001661"* 	}
 	 * }
@@ -284,7 +284,7 @@ public class APIClient {
 	 * "is_finish_history": false,
 	 * "media": "中诚宝捷思货币经纪有限公司",
 	 * "udid": "ZX1G22PQLH",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104082919968"* 	}
 	 * }
@@ -321,7 +321,7 @@ public class APIClient {
 	 * "is_finish_history": false,
 	 * "media": "高校筹资联盟",
 	 * "udid": "ZX1G22PQLH",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104082800580"* 	}
 	 * }
@@ -358,7 +358,7 @@ public class APIClient {
 	 * "is_finish_history": false,
 	 * "media": "下注的快感",
 	 * "udid": "ZX1G22PQLH",
-	 * "is_queue": false
+	 * "in_queue": false
 	 * }],
 	 * "topic": "Android-Automator-Topic-20190104082701805"* 	}
 	 * }

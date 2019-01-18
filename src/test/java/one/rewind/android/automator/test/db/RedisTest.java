@@ -4,7 +4,6 @@ import one.rewind.android.automator.util.Tab;
 import one.rewind.db.RedissonAdapter;
 import org.junit.Test;
 import org.redisson.Redisson;
-import org.redisson.api.RMap;
 import org.redisson.api.RPriorityQueue;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -18,13 +17,6 @@ import java.util.concurrent.BlockingQueue;
  */
 public class RedisTest {
 
-	@Test
-	public void testTakeObject() {
-		RedissonClient redisClient = RedissonAdapter.redisson;
-		RMap<String, FailRecord> notFinishTask = redisClient.getMap("NotFinishTask");
-		System.out.println(notFinishTask);
-		notFinishTask.forEach((k, v) -> System.out.println("k: " + k + "   v:" + v));
-	}
 
 	@Test
 	public void testQueue() throws InterruptedException {

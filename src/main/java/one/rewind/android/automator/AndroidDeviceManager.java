@@ -1,23 +1,11 @@
 package one.rewind.android.automator;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.*;
-import com.j256.ormlite.dao.GenericRawResults;
-import one.rewind.android.automator.model.SubscribeMedia;
-import one.rewind.android.automator.util.DeviceUtil;
-import one.rewind.android.automator.util.DBUtil;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.util.ShellUtil;
-import one.rewind.android.automator.util.Tab;
-import one.rewind.db.RedissonAdapter;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
-import org.redisson.api.RPriorityQueue;
-import org.redisson.api.RQueue;
-import org.redisson.api.RedissonClient;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.BufferedReader;
@@ -26,9 +14,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
@@ -53,11 +38,10 @@ public class AndroidDeviceManager {
 	// 所有设备的任务
 	public ConcurrentHashMap<AndroidDevice, Queue<String>> task = new ConcurrentHashMap<>();
 
-
 	/**
 	 * 所有设备的信息
 	 */
-	public List<AndroidDevice> devices = new ArrayList<>();
+	public static List<AndroidDevice> androidDevices = new ArrayList<>();
 
 	/**
 	 * 单例
@@ -90,23 +74,23 @@ public class AndroidDeviceManager {
 			AndroidDevice device = new AndroidDevice(udid);
 			logger.info("udid: " + device.udid);
 
-			devices.add(device);
+			androidDevices.add(device);
 			logger.info("添加device " + device.udid + " 到容器中");
 		}
 	}
 
-	private static void obtainFullData(Set<String> accounts, int page, int var) {
+	/*private static void obtainFullData(Set<String> accounts, int page, int var) {
 		// TODO 可能出现死循环
 		while (accounts.size() <= var) {
 			DBUtil.sendAccounts(accounts, page);
 			++page;
 		}
-	}
+	}*/
 
 	/**
 	 * 加载数据库中,上一次未完成的任务
 	 */
-	public void initMediaStack() {
+/*	public void initMediaStack() {
 		Set<String> set = Sets.newHashSet();
 		obtainFullData(set, startPage, DeviceUtil.obtainDevices().length);
 		mediaStack.addAll(set);
@@ -146,12 +130,12 @@ public class AndroidDeviceManager {
 		}
 	}
 
-	/**
+	*//**
 	 * 初始化订阅任务
 	 *
 	 * @param device d
 	 * @throws SQLException e
-	 */
+	 *//*
 	private void distributionSubscribeTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
 
@@ -187,12 +171,12 @@ public class AndroidDeviceManager {
 		}
 	}
 
-	/**
+	*//**
 	 * 从redis中加载任务
 	 *
 	 * @param originUdid 设备udid标识
 	 * @return 返回任务
-	 */
+	 *//*
 	private String redisTask(String originUdid) {
 		RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
 
@@ -214,12 +198,12 @@ public class AndroidDeviceManager {
 	}
 
 
-	/**
+	*//**
 	 * 从MySQL中初始化任务
 	 *
 	 * @param device d
 	 * @throws SQLException sql e
-	 */
+	 *//*
 	private void distributionFetchTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
 		SubscribeMedia media =
@@ -243,13 +227,13 @@ public class AndroidDeviceManager {
 	}
 
 
-	/**
+	*//**
 	 * 计算任务类型
 	 *
 	 * @param adapter
 	 * @return
 	 * @throws Exception
-	 */
+	 *//*
 	private AndroidDevice.Task.Type calculateTaskType(WeChatAdapter adapter) throws Exception {
 
 		String udid = adapter.getDevice().udid;
@@ -286,13 +270,13 @@ public class AndroidDeviceManager {
 		}
 	}
 
-	/**
+	*//**
 	 * 计算今日订阅了多少公众号
 	 *
 	 * @param udid
 	 * @return
 	 * @throws SQLException
-	 */
+	 *//*
 	private int obtainSubscribeNumToday(String udid) throws SQLException {
 		GenericRawResults<String[]> results = Tab.subscribeDao.
 				queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -309,9 +293,9 @@ public class AndroidDeviceManager {
 			for (SubscribeMedia v : accounts) {
 
 				if (v.status == 2 && v.number == 0) {
-					if (v.request_id != null) {
+					if (v.topic != null) {
 						// 重试
-						taskMedia.add(v.media_name + v.request_id);
+						taskMedia.add(v.media_name + v.topic);
 					}
 					// 删除记录
 					Tab.subscribeDao.delete(v);
@@ -347,7 +331,7 @@ public class AndroidDeviceManager {
 			// 初始化
 			manager.initMediaStack();
 
-			for (AndroidDevice device : manager.devices) {
+			for (AndroidDevice device : manager.androidDevices) {
 				WeChatAdapter adapter = new WeChatAdapter(device);
 				adapter.setupDevice();
 				manager.idleAdapters.add(adapter);
@@ -377,10 +361,11 @@ public class AndroidDeviceManager {
 				logger.info("execute failed Not OK Please focus on this");
 			}
 		});
-	}
+	}*/
 
 	/**
 	 * 获取可用的设备 udid 列表
+	 *
 	 * @return
 	 */
 	public static String[] getAvailableDeviceUdids() {
@@ -394,7 +379,7 @@ public class AndroidDeviceManager {
 
 		try {
 
-			Process p = Runtime.getRuntime().exec("adb devices");
+			Process p = Runtime.getRuntime().exec("adb androidDevices");
 			br = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			String line;
 			while ((line = br.readLine()) != null) {
@@ -413,8 +398,40 @@ public class AndroidDeviceManager {
 			}
 		}
 
-		String r = sb.toString().replace("List of devices attached", "").replace("\t", "");
+		String r = sb.toString().replace("List of androidDevices attached", "").replace("\t", "");
 
 		return r.split("device");
+	}
+
+
+	/**
+	 * 加载所有的AndroidDevice
+	 *
+	 * Android Device 和 AppAccount之间存在弱引用的关系（逻辑上定义的弱引用关系）
+	 *
+	 *
+	 */
+	static {
+
+		// A 加载所有安卓设备
+		String[] udids = getAvailableDeviceUdids();
+
+		for (String udid : udids) {
+
+			AndroidDevice device = new AndroidDevice(udid);
+
+			androidDevices.add(device);
+		}
+
+		// B 加载所有设备的任务   AndroidDevice--->Account--->media  name
+		for (AndroidDevice device : androidDevices) {
+
+		}
+	}
+
+	/**
+	 * 在当前机器上登录过的账号查询   根据Appinfo查询
+	 */
+	public static void queryAccountByUdid(String udid, Adapter.AppInfo appInfo) {
 	}
 }
