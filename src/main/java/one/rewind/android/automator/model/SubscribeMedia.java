@@ -37,9 +37,9 @@ public class SubscribeMedia extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 50)
 	public String topic;
 
-	// 对应的账号
+	// 对应的账号  对应username（微信号） 微信号是微信账号的唯一凭证
 	@DatabaseField(dataType = DataType.STRING, width = 50)
-	public String appAccpunt;
+	public String account_username;
 
 
 	// 此字段用来标记公众号的相对状态,相对于过去处于完成状态 相对于现在处于未完成状态
@@ -54,6 +54,7 @@ public class SubscribeMedia extends ModelL {
 
 		// 表示搜索不到当前公众号
 		NOT_EXIST(2),
+
 
 		NOT_FINISH(0);
 

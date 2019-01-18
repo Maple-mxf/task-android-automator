@@ -8,7 +8,6 @@ import one.rewind.db.model.ModelL;
 
 @DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_groups")
-
 public class WechatGroup extends ModelL {
 
 	@DatabaseField(dataType = DataType.STRING, width = 32)

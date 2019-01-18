@@ -2,6 +2,8 @@ package one.rewind.android.automator.test.db;
 
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
+import one.rewind.android.automator.account.AppAccount;
+import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.android.automator.model.SubscribeMedia;
 import one.rewind.android.automator.util.Tab;
@@ -26,9 +28,7 @@ public class DBTest {
 
 	@Test
 	public void setupTables() throws Exception {
-		String packageName = "one.rewind.android.automator.model";
-		Refacter.dropTables(packageName);
-		Refacter.createTables(packageName);
+		Refacter.createTable(AppAccount.class);
 	}
 
 
@@ -268,9 +268,9 @@ public class DBTest {
 
 	@Test
 	public void testCreateTable() throws Exception {
-		Refacter.createTable(BaiduToken.class);
+		Refacter.createTable(AppAccount.class);
 //		Refacter.createTable(RequestRecord.class);
-//		Refacter.createTable(SubscribeMedia.class);
+////		Refacter.createTable(SubscribeMedia.class);
 //		Refacter.createTable(WechatGroup.class);
 //		Refacter.createTable(WechatMsg.class);
 //		Refacter.createTable(TaskLog.class);
@@ -290,4 +290,54 @@ public class DBTest {
 
 		System.out.println(i);
 	}
+
+	@Test
+	public void testAppAccountInsert() throws Exception {
+
+		AppAccount appAccount = new AppAccount();
+
+		appAccount.username = "sdyk_applessed";
+
+		appAccount.mobile = "";
+
+		appAccount.password = "123456abc";
+
+		appAccount.appType = Adapter.AppType.WeChat;
+
+		appAccount.status = AppAccount.Status.Normal;
+
+		appAccount.udid = "ZX1G323GNB";
+
+		appAccount.insert();
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

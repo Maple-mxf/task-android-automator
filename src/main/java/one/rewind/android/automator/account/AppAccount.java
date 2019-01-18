@@ -16,11 +16,12 @@ import one.rewind.db.model.ModelL;
 @DatabaseTable(tableName = "app_accounts")
 public class AppAccount extends ModelL {
 
-	// 搜索公众号限流
+	// 搜索公众号限流  时间间隔
 	public static long Default_Search_Public_Account_Frozen_Time = 72 * 3600 * 1000;
 
-	// 点击 “全部消息过于频繁”
+	// 点击 “全部消息过于频繁”  时间间隔
 	public static long Default_Get_Public_Account_Essay_List_Frozen_Time = 24 * 3600 * 1000;
+
 
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String src_id;
@@ -29,13 +30,13 @@ public class AppAccount extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String username;
 
+	// 关联电话号码
+	@DatabaseField(dataType = DataType.STRING, width = 32)
+	public String mobile;
+
 	// 密码
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String password;
-
-	// 账号类型
-	@DatabaseField(dataType = DataType.STRING, width = 128)
-	public String adapter_class_name;
 
 	// 账号状态
 	@DatabaseField(dataType = DataType.ENUM_STRING, width = 64)
@@ -45,7 +46,7 @@ public class AppAccount extends ModelL {
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String udid;
 
-	// APP的类型
+	// 账号类型
 	@DatabaseField(dataType = DataType.ENUM_STRING)
 	public Adapter.AppType appType;
 
@@ -64,6 +65,8 @@ public class AppAccount extends ModelL {
 	}
 
 	/**
+	 * 获取可用的账号
+	 *
 	 * @param adapter
 	 * @return
 	 * @throws Exception
@@ -78,6 +81,7 @@ public class AppAccount extends ModelL {
 				.or().eq("status", "Search_Public_Account_Frozen").and().le("update_time", t - Default_Search_Public_Account_Frozen_Time)
 				.or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
 				.queryForFirst();
-
 	}
+
+
 }
