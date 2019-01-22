@@ -25,7 +25,7 @@ public class OcrRequester {
 
     public static Logger logger = LogManager.getLogger(OcrRequester.class);
 
-    public static final String Ocr_Service = "http://10.0.0.59:30001/ocrService";
+    public static final String Ocr_Service_Url = "http://10.0.0.59:30001/ocr/service";
 
     /**
      * 超时时间 超时重试
@@ -106,7 +106,7 @@ public class OcrRequester {
             throw new IllegalStateException("file not exist！cause：[{" + file.getAbsolutePath() + "}]");
         }
 
-        URL url = new URL(Ocr_Service);
+        URL url = new URL(Ocr_Service_Url);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
         connection.setReadTimeout(readTimeout);
@@ -183,7 +183,7 @@ public class OcrRequester {
 
 
     /**
-     * Body 体
+     *
      */
     public static class Body implements JSONable<Body> {
 
