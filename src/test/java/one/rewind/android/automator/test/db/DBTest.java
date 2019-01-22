@@ -1,3 +1,4 @@
+/*
 package one.rewind.android.automator.test.db;
 
 import com.google.common.collect.Lists;
@@ -20,9 +21,27 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+*/
 /**
  * @author maxuefeng[m17793873123@163.com]
- */
+ * <p>
+ * tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+ * tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
+ * tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
+ * tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
+ * @throws Exception
+ * <p>
+ * 得到网页中图片的地址
+ * <p>
+ * tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+ * tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
+ * tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
+ * tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
+ * @throws Exception
+ * <p>
+ * 得到网页中图片的地址
+ *//*
+
 public class DBTest {
 
 	@Test
@@ -90,14 +109,16 @@ public class DBTest {
 	}
 
 
-	/**
-	 * tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
-	 * tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
-	 * tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
-	 * tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
-	 *
-	 * @throws Exception
-	 */
+	*/
+/**
+ * tokens.put("rDztaDallgGp5GkiZ7mPBUwo", "em7eA1tsCXyqm0HdD83dMwsyG0gSU77n");
+ * tokens.put("dZy8t8zi1j8G0j5yKlz5geQM", "1EKo8m3NheGQZM35gYEUNLjhnkQa9o9R");
+ * tokens.put("y66vnud58pLDi0qi5NDVBnIg", "IEQpqda0jL4u2uFOgLL1TTo6fDSR42em");
+ * tokens.put("e40LU71rtvxEsD6bVlb9U3wV", "zVK9qmK3B2hhWiw3WuYmGIHNHgXR6tgh");
+ *
+ * @throws Exception
+ *//*
+
 	@Test
 	public void initBaiduTokens() throws Exception {
 		BaiduToken token1 = new BaiduToken();
@@ -179,9 +200,11 @@ public class DBTest {
 	}
 
 
-	/**
-	 * 得到网页中图片的地址
-	 */
+	*/
+/**
+ * 得到网页中图片的地址
+ *//*
+
 	public Set<String> getImgStr(String htmlStr) {
 		Set<String> pics = new HashSet<String>();
 		String img = "";
@@ -338,3 +361,4 @@ public class DBTest {
 
 
 
+*/

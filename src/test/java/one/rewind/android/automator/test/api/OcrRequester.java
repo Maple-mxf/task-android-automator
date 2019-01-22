@@ -9,26 +9,34 @@ import okhttp3.OkHttpClient;
  */
 public class OcrRequester {
 
-	private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client = new OkHttpClient();
 
-	private int timeout;
+    /**
+     * 超时时间
+     */
+    private int connectTimeout;
 
-	/**
-	 * 默认超时时间  单位:毫秒
-	 */
-	private final static int DEFAULT_CONNECT_TIMEOUT = 8000;
+    /**
+     * 默认超时时间  单位:毫秒
+     */
+    private final static int DEFAULT_CONNECT_TIMEOUT = 8000;
 
 
-	public OcrRequester() {
-		this(DEFAULT_CONNECT_TIMEOUT);
-	}
+    public OcrRequester() {
+        this(DEFAULT_CONNECT_TIMEOUT);
+    }
 
-	public OcrRequester(int timeout) {
-		this.timeout = timeout;
-	}
+    public OcrRequester(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
 
-	private void upload(byte[] image) {
+    /**
+     * 上传文件
+     *
+     * @param image
+     */
+    private void upload(byte[] image) {
 
-	}
+    }
 
 }
