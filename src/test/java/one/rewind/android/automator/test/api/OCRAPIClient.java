@@ -11,7 +11,7 @@ public class OCRAPIClient {
 
     public static void main(String[] args) throws IOException {
         String url = "http://10.0.0.59:30001/ocrService";
-        String result = doPost(url, "D:\\java-workplace\\wechat-android-automator\\tmp\\weixin.jpg");
+        String result = doPost(url, "D:\\java-workplace\\wechat-android-automator\\tmp\\wechat.jpg");
         System.out.println(result);
 
     }
