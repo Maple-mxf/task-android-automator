@@ -1,3 +1,4 @@
+/*
 package one.rewind.android.automator.api;
 
 import com.google.common.base.Strings;
@@ -32,11 +33,13 @@ import static one.rewind.db.RedissonAdapter.redisson;
 import static spark.Spark.port;
 import static spark.Spark.post;
 
+*/
 /**
  * 每次往redis中存储任务的时候,通知topic定时更新TASK_CACHE中的数据 作为简单缓存来使用
  *
  * @author maxuefeng [m17793873123@163.com]
- */
+ *//*
+
 @ThreadSafe
 public class Bootstrap {
 
@@ -48,10 +51,12 @@ public class Bootstrap {
 
 	public static void main(String[] args) {
 
-	/*	AndroidDeviceManager manage = AndroidDeviceManager.getInstance();
+	*/
+/*	AndroidDeviceManager manage = AndroidDeviceManager.getInstance();
 
 		// 启动任务
-		manage.run();*/
+		manage.run();*//*
+
 
 		port(56789);
 
@@ -63,18 +68,22 @@ public class Bootstrap {
 	}
 
 
-	/**
+	*/
+/**
 	 * 图像识别服务  客户端先将图片转换为byte数组  再将byte数组转换为字符串
-	 */
+	 *//*
+
 	private static Route ocrService = (req, resp) -> {
 
 		return null;
 	};
 
-	/**
+	*/
+/**
 	 * request body param {"media":[""]}
 	 * 公众号订阅
-	 */
+	 *//*
+
 	private static Route subscribe = (req, resp) -> {
 
 		String body = req.body();
@@ -108,10 +117,12 @@ public class Bootstrap {
 	};
 
 
-	/**
+	*/
+/**
 	 * request body param {"udid":"xxxxx","media":["xxxx"]}
 	 * 数据采集
-	 */
+	 *//*
+
 	private static Route fetch = (req, resp) -> {
 
 		String body = req.body();
@@ -147,12 +158,14 @@ public class Bootstrap {
 
 
 
-	/**
+	*/
+/**
 	 * 解析Topic
 	 *
 	 * @param origin 原始JSON参数
 	 * @return 返回Topic
-	 */
+	 *//*
+
 	private static String parseTopic(JSONObject origin) {
 		if (origin.has("topic")) {
 
@@ -186,13 +199,15 @@ public class Bootstrap {
 	}
 
 
-	/**
+	*/
+/**
 	 * 解析任务
 	 *
 	 * @param media 任务数组
 	 * @param topic 主题
 	 * @param udid  设备机器码
-	 */
+	 *//*
+
 	private static Map<String, Object> parseMedia(JSONArray media, String topic, String udid) {
 		try {
 			Map<String, Object> data = Maps.newHashMap();
@@ -311,13 +326,15 @@ public class Bootstrap {
 		}
 	}
 
-	/**
+	*/
+/**
 	 * 队列中是否包含
 	 *
 	 * @param mediaName
 	 * @param topic
 	 * @return
-	 */
+	 *//*
+
 	@Deprecated
 	private static String contain(String mediaName, String topic) {
 
@@ -332,10 +349,12 @@ public class Bootstrap {
 		return topic;
 	}
 
-	/**
+	*/
+/**
 	 * @param media 任务对象
 	 * @return 返回是否历史任务  0 否  1是
-	 */
+	 *//*
+
 	private static int relativeTask(AccountMediaSubscribe media) {
 
 		Date lastedDate = media.update_time;
@@ -348,9 +367,11 @@ public class Bootstrap {
 		}
 	}
 
-	/**
+	*/
+/**
 	 * 监听redis队列
-	 */
+	 *//*
+
 	public static void startListen() {
 
 		final RTopic<Object> taskMsgTopic = redisson.getTopic(TASK_MSG);
@@ -373,3 +394,4 @@ public class Bootstrap {
 		});
 	}
 }
+*/

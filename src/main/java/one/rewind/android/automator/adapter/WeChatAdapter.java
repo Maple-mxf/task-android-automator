@@ -456,8 +456,8 @@ public class WeChatAdapter extends Adapter {
 	 */
 	public static class UserInfo {
 
-		String id;
-		String name;
+		public String id;
+		public String name;
 
 		public UserInfo(String id, String name) {
 			this.id = id;
@@ -502,7 +502,7 @@ public class WeChatAdapter extends Adapter {
 	/**
 	 * 登录
 	 */
-	public void login() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+	public void login() throws AdapterException.OperationException, AccountException.NoAvailableAccount {
 
 		try {
 

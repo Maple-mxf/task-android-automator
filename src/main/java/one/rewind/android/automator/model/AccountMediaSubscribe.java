@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 @DatabaseTable(tableName = "wechat_account_media_subscribes")
 public class AccountMediaSubscribe extends ModelL {
 
+	public AccountMediaSubscribe() {
+	}
+
 	@DatabaseField(dataType = DataType.INTEGER, index = true, canBeNull = false)
 	public int account_id;
 

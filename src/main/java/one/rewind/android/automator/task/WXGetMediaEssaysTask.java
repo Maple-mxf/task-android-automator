@@ -3,6 +3,8 @@ package one.rewind.android.automator.task;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
+import one.rewind.android.automator.exception.AccountException;
+import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.WeChatAdapterException;
 import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.data.raw.model.Comment;
@@ -467,6 +469,10 @@ public class WXGetMediaEssaysTask extends Task {
 		} catch (InterruptedException e6) {
 
 			logger.error("Error task execute failed [{}]", e6);
+		} catch (AdapterException.OperationException e) {
+			e.printStackTrace();
+		} catch (AccountException.NoAvailableAccount noAvailableAccount) {
+			noAvailableAccount.printStackTrace();
 		}
 	}
 }

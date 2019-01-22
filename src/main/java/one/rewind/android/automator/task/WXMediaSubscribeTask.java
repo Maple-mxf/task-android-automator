@@ -40,24 +40,24 @@ public class WXMediaSubscribeTask extends Task {
 	 * @param mediaName media
 	 * @param topic     redis topic
 	 */
-	private void saveSubscribeRecord(String mediaName, String topic) {
-		try {
-			long tempCount = Tab.subscribeDao.queryBuilder().where()
-					.eq("media_name", mediaName)
-					.countOf();
-			if (tempCount == 0) {
-				AccountMediaSubscribe e = new AccountMediaSubscribe();
-				e.udid = adapter.device.udid;
-				e.media_name = mediaName;
-				e.number = 100;
-				e.retry_count = 0;
-				e.status = AccountMediaSubscribe.State.NOT_FINISH.status;
-				e.topic = topic;
-				e.relative = 1;
-				e.insert();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	private void saveSubscribeRecord(String mediaName, String topic) {
+//		try {
+//			long tempCount = Tab.subscribeDao.queryBuilder().where()
+//					.eq("media_name", mediaName)
+//					.countOf();
+//			if (tempCount == 0) {
+//				AccountMediaSubscribe e = new AccountMediaSubscribe();
+//				e.udid = adapter.device.udid;
+//				e.media_name = mediaName;
+//				e.number = 100;
+//				e.retry_count = 0;
+//				e.status = AccountMediaSubscribe.State.NOT_FINISH.status;
+//				e.topic = topic;
+//				e.relative = 1;
+//				e.insert();
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 }
