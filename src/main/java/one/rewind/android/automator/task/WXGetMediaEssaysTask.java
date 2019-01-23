@@ -1,12 +1,12 @@
 package one.rewind.android.automator.task;
 
+import com.dw.ocr.parser.OCRParser;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.adapter.WeChatAdapter;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.WeChatAdapterException;
-import one.rewind.android.automator.ocr.OCRParser;
 import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;

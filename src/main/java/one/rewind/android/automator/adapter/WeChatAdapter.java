@@ -137,8 +137,7 @@ public class WeChatAdapter extends Adapter {
         String screenShotPath = this.device.screenShot();
 
 
-        // List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(screenShotPath, true); 依赖本地服务
-
+        // List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(screenShotPath, true); 依赖图像识别本地服务
         // B 获取可点击文本区域  Http请求ocr服务
         List<com.dw.ocr.parser.OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
 
