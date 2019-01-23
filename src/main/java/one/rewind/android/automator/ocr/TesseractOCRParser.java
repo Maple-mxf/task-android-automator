@@ -74,8 +74,9 @@ public class TesseractOCRParser implements OCRParser {
 
         logger.info(JSON.toJson(textAreas));
 
-        // 5 删除.hocr文件
+        // 5 删除.hocr文件和png图片
         FileUtil.deleteFile(filePath.replace(".png", ".hocr"));
+        FileUtil.deleteFile(filePath);
 
         return textAreas;
     }
