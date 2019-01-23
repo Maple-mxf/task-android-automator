@@ -1,9 +1,12 @@
 package one.rewind.android.automator.test.api;
 
+import com.dw.ocr.client.OCRClient;
+import com.dw.ocr.parser.OCRParser;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import okhttp3.*;
 import one.rewind.json.JSON;
+import one.rewind.util.FileUtil;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -370,6 +373,7 @@ public class APIClient {
 
         String body = "{\"udid\":\"ZX1G22PQLH\",\"media\":[\"青鸟报修\"]}";
         Request request = buildRequest(body);
+        
         Response response = client.newCall(request).execute();
 
         if (response.isSuccessful()) {
@@ -385,12 +389,11 @@ public class APIClient {
      * @throws IOException
      */
     @Test
-    public void testOcrRequester() throws IOException {
-        OcrRequester requester = new OcrRequester(new File("D:\\java-workplace\\wechat-android-automator\\tmp\\微信图片_20190122111641.jpg"));
+    public void testOCRClient() throws IOException {
 
-        OcrRequester.Body body = requester.execute();
 
-        System.out.println(body.toJSON());
+        List<OCRParser.TouchableTextArea> textArea = OCRClient.getInstance().getTextArea(FileUtil.readBytesFromFile("D:\\java-workplace\\wechat-android-automator\\tmp\\微信图片_20190122111641.jpg"));
 
+        System.out.println(JSON.toPrettyJson(textArea));
     }
 }
