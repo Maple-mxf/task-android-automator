@@ -1,5 +1,6 @@
 package one.rewind.android.automator;
 
+import com.dw.ocr.util.ImageUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
@@ -26,7 +27,6 @@ import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
-import one.rewind.android.automator.util.ImageUtil;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DBName;
@@ -1020,11 +1020,11 @@ public class AndroidDevice extends ModelL {
         String path2 = screenShot();
 
         // C2 比较 两个截图相似性
-        ImageUtil.compareImage(path1, path2);
+        boolean similar = ImageUtil.compareImage(path1, path2);
 
         // C2 如果相似 递归调用
 
-        return true;
+        return !similar;
     }
 
     /**
