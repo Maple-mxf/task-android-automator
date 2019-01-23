@@ -158,7 +158,7 @@ public class AndroidDeviceManager {
 	}
 
 
-	private void execute(WeChatAdapter adapter) {
+	private void run(WeChatAdapter adapter) {
 		try {
 			logger.info("start executed");
 			//计算任务类型
@@ -401,7 +401,7 @@ public class AndroidDeviceManager {
 			do {
 				WeChatAdapter adapter = manager.idleAdapters.take();
 				// 获取到休闲设备进行任务执行
-				manager.execute(adapter);
+				manager.run(adapter);
 			} while (true);
 		}
 	}
@@ -414,12 +414,12 @@ public class AndroidDeviceManager {
 		Futures.addCallback(result, new FutureCallback<Boolean>() {
 			@Override
 			public void onSuccess(@NullableDecl Boolean result) {
-				logger.info("execute success ok!");
+				logger.info("run success ok!");
 			}
 
 			@Override
 			public void onFailure(Throwable t) {
-				logger.info("execute failed Not OK Please focus on this");
+				logger.info("run failed Not OK Please focus on this");
 			}
 		});
 	}*/

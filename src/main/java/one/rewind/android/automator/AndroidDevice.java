@@ -1003,7 +1003,7 @@ public class AndroidDevice extends ModelL {
     /**
      *
      */
-    public boolean reliableTouch(int x, int y, long sleep, int retry) throws Exception {
+    public boolean reliableTouch(int x, int y, long sleep, int retry) throws IOException, InterruptedException {
 
         // 0 判断retry是否超限
 
