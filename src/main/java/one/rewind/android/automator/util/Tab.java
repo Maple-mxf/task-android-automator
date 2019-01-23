@@ -2,7 +2,6 @@ package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.model.AccountMediaSubscribe;
-import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.db.DaoManager;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,9 +15,6 @@ public class Tab {
 
 
 	public static Dao<AccountMediaSubscribe, String> subscribeDao;
-
-	public static Dao<BaiduToken, String> tokenDao;
-
 
 	public static final String REQUEST_ID_SUFFIX = "Android-Automator-Topic-";
 
@@ -39,7 +35,6 @@ public class Tab {
 	static {
 		try {
 			subscribeDao = DaoManager.getDao(AccountMediaSubscribe.class);
-			tokenDao = DaoManager.getDao(BaiduToken.class);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

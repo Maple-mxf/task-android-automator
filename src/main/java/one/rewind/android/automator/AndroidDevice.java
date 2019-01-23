@@ -1002,29 +1002,47 @@ public class AndroidDevice extends ModelL {
 
     /**
      *
+     * @param x
+     * @param y
+     * @return
+     * @throws InterruptedException
+     * @throws IOException
+     * @throws AdapterException.NoResponseException
      */
-    public boolean reliableTouch(int x, int y, long sleep, int retry) throws IOException, InterruptedException {
+    public boolean reliableTouch(int x, int y) throws InterruptedException, IOException, AdapterException.NoResponseException {
+        return reliableTouch(x, y, 5000, 3);
+    }
+
+    /**
+     *
+     */
+    public boolean reliableTouch(int x, int y, long sleep, int retry) throws IOException, InterruptedException, AdapterException.NoResponseException {
 
         // 0 判断retry是否超限
+        if(retry < 3) {
 
-        // A 截图1
-        String path1 = screenShot();
+            // A 截图1
+            String path1 = screenShot();
 
-        // B1 进行touch 操作
-        touch(x, y, sleep);
+            // B 进行touch 操作
+            touch(x, y, sleep);
 
-        // B2 休眠 sleep
-        Thread.sleep(1000);
+            // C 截图2
+            String path2 = screenShot();
 
-        // C1 截图2
-        String path2 = screenShot();
+            // D 比较 两个截图相似性
+            boolean similar = ImageUtil.compareImage(path1, path2);
 
-        // C2 比较 两个截图相似性
-        boolean similar = ImageUtil.compareImage(path1, path2);
+            // E 如果相似 递归调用
+            if (similar) {
+                return reliableTouch(x, y, sleep, retry++);
+            } else {
+                return true;
+            }
 
-        // C2 如果相似 递归调用
-
-        return !similar;
+        } else {
+            throw new AdapterException.NoResponseException();
+        }
     }
 
     /**

@@ -8,8 +8,14 @@ import one.rewind.android.automator.account.Account;
  */
 public class AccountException extends Exception {
 
+	/**
+	 * 无可用账户异常
+	 */
 	public static class NoAvailableAccount extends Exception {}
 
+	/**
+	 * 账户失效异常
+	 */
 	public static class Broken extends Exception {
 
 		public Account account;
@@ -20,12 +26,5 @@ public class AccountException extends Exception {
 
 	}
 
-	public static class SubscribeMediaExceedLimit extends Exception {
 
-		public Account account;
-
-		public SubscribeMediaExceedLimit(Account account) {
-			this.account = account;
-		}
-	}
 }

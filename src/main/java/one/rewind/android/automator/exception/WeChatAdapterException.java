@@ -8,10 +8,10 @@ import one.rewind.android.automator.account.Account;
  */
 public class WeChatAdapterException extends Exception {
 
-	public static class NoResponseException extends Exception {
 
-	}
-
+	/**
+	 * 搜索公众号没反应
+	 */
 	public static class SearchPublicAccountFrozenException extends Exception {
 
 		public Account account;
@@ -21,6 +21,9 @@ public class WeChatAdapterException extends Exception {
 		}
 	}
 
+	/**
+	 * 获取公众号文章列表没反应
+	 */
 	public static class GetPublicAccountEssayListFrozenException extends Exception {
 
 		public Account account;
@@ -30,8 +33,15 @@ public class WeChatAdapterException extends Exception {
 		}
 	}
 
-	public static class IllegalStateException extends Exception {
+	/**
+	 * 订阅媒体超限异常 针对于微信账号
+	 */
+	public static class SubscribeMediaExceedLimit extends Exception {
 
+		public Account account;
 
+		public SubscribeMediaExceedLimit(Account account) {
+			this.account = account;
+		}
 	}
 }

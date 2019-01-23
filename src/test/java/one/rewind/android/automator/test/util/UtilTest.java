@@ -2,7 +2,6 @@ package one.rewind.android.automator.test.util;
 
 import one.rewind.android.automator.exception.InvokingBaiduAPIException;
 import one.rewind.android.automator.model.BaiduToken;
-import one.rewind.android.automator.ocr.BaiDuOCRParser;
 import one.rewind.android.automator.util.BaiduAPIUtil;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -28,50 +27,9 @@ public class UtilTest {
     }
 
     @Test
-    public void testBaiduAPI() throws Exception {
-        JSONObject jsonObject = BaiDuOCRParser.imageOcr("D:\\workspace\\plus\\wechat-android-automator\\screen\\0a5e2970-7b6a-4be6-a156-0f4d3e8e265e.png",false);
-        System.out.println(jsonObject);
-    }
-
-    @Test
-    public void testObtainToken() throws Exception {
-        BaiduToken token = BaiduAPIUtil.obtainToken();
-        System.out.println(token.app_k);
-        System.out.println(token.app_s);
-    }
-
-    @Test
-    public void testMultiRunnableObtainToken() throws IOException {
-        Thread r1 = new Thread(() -> {
-            BaiduToken baiduTokens = null;
-            try {
-                baiduTokens = BaiduAPIUtil.obtainToken();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            System.out.println(baiduTokens.id);
-        });
-        r1.start();
-
-        Thread r2 = new Thread(() -> {
-            BaiduToken baiduTokens = null;
-            try {
-                baiduTokens = BaiduAPIUtil.obtainToken();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            System.out.println(baiduTokens.id);
-        });
-        r2.start();
-
-        System.in.read();
-    }
-
-    @Test
     public void testAccuracySubscribe() throws InvokingBaiduAPIException {
 //        DeviceUtil.accuracySubscribe("故事与道理的磨合");
     }
-
 
     @Test
     public void testString() {
@@ -80,8 +38,6 @@ public class UtilTest {
         b = b + a;
         System.out.println(b);
     }
-
-
 
     @Test
     public void testThreadLocal() {

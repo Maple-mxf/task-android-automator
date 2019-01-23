@@ -111,6 +111,7 @@ public class ContactsAdapter extends Adapter {
 	public void deleteOneContact(String name) throws InterruptedException {
 
 		for (int i = 0; i < 3; i++) {
+
 			List<WebElement> lis = device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,name)]"));
 
 			if (lis.size() != 0) {

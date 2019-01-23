@@ -25,6 +25,7 @@ public class Account extends ModelL {
 	// 点击后出现 "全部消息过于频繁" 账号冻结时间间隔
 	public static long Default_Get_Public_Account_Essay_List_Frozen_Time = 24 * 3600 * 1000;
 
+	//
 	@DatabaseField(dataType = DataType.STRING, width = 32)
 	public String src_id;
 

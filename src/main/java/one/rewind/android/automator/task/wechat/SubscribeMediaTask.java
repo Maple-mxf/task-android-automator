@@ -1,12 +1,20 @@
-package one.rewind.android.automator.task;
+package one.rewind.android.automator.task.wechat;
 
+import one.rewind.android.automator.exception.AccountException;
+import one.rewind.android.automator.exception.AdapterException;
+import one.rewind.android.automator.task.Task;
+import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.txt.StringUtil;
 
+import java.io.IOException;
+
 /**
+ * 订阅公众号
+ *
  * @author scisaga@gmail.com
  */
-public class WXMediaSubscribeTask extends Task {
+public class SubscribeMediaTask extends Task {
 
     // 点击无响应重试上限
     public static final int MAX_ATTEMPTS = 5;
@@ -23,8 +31,14 @@ public class WXMediaSubscribeTask extends Task {
         }
     }
 
+	public SubscribeMediaTask(TaskHolder holder, String... params) {
+
+		super(holder, params);
+	}
+
     @Override
-    public Boolean call() throws Exception {
+    public Boolean call() throws AdapterException.NoResponseException, AdapterException.OperationException,
+			AdapterException.IllegalStateException, AccountException.NoAvailableAccount, InterruptedException, IOException {
         return null;
     }
 
