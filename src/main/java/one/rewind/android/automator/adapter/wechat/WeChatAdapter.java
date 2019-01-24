@@ -1,4 +1,4 @@
-package one.rewind.android.automator.adapter;
+package one.rewind.android.automator.adapter.wechat;
 
 import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.OCRParser;
@@ -7,13 +7,15 @@ import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
+import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
+import one.rewind.android.automator.adapter.wechat.model.WechatContact;
+import one.rewind.android.automator.adapter.wechat.model.WechatMoment;
+import one.rewind.android.automator.adapter.wechat.model.WechatMsg;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
-import one.rewind.android.automator.exception.WeChatAdapterException;
-import one.rewind.android.automator.model.WechatContact;
-import one.rewind.android.automator.model.WechatMoment;
-import one.rewind.android.automator.model.WechatMsg;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.util.FileUtil;
 import org.openqa.selenium.By;
@@ -131,7 +133,7 @@ public class WeChatAdapter extends Adapter {
      * @throws IOException
      */
     public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
-            throws IOException, InterruptedException, AdapterException.NoResponseException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException {
+            throws IOException, AdapterException.NoResponseException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
 
         // A 获取截图
         String screenShotPath = this.device.screenShot();
@@ -152,9 +154,9 @@ public class WeChatAdapter extends Adapter {
             if (area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
 
                 if (status == Status.PublicAccount_Search_Result) {
-                    throw new WeChatAdapterException.SearchPublicAccountFrozenException(account);
+                    throw new SearchPublicAccountFrozenException(account);
                 } else if (status == Status.PublicAccount_Essay_List) {
-                    throw new WeChatAdapterException.GetPublicAccountEssayListFrozenException(account);
+                    throw new GetPublicAccountEssayListFrozenException(account);
                 }
             }
         }
@@ -229,7 +231,8 @@ public class WeChatAdapter extends Adapter {
         // 点确认
         device.touch(720, 150, 1000);
 
-        //TODO 如果当前帐号没有订阅公众号怎么办？
+        // TODO 如果当前帐号没有订阅公众号怎么办？
+		// TODO 如果点不动怎么办
 
         // 点第一个结果
         device.touch(1350, 2250, 1000);
@@ -725,7 +728,7 @@ public class WeChatAdapter extends Adapter {
                     }
 
                 } catch (Exception e) {
-                    logger.error("Error add to wechat contact.", e);
+                    logger.error("Error add to task contact.", e);
                 }
             }
 
@@ -1308,12 +1311,12 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws IOException
      * @throws InterruptedException
-     * @throws WeChatAdapterException.SearchPublicAccountFrozenException
-     * @throws WeChatAdapterException.GetPublicAccountEssayListFrozenException
+     * @throws SearchPublicAccountFrozenException
+     * @throws GetPublicAccountEssayListFrozenException
      * @throws AdapterException.NoResponseException
      * @throws AdapterException.IllegalStateException
      */
-    public void handUpdateTip() throws IOException, InterruptedException, WeChatAdapterException.SearchPublicAccountFrozenException, WeChatAdapterException.GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException {
+    public void handUpdateTip() throws IOException, InterruptedException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException {
 
         if (this.status != Status.Home) throw new AdapterException.IllegalStateException(this);
 

@@ -4,7 +4,7 @@ package one.rewind.android.automator.test.db;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
-import one.rewind.android.automator.model.AccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
 import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DaoManager;

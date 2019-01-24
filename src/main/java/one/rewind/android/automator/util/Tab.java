@@ -1,7 +1,7 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.model.AccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
 import one.rewind.db.DaoManager;
 
 import java.util.concurrent.atomic.AtomicInteger;

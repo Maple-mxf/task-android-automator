@@ -1,4 +1,4 @@
-package one.rewind.android.automator.task.wechat;
+package one.rewind.android.automator.adapter.wechat.task;
 
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;

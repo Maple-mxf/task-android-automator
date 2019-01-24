@@ -1,12 +1,13 @@
-package one.rewind.android.automator.task.wechat;
+package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
-import one.rewind.android.automator.adapter.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
+import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
-import one.rewind.android.automator.exception.WeChatAdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Comment;
@@ -134,6 +135,7 @@ public class GetMediaEssaysTask extends Task {
 				for (OCRParser.TouchableTextArea area : textAreas) {
 
 					// D31 判断是否进入了文章页
+					// 去重判断
 					adapter.goToEssayDetail(area);
 
 					// D32 如果进入成功 需要记录已经点击的文章标题-时间
@@ -150,10 +152,10 @@ public class GetMediaEssaysTask extends Task {
 				}
 			}
 		}
-		catch (WeChatAdapterException.GetPublicAccountEssayListFrozenException e) {
+		catch (GetPublicAccountEssayListFrozenException e) {
 
 		}
-		catch (WeChatAdapterException.SearchPublicAccountFrozenException e) {
+		catch (SearchPublicAccountFrozenException e) {
 
 		}
 

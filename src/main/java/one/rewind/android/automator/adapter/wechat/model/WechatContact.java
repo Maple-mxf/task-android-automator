@@ -1,4 +1,4 @@
-package one.rewind.android.automator.model;
+package one.rewind.android.automator.adapter.wechat.model;
 
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;

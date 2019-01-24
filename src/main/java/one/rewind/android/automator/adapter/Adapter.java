@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 public abstract class Adapter {
 
-	static final Logger logger = LogManager.getLogger(Adapter.class.getName());
+	public static final Logger logger = LogManager.getLogger(Adapter.class.getName());
 
 	public static boolean NeedAccount = false;
 

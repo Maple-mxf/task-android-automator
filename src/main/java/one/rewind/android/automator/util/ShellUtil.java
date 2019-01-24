@@ -1,10 +1,6 @@
 package one.rewind.android.automator.util;
 
-import io.appium.java_client.android.AndroidDriver;
-import one.rewind.android.automator.adapter.WeChatAdapter;
-
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 
 /**

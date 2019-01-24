@@ -8,7 +8,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
-import one.rewind.android.automator.model.AccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
 import one.rewind.android.automator.model.RequestRecord;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.android.automator.util.Tab;

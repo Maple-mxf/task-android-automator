@@ -1,4 +1,4 @@
-package one.rewind.android.automator.task.wechat;
+package one.rewind.android.automator.adapter.wechat.task;
 
 /**
  * 获取当前订阅的公众号列表

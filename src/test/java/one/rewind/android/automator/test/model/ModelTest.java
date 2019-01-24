@@ -1,6 +1,6 @@
 package one.rewind.android.automator.test.model;
 
-import one.rewind.android.automator.model.WechatContact;
+import one.rewind.android.automator.adapter.wechat.model.WechatContact;
 import org.junit.Test;
 
 

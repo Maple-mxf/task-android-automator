@@ -27,7 +27,7 @@ public class OpencvTest {
 
 	@Test
 	public void testOpencvAPI() throws IOException {
-		File file = new File("C:\\ubuntu\\workspace\\wechat-android-automator\\screen\\accounts.png");
+		File file = new File("C:\\ubuntu\\workspace\\task-android-automator\\screen\\accounts.png");
 		byte[] byteFromFile = getByteFromFile(file);
 		List<Byte> byteList = new ArrayList<>();
 		for (int i = 0; i < byteFromFile.length; i++) {

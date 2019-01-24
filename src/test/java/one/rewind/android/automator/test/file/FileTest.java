@@ -28,7 +28,7 @@ public class FileTest {
 
 	@Test
 	public void testImageCount() {
-		File file = new File("D:\\workspace\\plus\\wechat-android-automator\\screen");
+		File file = new File("D:\\workspace\\plus\\task-android-automator\\screen");
 		Date tmp = new Date();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy--MM-dd");
@@ -55,7 +55,7 @@ public class FileTest {
 
 	@Test
 	public void testTessreactOCRResult() throws IOException {
-		List<String> lines = Files.readLines(new File("/usr/local/java-workplace/wechat-android-automator/data/2.txt"), Charset.forName("UTF-8"));
+		List<String> lines = Files.readLines(new File("/usr/local/java-workplace/task-android-automator/data/2.txt"), Charset.forName("UTF-8"));
 		for (String line : lines) {
 			if (StringUtils.isBlank(line)) continue;
 			System.out.println(line);

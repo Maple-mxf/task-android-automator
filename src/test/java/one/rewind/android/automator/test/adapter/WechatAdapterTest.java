@@ -6,7 +6,7 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
-import one.rewind.android.automator.adapter.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import org.junit.Before;
 import org.junit.Test;
 import se.vidstige.jadb.JadbException;

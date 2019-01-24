@@ -13,7 +13,7 @@ public class OCRAdapterTest {
 	@Deprecated
 	public void testTesseract() throws IOException, InterruptedException {
 
-//		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/3.jpeg");
+//		File file = new File("/usr/local/java-workplace/task-android-automator/data/3.jpeg");
 //
 //		// 首先线裁剪图片
 //		BufferedImage bufferedImage = BaiDuOCRParser.cropImage(ImageIO.read(file));
@@ -53,7 +53,7 @@ public class OCRAdapterTest {
 	@Test
 	public void testOcrTesseractRealEassyTitile() throws IOException {
 
-//		List<String> origin = Files.readLines(new File("/usr/local/java-workplace/wechat-android-automator/data/3.txt"), Charset.forName("UTF-8"));
+//		List<String> origin = Files.readLines(new File("/usr/local/java-workplace/task-android-automator/data/3.txt"), Charset.forName("UTF-8"));
 //
 //		List<String> result = BaiDuOCRParser.realTitleOfTesseract(origin);
 //

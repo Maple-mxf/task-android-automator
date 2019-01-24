@@ -16,7 +16,7 @@ public class OCRAdapterTest {
 	@Test
 	public void testParsePoint() throws IOException, InterruptedException {
 
-		File image = new File("/usr/local/java-workplace/wechat-android-automator/data/4068.jpg");
+		File image = new File("/usr/local/java-workplace/task-android-automator/data/4068.jpg");
 
 		// 裁剪图片
 //		BufferedImage bufferedImage = BaiDuOCRParser.cropImage(ImageIO.read(image));
@@ -40,7 +40,7 @@ public class OCRAdapterTest {
 		BufferedImage img = null;
 		File f;
 		try {
-			f = new File("/usr/local/java-workplace/wechat-android-automator/data/wxIn.jpg");
+			f = new File("/usr/local/java-workplace/task-android-automator/data/wxIn.jpg");
 			img = ImageIO.read(f);
 		} catch (IOException e) {
 			System.out.println(e);
@@ -59,7 +59,7 @@ public class OCRAdapterTest {
 		p = (a << 24) | (r << 16) | (g << 8) | b;
 		img.setRGB(0, 0, p);
 		try {
-			f = new File("/usr/local/java-workplace/wechat-android-automator/data/wxOn.jpg");
+			f = new File("/usr/local/java-workplace/task-android-automator/data/wxOn.jpg");
 			ImageIO.write(img, "jpg", f);
 		} catch (IOException e) {
 			System.out.println(e);
@@ -88,7 +88,7 @@ public class OCRAdapterTest {
 		}
 		// write image
 		try {
-			f = new File("/usr/local/java-workplace/wechat-android-automator/data/wxIn.jpg");
+			f = new File("/usr/local/java-workplace/task-android-automator/data/wxIn.jpg");
 			ImageIO.write(img, "png", f);
 		} catch (IOException e) {
 			System.out.println("Error: " + e);
@@ -97,7 +97,7 @@ public class OCRAdapterTest {
 
 	@Deprecated
 	public static void binaryImage() throws IOException {
-		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/wxOn.jpg");
+		File file = new File("/usr/local/java-workplace/task-android-automator/data/wxOn.jpg");
 		BufferedImage image = ImageIO.read(file);
 
 		int width = image.getWidth();
@@ -111,12 +111,12 @@ public class OCRAdapterTest {
 			}
 		}
 
-		File newFile = new File("/usr/local/java-workplace/wechat-android-automator/data/4028.jpg");
+		File newFile = new File("/usr/local/java-workplace/task-android-automator/data/4028.jpg");
 		ImageIO.write(grayImage, "jpg", newFile);
 	}
 
 	public static void grayImage() throws IOException {
-		File file = new File("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg");
+		File file = new File("/usr/local/java-workplace/task-android-automator/data/653354255.jpg");
 		BufferedImage image = ImageIO.read(file);
 
 		int width = image.getWidth();
@@ -130,7 +130,7 @@ public class OCRAdapterTest {
 			}
 		}
 
-		File newFile = new File("/usr/local/java-workplace/wechat-android-automator/data/llll.png");
+		File newFile = new File("/usr/local/java-workplace/task-android-automator/data/llll.png");
 		ImageIO.write(grayImage, "png", newFile);
 	}
 
@@ -144,7 +144,7 @@ public class OCRAdapterTest {
 	public void testJSONData() throws Exception {
 
 //		TODO
-		final List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/653354255.jpg", false);
+		final List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/task-android-automator/data/653354255.jpg", false);
 
 		JSONObject jsonObject = null;
 
@@ -319,7 +319,7 @@ public class OCRAdapterTest {
 	@Test
 	public void testCropImage() throws IOException {
 		// 1 裁剪图片
-		File inImage = new File("/usr/local/java-workplace/wechat-android-automator/data/1100265578.jpg");
+		File inImage = new File("/usr/local/java-workplace/task-android-automator/data/1100265578.jpg");
 
 		BufferedImage bufferedImage = OCRParser.cropImage(ImageIO.read(inImage));
 
@@ -329,7 +329,7 @@ public class OCRAdapterTest {
 
 	@Test
 	public void testOcrResult() throws Exception {
-		final List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", true);
+		final List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/task-android-automator/data/1426002855.jpg", true);
 
 		// TODO
 		final JSONObject jsonObject = null;
@@ -352,8 +352,8 @@ public class OCRAdapterTest {
 	@Test
 	public void testOcrByChi() throws Exception {
 
-//		TesseractOCRParser.imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
-		List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/wechat-android-automator/data/1426002855.jpg", false);
+//		TesseractOCRParser.imageOcr("/usr/local/java-workplace/task-android-automator/data/1426002855.jpg", false);
+		List<OCRParser.TouchableTextArea> textAreas = TesseractOCRParser.getInstance().imageOcr("/usr/local/java-workplace/task-android-automator/data/1426002855.jpg", false);
 		JSONObject jsonObject = null;
 
 		System.out.println(jsonObject);

@@ -3,7 +3,7 @@ package one.rewind.android.automator;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import one.rewind.android.automator.account.Account;
-import one.rewind.android.automator.adapter.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.util.ShellUtil;
 import org.apache.logging.log4j.LogManager;
