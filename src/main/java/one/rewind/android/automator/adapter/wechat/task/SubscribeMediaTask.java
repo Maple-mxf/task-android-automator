@@ -1,6 +1,5 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
-import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
@@ -31,15 +30,14 @@ public class SubscribeMediaTask extends Task {
         }
     }
 
-	public SubscribeMediaTask(TaskHolder holder, String... params) {
+    public SubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
 
-		super(holder, params);
-	}
+        super(holder, params);
+    }
 
     @Override
-    public Boolean call() throws AdapterException.NoResponseException, AdapterException.OperationException,
-			AdapterException.IllegalStateException, AccountException.NoAvailableAccount, InterruptedException, IOException {
-        return null;
+    public void execute() throws InterruptedException, IOException, AdapterException.OperationException {
+
     }
 
     public static String genId(String nick) {

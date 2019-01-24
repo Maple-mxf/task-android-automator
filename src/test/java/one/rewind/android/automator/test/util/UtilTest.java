@@ -1,12 +1,7 @@
 package one.rewind.android.automator.test.util;
 
-import one.rewind.android.automator.exception.InvokingBaiduAPIException;
-import one.rewind.android.automator.model.BaiduToken;
-import one.rewind.android.automator.util.BaiduAPIUtil;
-import org.json.JSONObject;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -27,7 +22,7 @@ public class UtilTest {
     }
 
     @Test
-    public void testAccuracySubscribe() throws InvokingBaiduAPIException {
+    public void testAccuracySubscribe()   {
 //        DeviceUtil.accuracySubscribe("故事与道理的磨合");
     }
 
@@ -101,10 +96,8 @@ public class UtilTest {
 
     @Test
     public void testString1() {
-        String a = "Hello World How Are You !";
-        String s = a.replaceAll(" ", "");
-        System.out.println(s);
-        System.out.println(a);
+        String tmp = "2018年10月15日";
+
     }
 
 }

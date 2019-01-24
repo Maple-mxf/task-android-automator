@@ -9,6 +9,7 @@ import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
+import one.rewind.android.automator.adapter.wechat.exception.NoSubscribeMediaException;
 import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.adapter.wechat.model.WechatContact;
 import one.rewind.android.automator.adapter.wechat.model.WechatMoment;
@@ -18,21 +19,20 @@ import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.util.FileUtil;
-import org.openqa.selenium.By;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.Point;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
- * Adapter对应是设备上的APP  任务执行应该放在Adapter层面上
+ * Adapter对应是设备上的APP  任务执行应该放在Adapter层面上   Adapter层面的异常应当都应该放在Task层面去捕获处理
  */
 public class WeChatAdapter extends Adapter {
 
@@ -133,15 +133,14 @@ public class WeChatAdapter extends Adapter {
      * @throws IOException
      */
     public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
-            throws IOException, AdapterException.NoResponseException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
+            throws IOException, AdapterException.NoResponseException,
+            SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
 
         // A 获取截图
         String screenShotPath = this.device.screenShot();
 
-        // List<OCRParser.TouchableTextArea> textAreaList = TesseractOCRParser.getInstance().getTextBlockArea(screenShotPath, true); 依赖图像识别本地服务
-        // B 获取可点击文本区域  Http请求ocr服务
-        List<com.dw.ocr.parser.OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
-
+        // B 获取可点击文本区域  Http请求ocr服务 TODO  BUG   getTextArea类型转换存在问题   在此处类型转换会存在问题ClassCastException
+        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
 
         // C 删除图片文件
         new File(screenShotPath).delete();
@@ -160,8 +159,49 @@ public class WeChatAdapter extends Adapter {
                 }
             }
         }
+        textAreaList = mergeForTitle(textAreaList, 60);
 
         return textAreaList;
+    }
+
+    /**
+     * 由于默认的解析方法会把两行标题解析成两个文本框，此时需要根据顺序关系和坐标关系，对文本框进行合并
+     *
+     * @param originalTextAreas 初始解析的文本框列表
+     * @param gap               文本框之间的最大距离
+     * @return 合并后的文本框列表
+     */
+    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) {
+
+        try {
+            List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
+
+            OCRParser.TouchableTextArea lastArea = null;
+
+            // 遍历初始获得的TextArea
+            for (OCRParser.TouchableTextArea area : originalTextAreas) {
+
+                if (lastArea != null) {
+
+                    // 判断是否与之前的TextArea合并
+                    if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
+                        lastArea = lastArea.add(area);
+                    } else {
+                        newTextAreas.add(area);
+                        lastArea = area;
+                    }
+                } else {
+                    newTextAreas.add(area);
+                    lastArea = area;
+                }
+            }
+            return newTextAreas;
+
+            // TODO ParseException应该消化在上一层
+        } catch (ParseException e) {
+            logger.error("Error parse string to date failure; cause: [{}]", e);
+        }
+        return originalTextAreas;
     }
 
     /**
@@ -213,9 +253,14 @@ public class WeChatAdapter extends Adapter {
     /**
      * 已订阅公众号的列表页面 搜索到相关的公众号
      *
-     * @param mediaName 搜索参数
+     * @param mediaName 媒体名称
+     * @throws InterruptedException
+     * @throws AdapterException.IllegalStateException
+     * @throws IOException
+     * @throws AdapterException.NoResponseException
+     * @throws NoSubscribeMediaException              在订阅列表中找不到指定的公众号
      */
-    public void goToPublicAccountHome(String mediaName) throws InterruptedException, AdapterException.IllegalStateException {
+    public void goToPublicAccountHome(String mediaName) throws InterruptedException, AdapterException.IllegalStateException, IOException, AdapterException.NoResponseException, NoSubscribeMediaException {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -231,11 +276,23 @@ public class WeChatAdapter extends Adapter {
         // 点确认
         device.touch(720, 150, 1000);
 
-        // TODO 如果当前帐号没有订阅公众号怎么办？
-		// TODO 如果点不动怎么办
 
-        // 点第一个结果
-        device.touch(1350, 2250, 1000);
+        // TODO 如果当前帐号没有订阅公众号怎么办？
+        try {
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'无结果')]"));
+
+            // 找到输入到输入框的media name 异常抛出
+            throw new NoSubscribeMediaException(account);
+
+        } catch (NoSuchElementException e) {
+
+            // 如果找不到 [无结果] 这个元素 说明当前账号已经订阅了公众号
+            logger.info("Info current WeChat account has subscribed");
+        }
+
+        // TODO 如果点不动怎么办
+        // 点第一个结果 如果点击无反应则会抛出无响应异常
+        device.reliableTouch(1350, 2250, 1000L, 0);
 
         Thread.sleep(1000);
 
@@ -420,6 +477,7 @@ public class WeChatAdapter extends Adapter {
             device.touch(1413, 2369, 500);
         }
 
+        // TODO  文章是否转载了其他文章
         this.status = Status.PublicAccountEssay;
     }
 
@@ -539,7 +597,7 @@ public class WeChatAdapter extends Adapter {
             throw new AdapterException.OperationException(this);
         }
 
-        // C 验证是否存在拖拽操作等安全验证操作
+        // C 验证是否存在拖拽操作等安全验证操作  TODO
 
         // D 人工拖拽
 
@@ -1302,7 +1360,7 @@ public class WeChatAdapter extends Adapter {
         // A 退出登录
         loginOut();
 
-        // B 登录账号
+        // B 登录账号  TODO 登录账号需要改变当前类的Account
         login();
     }
 

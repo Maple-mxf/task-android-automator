@@ -392,7 +392,7 @@ public class APIClient {
     public void testOCRClient() throws IOException {
 
 
-        List<OCRParser.TouchableTextArea> textArea = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile("D:\\java-workplace\\task-android-automator\\tmp\\微信图片_20190122111641.jpg"));
+        List<OCRParser.TouchableTextArea> textArea = OCRClient.getInstance().getTextArea(FileUtil.readBytesFromFile("D:\\java-workplace\\task-android-automator\\tmp\\微信图片_20190122111641.jpg"));
 
         System.out.println(JSON.toPrettyJson(textArea));
     }

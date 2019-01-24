@@ -234,6 +234,18 @@ public class AndroidDevice extends ModelL {
             }
         });
 
+        this.idleCallbacks.add((d) -> {
+
+        });
+
+        this.failedCallbacks.add((d) -> {
+
+        });
+
+        this.terminatedCallbacks.add((d) -> {
+
+        });
+
         return this;
     }
 
@@ -401,9 +413,7 @@ public class AndroidDevice extends ModelL {
     /**
      * 重启
      * TODO 是否可以通过添加Terminated回调来实现？
-     * <p>
      * 场景: 设备运行时间过程, 没有响应
-     * </p>
      */
     public void restart() throws IOException, InterruptedException, AndroidException.IllegalStatusException {
         stop();
@@ -444,6 +454,11 @@ public class AndroidDevice extends ModelL {
 
             status = Status.Failed;
             logger.error("[{}] Stop failed. ", name, e.getCause());
+            try {
+                throw e.getCause();
+            } catch (Throwable ex){
+
+            }
 
         }
         //
@@ -1001,7 +1016,6 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     *
      * @param x
      * @param y
      * @return
@@ -1010,7 +1024,7 @@ public class AndroidDevice extends ModelL {
      * @throws AdapterException.NoResponseException
      */
     public boolean reliableTouch(int x, int y) throws InterruptedException, IOException, AdapterException.NoResponseException {
-        return reliableTouch(x, y, 5000, 3);
+        return reliableTouch(x, y, 5000, 0);
     }
 
     /**
@@ -1019,7 +1033,7 @@ public class AndroidDevice extends ModelL {
     public boolean reliableTouch(int x, int y, long sleep, int retry) throws IOException, InterruptedException, AdapterException.NoResponseException {
 
         // 0 判断retry是否超限
-        if(retry < 3) {
+        if (retry < 3) {
 
             // A 截图1
             String path1 = screenShot();

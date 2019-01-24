@@ -1,11 +1,12 @@
 package one.rewind.android.automator;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
+import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
+import one.rewind.db.DaoManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,141 +17,183 @@ import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
 public class AndroidDeviceManager {
 
-	private static final Logger logger = LogManager.getLogger(AndroidDeviceManager.class.getName());
+    private static final Logger logger = LogManager.getLogger(AndroidDeviceManager.class.getName());
 
-	public static List<String> DefaultAdapterClassNameList = new ArrayList<>();
+    /**
+     * 单例
+     */
+    private static AndroidDeviceManager instance;
 
-	static {
-		DefaultAdapterClassNameList.add(WeChatAdapter.class.getName());
-	}
+    public static AndroidDeviceManager getInstance() {
+        synchronized (AndroidDeviceManager.class) {
+            if (instance == null) {
+                instance = new AndroidDeviceManager();
+            }
+        }
+        return instance;
+    }
 
-	/**
-	 * guava线程池
-	 */
-	private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
+    // 默认的Device对应的Adapter类的全路径
+    public static List<String> DefaultAdapterClassNameList = new ArrayList<>();
 
-
-	// Adapter - AndroidDevice 记录表，记录哪些设备可使用特定类型的Adapter
-	public ConcurrentHashMap<String, List<AndroidDevice>> adapterAndroidDeviceMap = new ConcurrentHashMap<>();
-
-
-	// 所有设备的任务
-	public ConcurrentHashMap<String, Queue<String>> deviceTaskMap = new ConcurrentHashMap<>();
-
-	/**
-	 * 所有设备的信息
-	 */
-	public List<AndroidDevice> androidDevices = new ArrayList<>();
-
-	/**
-	 * 单例
-	 */
-	private static AndroidDeviceManager instance;
-
-	public static AndroidDeviceManager getInstance() {
-		synchronized (AndroidDeviceManager.class) {
-			if (instance == null) {
-				instance = new AndroidDeviceManager();
-			}
-		}
-		return instance;
-	}
-
-	/**
-	 *
-	 */
-	private AndroidDeviceManager() {
+    static {
+        DefaultAdapterClassNameList.add(WeChatAdapter.class.getName());
+    }
 
 
-	}
+    // Adapter - AndroidDevice 记录表，记录哪些设备可使用特定类型的Adapter
+    public ConcurrentHashMap<String, List<AndroidDevice>> adapterAndroidDeviceMap = new ConcurrentHashMap<>();
 
-	/**
-	 * 初始化设备
-	 */
-	private void init() throws Exception {
 
-		// A 先找设备
-		String[] udids = getAvailableDeviceUdids();
+    // 所有设备的任务
+    public ConcurrentHashMap<String, BlockingQueue<Task>> deviceTaskMap = new ConcurrentHashMap<>();
 
-		for (String udid : udids) {
+    /**
+     * 所有设备的信息
+     */
+    public List<AndroidDevice> androidDevices = new ArrayList<>();
 
-			// A1 创建 AndroidDevice 对象
-			AndroidDevice device = new AndroidDevice(udid);
-			logger.info("udid: " + device.udid);
 
-			androidDevices.add(device);
-			logger.info("添加 device " + device.udid + " 到容器中");
+    /**
+     *
+     */
+    private AndroidDeviceManager() {
 
-			// A2 TODO 同步数据库对应记录
+    }
 
-		}
+    /**
+     * 初始化设备
+     */
+    private void initialize() throws Exception {
 
-		// B 加载默认的Adapters
-		for (AndroidDevice ad : androidDevices) {
+        Dao<AndroidDevice, String> deviceDao = DaoManager.getDao(AndroidDevice.class);
 
-			for (String className : DefaultAdapterClassNameList) {
+        // A 先找设备
+        String[] udids = getAvailableDeviceUdids();
 
-				Class<?> clazz = Class.forName(className);
+        for (String udid : udids) {
 
-				Constructor<?> cons;
+            // A1 创建 AndroidDevice 对象
+            AndroidDevice device = new AndroidDevice(udid);
+            logger.info("udid: " + device.udid);
 
-				Field[] fields = clazz.getFields();
+            androidDevices.add(device);
+            logger.info("add device [{}] in device container", device.udid);
 
-				boolean needAccount = false;
+            // A2 TODO 同步数据库对应记录
+            deviceDao.delete(device);
+            device.insert();
+        }
 
-				for (Field field : fields) {
-					if (field.getName().equals("NeedAccount")) {
-						needAccount = field.getBoolean(clazz);
-						break;
-					}
-				}
+        // B 加载默认的Adapters
+        for (AndroidDevice ad : androidDevices) {
 
-				// 如果Adapter必须使用Account
-				if (needAccount) {
+            deviceTaskMap.put(ad.udid, new LinkedBlockingDeque<>());
 
-					cons = clazz.getConstructor(AndroidDevice.class, Account.class);
+            for (String className : DefaultAdapterClassNameList) {
 
-					Account account = Account.getAccount(ad.udid, className);
+                Class<?> clazz = Class.forName(className);
 
-					if(account != null) {
-						cons.newInstance(ad, account);
-					}
-					// 找不到账号，对应设备无法启动
-					else {
-						ad.status = AndroidDevice.Status.Failed;
-					}
+                Constructor<?> cons;
 
-				} else {
-					cons = clazz.getConstructor(AndroidDevice.class);
-					cons.newInstance(ad);
-				}
-			}
-		}
+                Field[] fields = clazz.getFields();
+                boolean needAccount = false;
 
-		// C 设备INIT
-		androidDevices.parallelStream()
-			.filter(d -> d.status != AndroidDevice.Status.Failed)
-			.forEach(d -> {
-				try {
-					d.start();
-				} catch (AndroidException.IllegalStatusException e) {
-					logger.error("Start Device[{}] failed, ", d.udid, e);
-				}
-			});
-	}
+                for (Field field : fields) {
+                    if (field.getName().equals("NeedAccount")) {
+                        needAccount = field.getBoolean(clazz);
+                        break;
+                    }
+                }
 
-	/**
-	 * 加载数据库中,上一次未完成的任务
-	 */
+                // 如果Adapter必须使用Account
+                if (needAccount) {
+
+                    cons = clazz.getConstructor(AndroidDevice.class, Account.class);
+
+                    Account account = Account.getAccount(ad.udid, className);
+
+                    if (account != null) {
+                        cons.newInstance(ad, account);
+                    }
+                    // 找不到账号，对应设备无法启动
+                    else {
+                        ad.status = AndroidDevice.Status.Failed;
+                    }
+
+                } else {
+                    cons = clazz.getConstructor(AndroidDevice.class);
+                    cons.newInstance(ad);
+                }
+            }
+
+            ad.idleCallbacks.add((d) -> {
+                try {
+                    assign(d);
+                } catch (InterruptedException | AndroidException.IllegalStatusException e) {
+                    logger.error("Error assign task to Device[{}], ", d.udid, e);
+                    d.status = AndroidDevice.Status.Failed;
+                }
+            });
+        }
+
+        // C 设备INIT
+        androidDevices.parallelStream()
+                .filter(d -> d.status != AndroidDevice.Status.Failed)
+                .forEach(d -> {
+                    try {
+                        d.start();
+                    } catch (AndroidException.IllegalStatusException e) {
+                        logger.error("Start Device[{}] failed, ", d.udid, e);
+                    }
+                });
+    }
+
+    /**
+     * @param ad
+     * @throws InterruptedException
+     * @throws AndroidException.IllegalStatusException
+     */
+    public void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException {
+
+        Task task = deviceTaskMap.get(ad.udid).take();
+        ad.submit(task);
+    }
+
+    /**
+     * @param task
+     */
+    public void submit(Task task) {
+
+        if (task.holder == null || task.holder.adapter_name == null) return;
+
+        // task.holder.udid; // 是否指定设备
+        // task.holder.adapter_name; // 指定App
+        // task.holder.account_id; // 指定账户
+
+        // 合法模式
+        // 1. adapter_name
+        // 2. udid adapter_name
+        // 3. adapter_name account_id
+
+        // 其他异常举例
+        // 订阅公众号任务 预分派的Device account_id处于限流状态
+
+
+    }
+
+    /**
+     * 加载数据库中,上一次未完成的任务
+     */
 	/* public void initMediaStack() {
 		Set<String> set = Sets.newHashSet();
 		obtainFullData(set, startPage, DeviceUtil.obtainDevices().length);
@@ -192,11 +235,11 @@ public class AndroidDeviceManager {
 	}
 
 	*//**
-	 * 初始化订阅任务
-	 *
-	 * @param device d
-	 * @throws SQLException e
-	 *//*
+     * 初始化订阅任务
+     *
+     * @param device d
+     * @throws SQLException e
+     *//*
 	private void distributionSubscribeTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
 
@@ -233,11 +276,11 @@ public class AndroidDeviceManager {
 	}
 
 	*//**
-	 * 从redis中加载任务
-	 *
-	 * @param originUdid 设备udid标识
-	 * @return 返回任务
-	 *//*
+     * 从redis中加载任务
+     *
+     * @param originUdid 设备udid标识
+     * @return 返回任务
+     *//*
 	private String redisTask(String originUdid) {
 		RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
 
@@ -260,11 +303,11 @@ public class AndroidDeviceManager {
 
 
 	*//**
-	 * 从MySQL中初始化任务
-	 *
-	 * @param device d
-	 * @throws SQLException sql e
-	 *//*
+     * 从MySQL中初始化任务
+     *
+     * @param device d
+     * @throws SQLException sql e
+     *//*
 	private void distributionFetchTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
 		AccountMediaSubscribe media =
@@ -289,12 +332,12 @@ public class AndroidDeviceManager {
 
 
 	*//**
-	 * 计算任务类型
-	 *
-	 * @param adapter
-	 * @return
-	 * @throws Exception
-	 *//*
+     * 计算任务类型
+     *
+     * @param adapter
+     * @return
+     * @throws Exception
+     *//*
 	private AndroidDevice.Task.Type calculateTaskType(WeChatAdapter adapter) throws Exception {
 
 		String udid = adapter.getDevice().udid;
@@ -332,12 +375,12 @@ public class AndroidDeviceManager {
 	}
 
 	*//**
-	 * 计算今日订阅了多少公众号
-	 *
-	 * @param udid
-	 * @return
-	 * @throws SQLException
-	 *//*
+     * 计算今日订阅了多少公众号
+     *
+     * @param udid
+     * @return
+     * @throws SQLException
+     *//*
 	private int obtainSubscribeNumToday(String udid) throws SQLException {
 		GenericRawResults<String[]> results = Tab.subscribeDao.
 				queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
@@ -424,45 +467,45 @@ public class AndroidDeviceManager {
 		});
 	}*/
 
-	/**
-	 * 获取可用的设备 udid 列表
-	 *
-	 * @return
-	 */
-	public static String[] getAvailableDeviceUdids() {
+    /**
+     * 获取可用的设备 udid 列表
+     *
+     * @return
+     */
+    public static String[] getAvailableDeviceUdids() {
 
-		ShellUtil.exeCmd("adb"); // 有可能需要先启动 adb 服务器
+        ShellUtil.exeCmd("adb"); // 有可能需要先启动 adb 服务器
 
-		ShellUtil.exeCmd("adb usb"); // 有可能需要刷新 adb udb 连接
+        ShellUtil.exeCmd("adb usb"); // 有可能需要刷新 adb udb 连接
 
-		BufferedReader br = null;
-		StringBuilder sb = new StringBuilder();
+        BufferedReader br = null;
+        StringBuilder sb = new StringBuilder();
 
-		try {
+        try {
 
-			Process p = Runtime.getRuntime().exec("adb androidDevices");
-			br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			String line;
-			while ((line = br.readLine()) != null) {
-				sb.append(line);
-			}
+            Process p = Runtime.getRuntime().exec("adb androidDevices");
+            br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (br != null) {
-				try {
-					br.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-		String r = sb.toString().replace("List of androidDevices attached", "").replace("\t", "");
+        String r = sb.toString().replace("List of androidDevices attached", "").replace("\t", "");
 
-		return r.split("device");
-	}
+        return r.split("device");
+    }
 }
 
 

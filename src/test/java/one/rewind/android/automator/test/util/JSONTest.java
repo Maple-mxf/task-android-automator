@@ -1,8 +1,17 @@
 package one.rewind.android.automator.test.util;
 
+import com.dw.ocr.client.OCRClient;
+import com.dw.ocr.parser.OCRParser;
+import one.rewind.json.JSON;
+import one.rewind.util.FileUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
@@ -29,9 +38,51 @@ public class JSONTest {
     }
 
     @Test
-    public void testReplaceJSONObjectV(){
+    public void testReplaceJSONObjectV() {
         JSONObject jsonObject = new JSONObject("{\"words\":\"看看看看\"}");
-        jsonObject.put("words","");
+        jsonObject.put("words", "");
         System.out.println(jsonObject);
+    }
+
+    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) {
+
+        try {
+            List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
+
+            OCRParser.TouchableTextArea lastArea = null;
+
+            // 遍历初始获得的TextArea
+            for (OCRParser.TouchableTextArea area : originalTextAreas) {
+
+                if (lastArea != null) {
+
+                    // 判断是否与之前的TextArea合并
+                    if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
+                        lastArea = lastArea.add(area);
+                    } else {
+                        newTextAreas.add(area);
+                        lastArea = area;
+                    }
+                } else {
+                    newTextAreas.add(area);
+                    lastArea = area;
+                }
+            }
+            return newTextAreas;
+
+            // TODO ParseException应该消化在上一层
+        } catch (ParseException e) {
+        }
+        return originalTextAreas;
+    }
+
+
+    @Test
+    public void testDate() throws IOException {
+        List<OCRParser.TouchableTextArea> textArea = OCRClient.getInstance().getTextArea(FileUtil.readBytesFromFile("tmp/2.png"));
+        System.out.println(JSON.toPrettyJson(textArea));
+        List<OCRParser.TouchableTextArea> textAreas = mergeForTitle(textArea, 60);
+
+        System.out.println(JSON.toPrettyJson(textAreas));
     }
 }

@@ -5,7 +5,6 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
 import one.rewind.db.model.ModelD;
-import one.rewind.db.model.ModelL;
 import one.rewind.db.persister.JSONableListPersister;
 
 import java.util.ArrayList;
@@ -29,8 +28,8 @@ public class TaskHolder extends ModelD {
 	@DatabaseField(dataType = DataType.INTEGER, width = 11)
 	public int account_id; // =0 时 不需要Account
 
-	@DatabaseField(dataType = DataType.STRING, width = 512)
-	public String params; // 全称 带包路径
+	@DatabaseField(persisterClass = JSONableListPersister.class, width = 512)
+	public List<String> params; // 全称 带包路径
 
 	@DatabaseField(dataType = DataType.DATE)
 	public Date create_time;
