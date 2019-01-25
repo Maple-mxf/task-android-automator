@@ -136,28 +136,29 @@ public class GetMediaEssaysTask extends Task {
                 for (OCRParser.TouchableTextArea area : textAreas) {
 
                     // D2 通过 textAreas 分析是否是最后一页
-                    if (area.content.equals("已无更多")) {
+                    if (area.content.equals("已无更多") && textAreas.indexOf(area) == textAreas.size()) {
                         atBottom = true;
                     }
 
-                    // D31 判断是否进入了文章页
-                    // 去重判断  TODO  发布日期处理
-                    if (collectedEssays.contains(area.content)) {
-                        break;
-                    }
+                    // D2 去重判断  TODO  发布日期处理
+                    EssayTitle et = new EssayTitle(area.content, area.date);
+                    if (collectedEssays.contains(et) || visitedEssays.contains(et)) continue;
+
                     adapter.goToEssayDetail(area);
 
-                    // D32 如果进入成功 需要记录已经点击的文章标题-时间
+                    // D3 判断是否进入了文章页
+                    if (adapter.device.reliableTouch(area.left, area.top)) {
+                        // D3-1 如果进入成功 需要记录已经点击的文章标题-时间
+                        visitedEssays.add(et);
 
-                    // D33 判断文章页是否是DIV引用，识别f_id，点击到原始文章
+                        // D3-2 如果点击无响应则不会返回 TODO 是否需要点击左上角叉号？（文章转载）
+                        adapter.device.goBack();
+                    }
 
-                    // D34 如果点击无响应则不会返回
-                    adapter.device.reliableTouch(area.left, area.top);
-                }
-
-                // D4 向下滑动两次
-                for (int i = 0; i < 2; i++) {
-                    this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
+                    // D4 向下滑动两次
+                    for (int i = 0; i < 2; i++) {
+                        this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
+                    }
                 }
             }
             // 获取公众号文章列表没反应
@@ -196,8 +197,6 @@ public class GetMediaEssaysTask extends Task {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
-
     }
 
     /**

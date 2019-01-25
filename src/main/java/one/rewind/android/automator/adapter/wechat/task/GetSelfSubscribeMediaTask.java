@@ -35,6 +35,9 @@ public class GetSelfSubscribeMediaTask extends Task {
 
         // 任务完成回调
         this.doneCallbacks.add(new Thread(() -> {
+
+            // 更新数据库
+
         }));
     }
 
