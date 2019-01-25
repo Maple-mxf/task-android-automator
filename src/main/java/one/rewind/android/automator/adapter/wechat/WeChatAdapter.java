@@ -499,6 +499,17 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
+     * 从公众号详情页面返回到公众号列表页
+     */
+    public void goBackToPublicAccountListFromMoreInfo() {
+        for (int i = 0; i < 3; i++) {
+            this.device.goBack();
+        }
+        this.status = Status.Subscribe_PublicAccount_List;
+    }
+
+
+    /**
      * 公众号首页 订阅公众号
      *
      * @throws InterruptedException

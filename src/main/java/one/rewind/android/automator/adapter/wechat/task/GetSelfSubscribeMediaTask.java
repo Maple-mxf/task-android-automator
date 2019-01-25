@@ -30,6 +30,8 @@ public class GetSelfSubscribeMediaTask extends Task {
     // 当前账号对应的微信公众账号
     public Set<String> mediaSet = new HashSet<>();
 
+    public Set<AccountMediaSubscribe> accountMediaSubscribes = new HashSet<>();
+
     /**
      * @param holder
      * @param params
@@ -77,15 +79,23 @@ public class GetSelfSubscribeMediaTask extends Task {
                         break;
                     }
 
+                    if (mediaSet.contains(area.content)) continue;
+                    mediaSet.add(area.content);
+
                     // 进入公众号Home页
                     this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
 
                     // 查看公众号的更多资料
                     WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
 
-                    // 存储数据
+                    // 缓存订阅关系的数据  TODO media_id
+                    AccountMediaSubscribe tmp = new AccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.wechat_id, publicAccountInfo.name);
+                    accountMediaSubscribes.add(tmp);
 
+                    // TODO 媒体账号信息的完善
 
+                    // 返回到原来的页面
+                    this.adapter.goBackToPublicAccountListFromMoreInfo();
                 }
             }
 
