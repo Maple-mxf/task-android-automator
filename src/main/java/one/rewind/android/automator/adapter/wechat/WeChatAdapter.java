@@ -23,7 +23,6 @@ import org.openqa.selenium.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -332,7 +331,9 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.NoResponseException
      * @throws NoSubscribeMediaException              在订阅列表中找不到指定的公众号
      */
-    public void goToSubscribedPublicAccountHome(String mediaName) throws InterruptedException, AdapterException.IllegalStateException, IOException, AdapterException.NoResponseException, NoSubscribeMediaException {
+    public void goToSubscribedPublicAccountHome(String mediaName) throws InterruptedException,
+            AdapterException.IllegalStateException,
+            IOException, AdapterException.NoResponseException, NoSubscribeMediaException {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -379,6 +380,25 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
+     * 根据坐标点入微信公众号页
+     *
+     * @throws InterruptedException
+     * @throws AdapterException.IllegalStateException
+     */
+    public void goToSubscribedPublicAccountHome(int x, int y) throws InterruptedException, AdapterException.IllegalStateException {
+        if (this.status != Status.Subscribe_PublicAccount_List)
+            throw new AdapterException.IllegalStateException(this);
+
+        this.device.touch(x, y, 1000);
+
+        device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+
+        Thread.sleep(1000);
+
+        this.status = Status.PublicAccount_Home;
+    }
+
+    /**
      * 公众号首页 进入 更多资料页面
      * 查看公众号更多资料
      */
@@ -395,17 +415,19 @@ public class WeChatAdapter extends Adapter {
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多资料')]")).click();
 
         Thread.sleep(1000);
+
+        this.status = Status.PublicAccount_MoreInfo;
     }
 
-    public static class PublicAccountInfo {
 
-        String name;
-        String content;
-        int essay_count;
-        String wechat_id;
-        String subject;
-        String trademark;
-        String phone;
+    public static class PublicAccountInfo {
+        public String name;      // 公众号名称
+        public String content;   // 公众号简介
+        public int essay_count;  // 原创统计
+        public String wechat_id; // 微信号
+        public String subject;   // 主题
+        public String trademark; // 商标保护
+        public String phone;     // 联系电话
     }
 
     /**
@@ -414,7 +436,7 @@ public class WeChatAdapter extends Adapter {
      * @param name
      * @throws Exception
      */
-    public PublicAccountInfo getPublicAccountInfo(String name, boolean subscribe) throws Exception {
+    public PublicAccountInfo getPublicAccountInfo(String name, boolean subscribe) throws AdapterException.IllegalStateException, InterruptedException {
 
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
@@ -1405,7 +1427,7 @@ public class WeChatAdapter extends Adapter {
      * 切换微信账号
      * TODO 之前账号的状态需要妥善处理
      */
-    public void switchAccount(Account account) throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+    public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.NoAvailableAccount {
 
         this.account = account;
 
@@ -1426,7 +1448,7 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.NoResponseException
      * @throws AdapterException.IllegalStateException
      */
-    public void handUpdateTip() throws IOException, InterruptedException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException, ParseException {
+    public void handUpdateTip() throws IOException, InterruptedException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException {
 
         if (this.status != Status.Home) throw new AdapterException.IllegalStateException(this);
 
@@ -1453,5 +1475,4 @@ public class WeChatAdapter extends Adapter {
             device.touch(cellButtonArea.left, cellButtonArea.top, 500);
         }
     }
-
 }

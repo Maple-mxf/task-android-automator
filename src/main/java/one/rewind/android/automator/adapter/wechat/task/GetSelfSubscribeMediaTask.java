@@ -43,7 +43,7 @@ public class GetSelfSubscribeMediaTask extends Task {
             // 更新数据库
             try {
                 Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
-                
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -76,7 +76,16 @@ public class GetSelfSubscribeMediaTask extends Task {
                         atBottom = true;
                         break;
                     }
-                    mediaSet.add(area.content);
+
+                    // 进入公众号Home页
+                    this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
+
+                    // 查看公众号的更多资料
+                    WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
+
+                    // 存储数据
+
+
                 }
             }
 

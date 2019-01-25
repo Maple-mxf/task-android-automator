@@ -33,6 +33,7 @@ public class SubscribeMediaTask extends Task {
     }
 
     public SubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
+
         super(holder, params);
 
         // 任务执行成功将账号与公众号的关系数据插入数据库
@@ -82,7 +83,7 @@ public class SubscribeMediaTask extends Task {
         } catch (AdapterException.IllegalStateException e) {
 
             logger.error("AndroidDevice state error! cause[{}]", e);
-            
+
         }
         return Boolean.TRUE;
     }
