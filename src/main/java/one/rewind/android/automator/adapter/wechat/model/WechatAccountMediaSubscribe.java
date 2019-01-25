@@ -16,10 +16,7 @@ import java.util.stream.Collectors;
  */
 @DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_account_media_subscribes")
-public class AccountMediaSubscribe extends ModelL {
-
-    public AccountMediaSubscribe() {
-    }
+public class WechatAccountMediaSubscribe extends ModelL {
 
     @DatabaseField(dataType = DataType.INTEGER, index = true, canBeNull = false)
     public int account_id; // 账号ID
@@ -33,13 +30,16 @@ public class AccountMediaSubscribe extends ModelL {
     @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
     public String media_nick; // 公号名称
 
+    public WechatAccountMediaSubscribe() {
+    }
+
     /**
      * @param account_id
      * @param media_id
      * @param media_name
      * @param media_nick
      */
-    public AccountMediaSubscribe(int account_id, String media_id, String media_name, String media_nick) {
+    public WechatAccountMediaSubscribe(int account_id, String media_id, String media_name, String media_nick) {
         this.account_id = account_id;
         this.media_id = media_id;
         this.media_name = media_name;
@@ -54,7 +54,7 @@ public class AccountMediaSubscribe extends ModelL {
      * @throws Exception
      */
     public static List<String> getSubscribeMediaIds(int account_id) throws Exception {
-        Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+        Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
         return dao.queryBuilder().where().eq("account_id", account_id).query().stream().map(ams -> ams.media_id).collect(Collectors.toList());
     }
 }

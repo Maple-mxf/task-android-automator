@@ -160,15 +160,15 @@ public class APITransport {
 
    /* @Test
     public void updateNotFinish() throws Exception {
-        Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+        Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
 
-        List<AccountMediaSubscribe> accounts = dao.queryBuilder().where().eq("status", 0).query();
+        List<WechatAccountMediaSubscribe> accounts = dao.queryBuilder().where().eq("status", 0).query();
 
         Dao<Essays, String> dao1 = DaoManager.getDao(Essays.class);
 
         Dao<FailRecord, String> dao2 = DaoManager.getDao(FailRecord.class);
 
-        for (AccountMediaSubscribe account : accounts) {
+        for (WechatAccountMediaSubscribe account : accounts) {
             long var = dao1.queryBuilder().where().eq("media_nick", account.media_name).countOf();
             List<FailRecord> wxPublicName = dao2.queryBuilder().where().eq("mediaName", account.media_name).query();
             if (var > 50) {

@@ -8,7 +8,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
-import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
 import one.rewind.android.automator.model.RequestRecord;
 import one.rewind.android.automator.util.DateUtil;
 import one.rewind.android.automator.util.Tab;
@@ -227,7 +227,7 @@ public class Bootstrap {
 				requestRecord.udid = udid;
 
 				// 1 当前任务是否已订阅
-				AccountMediaSubscribe var1 = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
+				WechatAccountMediaSubscribe var1 = Tab.subscribeDao.queryBuilder().where().eq("media_name", tmp).queryForFirst();
 
 				if (var1 != null) {
 					requestRecord.is_follow = true;
@@ -237,7 +237,7 @@ public class Bootstrap {
 					// 任务状态为1:  已完成
 					// 任务状态为2:  不存在
 
-					if (AccountMediaSubscribe.State.NOT_FINISH.status == var1.status) {
+					if (WechatAccountMediaSubscribe.State.NOT_FINISH.status == var1.status) {
 						// 任务未完成
 
 						// 上一次采集时间
@@ -246,7 +246,7 @@ public class Bootstrap {
 						requestRecord.is_finish_history = false;
 
 
-					} else if (AccountMediaSubscribe.State.FINISH.status == var1.status) {
+					} else if (WechatAccountMediaSubscribe.State.FINISH.status == var1.status) {
 						//
 						int interval = relativeTask(var1);
 						if (interval == 0) {
@@ -263,7 +263,7 @@ public class Bootstrap {
 							// select pub_date from essays where media_nick = '' and min(pub_date) = pub_date
 							// update数据记录
 							var1.update_time = new Date();
-							var1.status = AccountMediaSubscribe.State.NOT_FINISH.status;
+							var1.status = WechatAccountMediaSubscribe.State.NOT_FINISH.status;
 							var1.retry_count = 0;
 							// 相对于现在处于未完成当前任务
 							var1.relative = 0;
@@ -272,7 +272,7 @@ public class Bootstrap {
 							// setLastPage = true   mediaName需要解析去掉1:topic 2:suffix 3:真实udid
 
 						}
-					} else if (AccountMediaSubscribe.State.NOT_EXIST.status == var1.status) {
+					} else if (WechatAccountMediaSubscribe.State.NOT_EXIST.status == var1.status) {
 						// 公众号不存在
 					}
 				} else {
@@ -355,7 +355,7 @@ public class Bootstrap {
 	 * @return 返回是否历史任务  0 否  1是
 	 *//*
 
-	private static int relativeTask(AccountMediaSubscribe media) {
+	private static int relativeTask(WechatAccountMediaSubscribe media) {
 
 		Date lastedDate = media.update_time;
 

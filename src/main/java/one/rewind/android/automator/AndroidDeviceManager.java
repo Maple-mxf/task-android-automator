@@ -18,13 +18,14 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.stream.Collectors;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
@@ -54,18 +55,8 @@ public class AndroidDeviceManager {
         DefaultAdapterClassNameList.add(WeChatAdapter.class.getName());
     }
 
-
-    // Adapter - AndroidDevice 记录表，记录哪些设备可使用特定类型的Adapter
-    public ConcurrentHashMap<String, List<AndroidDevice>> adapterAndroidDeviceMap = new ConcurrentHashMap<>();
-
-
     // 所有设备的任务
-    public ConcurrentHashMap<String, BlockingQueue<Task>> deviceTaskMap = new ConcurrentHashMap<>();
-
-    /**
-     * 所有设备的信息
-     */
-    public List<AndroidDevice> androidDevices = new ArrayList<>();
+    public ConcurrentHashMap<AndroidDevice, BlockingQueue<Task>> deviceTaskMap = new ConcurrentHashMap<>();
 
 
     /**
@@ -91,7 +82,7 @@ public class AndroidDeviceManager {
             AndroidDevice device = new AndroidDevice(udid);
             logger.info("udid: " + device.udid);
 
-            androidDevices.add(device);
+            deviceTaskMap.put(device, new LinkedBlockingDeque<>());
             logger.info("add device [{}] in device container", device.udid);
 
             // A2 TODO 同步数据库对应记录
@@ -100,9 +91,7 @@ public class AndroidDeviceManager {
         }
 
         // B 加载默认的Adapters
-        for (AndroidDevice ad : androidDevices) {
-
-            deviceTaskMap.put(ad.udid, new LinkedBlockingDeque<>());
+        for (AndroidDevice ad : deviceTaskMap.keySet()) {
 
             for (String className : DefaultAdapterClassNameList) {
 
@@ -152,7 +141,7 @@ public class AndroidDeviceManager {
         }
 
         // C 设备INIT
-        androidDevices.parallelStream()
+        deviceTaskMap.keySet().parallelStream()
                 .filter(d -> d.status != AndroidDevice.Status.Failed)
                 .forEach(d -> {
                     try {
@@ -212,17 +201,26 @@ public class AndroidDeviceManager {
         // 订阅公众号任务 预分派的Device account_id处于限流状态
     }
 
+    /**
+     *
+     * @param AdapterClassName
+     * @return
+     */
+    public AndroidDevice getDevice(String AdapterClassName) throws AndroidException.NoAvailableDeviceException {
 
-    public String getRandomDevice() {
-        int size = androidDevices.size();
-        Random rand = new Random();
-        int index = rand.nextInt(size) + 1;
-        AndroidDevice.Status adStatus = androidDevices.get(index).status;
-        if (adStatus != AndroidDevice.Status.Failed || adStatus != AndroidDevice.Status.Terminated || adStatus != AndroidDevice.Status.Terminating) {
-            return androidDevices.get(index).udid;
-        } else {
-            return getRandomDevice();
+        List<AndroidDevice> devices = deviceTaskMap.keySet().stream()
+                .filter(d -> d.status == AndroidDevice.Status.Idle || d.status == AndroidDevice.Status.Busy)
+                .map(d -> new AbstractMap.SimpleEntry<>(d, deviceTaskMap.get(d).size()))
+                .sorted(Map.Entry.comparingByValue())
+                .limit(1)
+                .map(entry -> entry.getKey())
+                .collect(Collectors.toList());
+
+        if(devices.size() == 1) {
+            return devices.get(0);
         }
+
+        throw new AndroidException.NoAvailableDeviceException();
     }
 
 
@@ -394,13 +392,13 @@ public class AndroidDeviceManager {
      *//*
 	private void distributionFetchTask(AndroidDevice device) throws SQLException {
 		device.queue.clear();
-		AccountMediaSubscribe media =
+		WechatAccountMediaSubscribe media =
 				Tab.subscribeDao.
 						queryBuilder().
 						where().
 						eq("udid", device.udid).
 						and().
-						eq("status", AccountMediaSubscribe.State.NOT_FINISH.status).
+						eq("status", WechatAccountMediaSubscribe.State.NOT_FINISH.status).
 						queryForFirst();
 
 		// 相对于现在没有完成的任务
@@ -428,9 +426,9 @@ public class AndroidDeviceManager {
 
 		long allSubscribe = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
 
-		List<AccountMediaSubscribe> notFinishR = Tab.subscribeDao.queryBuilder().where().
+		List<WechatAccountMediaSubscribe> notFinishR = Tab.subscribeDao.queryBuilder().where().
 				eq("udid", udid).and().
-				eq("status", AccountMediaSubscribe.State.NOT_FINISH.status).
+				eq("status", WechatAccountMediaSubscribe.State.NOT_FINISH.status).
 				query();
 
 		int todaySubscribe = obtainSubscribeNumToday(udid);
@@ -477,8 +475,8 @@ public class AndroidDeviceManager {
 	private void reset() {
 		try {
 			RQueue<Object> taskMedia = redisClient.getQueue(Tab.TOPIC_MEDIA);
-			List<AccountMediaSubscribe> accounts = Tab.subscribeDao.queryForAll();
-			for (AccountMediaSubscribe v : accounts) {
+			List<WechatAccountMediaSubscribe> accounts = Tab.subscribeDao.queryForAll();
+			for (WechatAccountMediaSubscribe v : accounts) {
 
 				if (v.status == 2 && v.number == 0) {
 					if (v.topic != null) {

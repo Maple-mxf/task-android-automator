@@ -4,7 +4,7 @@ package one.rewind.android.automator.test.db;
 import com.google.common.collect.Lists;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
-import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
 import one.rewind.android.automator.model.BaiduToken;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DaoManager;
@@ -65,7 +65,7 @@ public class DBTest {
 		calendar.set(Calendar.SECOND, 0);
 		Date zero = calendar.getTime();
 		Date current = DateUtils.addDays(zero, 1);
-		Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+		Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
 		long count = dao.queryBuilder().where().between("insert_time", zero, current).countOf();
 		System.out.println(count);
 	}
@@ -73,9 +73,9 @@ public class DBTest {
 
 	@Test
 	public void updateData() throws Exception {
-		Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+		Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
 
-		AccountMediaSubscribe accountSubscribe = dao.queryBuilder().where().
+		WechatAccountMediaSubscribe accountSubscribe = dao.queryBuilder().where().
 				eq("udid", "ZX1G22PQLH").
 				and().
 				eq("media_name", "北京理工大学研究生教育").
@@ -83,7 +83,7 @@ public class DBTest {
 
 		System.out.println(accountSubscribe);
 
-		accountSubscribe.status = AccountMediaSubscribe.State.FINISH.status;
+		accountSubscribe.status = WechatAccountMediaSubscribe.State.FINISH.status;
 
 		System.out.println(accountSubscribe);
 
@@ -93,7 +93,7 @@ public class DBTest {
 
 	@Test
 	public void byTimeQuery() throws Exception {
-		Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+		Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
 
 		Date date = new Date();
 
@@ -103,7 +103,7 @@ public class DBTest {
 
 		Date parse = df.parse(result);
 
-		List<AccountMediaSubscribe> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
+		List<WechatAccountMediaSubscribe> insert_time = dao.queryBuilder().where().eq("insert_time", parse).query();
 
 		System.out.println(insert_time.size());
 	}
@@ -138,7 +138,7 @@ public class DBTest {
 		Date time = instance.getTime();
 
 
-		List<AccountMediaSubscribe> query = Tab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
+		List<WechatAccountMediaSubscribe> query = Tab.subscribeDao.queryBuilder().where().eq("udid", "ZX1G42BX4R").and().ge("insert_time", time).query();
 
 		System.out.println(query);
 	}
@@ -275,13 +275,13 @@ public class DBTest {
 
 	@Test
 	public void test3() throws Exception {
-		AccountMediaSubscribe media =
+		WechatAccountMediaSubscribe media =
 				Tab.subscribeDao.
 						queryBuilder().
 						where().
 						eq("udid", "ZX1G22PQLH").
 						and().
-						eq("status", AccountMediaSubscribe.State.NOT_FINISH.status).
+						eq("status", WechatAccountMediaSubscribe.State.NOT_FINISH.status).
 						queryForFirst();
 		System.out.println(media.media_name);
 
@@ -292,7 +292,7 @@ public class DBTest {
 	public void testCreateTable() throws Exception {
 		Refacter.createTable(Account.class);
 //		Refacter.createTable(RequestRecord.class);
-////		Refacter.createTable(AccountMediaSubscribe.class);
+////		Refacter.createTable(WechatAccountMediaSubscribe.class);
 //		Refacter.createTable(WechatGroup.class);
 //		Refacter.createTable(WechatMsg.class);
 //		Refacter.createTable(TaskLog.class);

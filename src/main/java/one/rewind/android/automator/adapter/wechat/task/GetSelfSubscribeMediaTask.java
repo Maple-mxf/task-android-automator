@@ -3,7 +3,7 @@ package one.rewind.android.automator.adapter.wechat.task;
 import com.dw.ocr.parser.OCRParser;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
-import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
@@ -30,7 +30,7 @@ public class GetSelfSubscribeMediaTask extends Task {
     // 当前账号对应的微信公众账号
     public Set<String> mediaSet = new HashSet<>();
 
-    public Set<AccountMediaSubscribe> accountMediaSubscribes = new HashSet<>();
+    public Set<WechatAccountMediaSubscribe> accountMediaSubscribes = new HashSet<>();
 
     /**
      * @param holder
@@ -44,7 +44,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 
             // 更新数据库
             try {
-                Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+                Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -54,6 +54,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 
     @Override
     public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
+
         try {
             adapter.start();
 
@@ -89,7 +90,7 @@ public class GetSelfSubscribeMediaTask extends Task {
                     WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
 
                     // 缓存订阅关系的数据  TODO media_id
-                    AccountMediaSubscribe tmp = new AccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.wechat_id, publicAccountInfo.name);
+                    WechatAccountMediaSubscribe tmp = new WechatAccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.wechat_id, publicAccountInfo.name);
                     accountMediaSubscribes.add(tmp);
 
                     // TODO 媒体账号信息的完善

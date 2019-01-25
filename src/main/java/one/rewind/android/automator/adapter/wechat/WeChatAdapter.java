@@ -241,7 +241,6 @@ public class WeChatAdapter extends Adapter {
         device.touch(70, 168, 1000);
     }
 
-
     /**
      * 进入搜索页
      *
@@ -276,6 +275,7 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.IllegalStateException
      */
     public void goToSearchNoSubscribePublicAccountResult(String mediaName) throws AdapterException.IllegalStateException, InterruptedException {
+
         if (this.status != Status.SearchPublicAccount)
             throw new AdapterException.IllegalStateException(this);
         // 输入框输入公众号
@@ -285,9 +285,15 @@ public class WeChatAdapter extends Adapter {
         device.touch(1318, 2259, 5000);
 
         this.status = Status.PublicAccount_Search_Result;
+
     }
 
-    public void goToNoSubscribePublicAccountHome() throws InterruptedException, AdapterException.IllegalStateException {
+	/**
+	 *
+	 * @throws InterruptedException
+	 * @throws AdapterException.IllegalStateException
+	 */
+	public void goToNoSubscribePublicAccountHome() throws InterruptedException, AdapterException.IllegalStateException {
         if (this.status != Status.PublicAccount_Search_Result)
             throw new AdapterException.IllegalStateException(this);
 

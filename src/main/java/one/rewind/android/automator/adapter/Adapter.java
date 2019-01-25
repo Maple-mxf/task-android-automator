@@ -43,7 +43,6 @@ public abstract class Adapter {
 		this.device = device;
 	}
 
-
 	/**
 	 *
 	 */

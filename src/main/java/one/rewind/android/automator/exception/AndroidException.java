@@ -24,4 +24,6 @@ public class AndroidException extends Exception {
     public static class IllegalStatusException extends Exception {
 
     }
+
+    public static class NoAvailableDeviceException extends Exception {}
 }

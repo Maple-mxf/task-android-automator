@@ -68,6 +68,8 @@ public class Account extends ModelL {
 		Get_Public_Account_Essay_List_Frozen // 获取公众号历史文章被限流
 	}
 
+	// TODO 构造方法
+
 	/**
 	 * 获取可用的账号
 	 *
