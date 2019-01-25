@@ -39,7 +39,6 @@ public class TaskFactory {
 
         Task task = null;
 
-
         try {
             // A 检验holder参数
 
@@ -58,9 +57,7 @@ public class TaskFactory {
                 }
             }
             // B 反射创建Task的实例  TODO?
-            if (holder.params.size() == 1) {
 
-            }
         } catch (Exception e) {
 
         }

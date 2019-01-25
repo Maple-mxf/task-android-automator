@@ -8,17 +8,12 @@ import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.txt.StringUtil;
 
-import java.io.IOException;
-
 /**
  * 订阅公众号
  *
  * @author scisaga@gmail.com
  */
 public class SubscribeMediaTask extends Task {
-
-    // 点击无响应重试上限
-    public static final int MAX_ATTEMPTS = 5;
 
     public static Platform platform;
 
@@ -52,7 +47,7 @@ public class SubscribeMediaTask extends Task {
     }
 
     @Override
-    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
+    public Boolean call() throws InterruptedException, AdapterException.OperationException {
 
         try {
             // A 启动微信
@@ -81,11 +76,13 @@ public class SubscribeMediaTask extends Task {
 
             logger.error("Error no available account! cause[{}]", noAvailableAccount);
 
+            runCallbacks(failureCallbacks);
+
             // Adapter状态异常
         } catch (AdapterException.IllegalStateException e) {
 
             logger.error("AndroidDevice state error! cause[{}]", e);
-
+            
         }
         return Boolean.TRUE;
     }

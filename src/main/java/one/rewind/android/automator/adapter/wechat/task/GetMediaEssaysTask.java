@@ -60,9 +60,6 @@ public class GetMediaEssaysTask extends Task {
     // 已经保存过的微信公众号文章
     public List<EssayTitle> collectedEssays = new ArrayList<>();
 
-    // 最大尝试次数
-    public static final int MAX_ATTEMPTS = 5;
-
     /**
      * @param holder
      * @param params
@@ -167,37 +164,33 @@ public class GetMediaEssaysTask extends Task {
         } catch (GetPublicAccountEssayListFrozenException e) {
 
             logger.error("Error enter essay list page error,touch not response! cause[{}]", e);
-            e.printStackTrace();
 
             // 搜索公众号没响应
         } catch (SearchPublicAccountFrozenException e) {
 
             logger.error("Error search WeChat media not response! cause[{}]", e);
-            e.printStackTrace();
 
             // Adapter状态异常
         } catch (AdapterException.IllegalStateException e) {
 
             logger.error("AndroidDevice state error! cause[{}]", e);
-            e.printStackTrace();
 
             // 点击没反应
         } catch (AdapterException.NoResponseException e) {
 
             logger.error("Error enter essay detail touch not response! cause[{}]", e);
-            e.printStackTrace();
 
             // 在指定账号的订阅列表中找不到指定的公众号的异常
         } catch (NoSubscribeMediaException e) {
-            e.printStackTrace();
+
+            logger.error("Error No subscribe current public account:[{}]! cause[{}]", media_nick, e);
 
             // 无可用账户异常
         } catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
             logger.error("Error no available account! cause[{}]", noAvailableAccount);
-            noAvailableAccount.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
+            runCallbacks(failureCallbacks);
+
         }
         return Boolean.TRUE;
     }

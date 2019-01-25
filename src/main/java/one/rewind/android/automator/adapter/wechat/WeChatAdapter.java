@@ -135,7 +135,7 @@ public class WeChatAdapter extends Adapter {
      */
     public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
             throws IOException, AdapterException.NoResponseException,
-            SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, ParseException {
+            SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
 
         // A 获取截图
         String screenShotPath = this.device.screenShot();
@@ -193,7 +193,7 @@ public class WeChatAdapter extends Adapter {
      * @param gap               文本框之间的最大距离
      * @return 合并后的文本框列表
      */
-    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) throws ParseException {
+    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) {
 
         List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
 

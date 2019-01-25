@@ -1,11 +1,15 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
+import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.model.AccountMediaSubscribe;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
+import one.rewind.db.DaoManager;
+import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -37,6 +41,12 @@ public class GetSelfSubscribeMediaTask extends Task {
         this.doneCallbacks.add(new Thread(() -> {
 
             // 更新数据库
+            try {
+                Dao<AccountMediaSubscribe, String> dao = DaoManager.getDao(AccountMediaSubscribe.class);
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }));
     }
 
@@ -58,7 +68,6 @@ public class GetSelfSubscribeMediaTask extends Task {
                 // C 获取当前页截图
                 List<OCRParser.TouchableTextArea> accountList = this.adapter.getPublicAccountList();
 
-
                 // D 添加到公众号集合中
                 for (OCRParser.TouchableTextArea area : accountList) {
 
@@ -69,7 +78,6 @@ public class GetSelfSubscribeMediaTask extends Task {
                     }
                     mediaSet.add(area.content);
                 }
-
             }
 
             // 任务执行成功回调
@@ -84,5 +92,17 @@ public class GetSelfSubscribeMediaTask extends Task {
             logger.error("AndroidDevice state error! cause[{}]", e);
         }
         return Boolean.TRUE;
+    }
+
+    /**
+     * 媒体账号ID 生成
+     *
+     * @param media_nick
+     * @param title
+     * @param src_id
+     * @return
+     */
+    public static String genId(String media_nick, String title, String src_id) {
+        return StringUtil.MD5(SubscribeMediaTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
     }
 }
