@@ -116,8 +116,8 @@ public class GetMediaEssaysTask extends Task {
             adapter.goToSubscribePublicAccountList();
 
             // B 根据media name搜索到相关的公众号（已订阅的公众号）
-            adapter.goToPublicAccountHome(media_nick);
-            // TODO 此处需要判断是否存在 media_nick 对应的 media 记录
+            adapter.goToSubscribedPublicAccountHome(media_nick);
+
             // 同时从数据库查找已经采集的文章列表
 
             // C 进入历史文章数据列表页

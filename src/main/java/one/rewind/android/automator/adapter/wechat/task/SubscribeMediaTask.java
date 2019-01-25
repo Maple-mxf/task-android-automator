@@ -1,12 +1,12 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
+import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.txt.StringUtil;
-
-import java.io.IOException;
 
 /**
  * 订阅公众号
@@ -20,6 +20,11 @@ public class SubscribeMediaTask extends Task {
 
     public static Platform platform;
 
+    public WeChatAdapter adapter;
+
+    public String media_nick;
+
+
     static {
         try {
             platform = new Platform("微信公众号平台", "WX");
@@ -31,44 +36,56 @@ public class SubscribeMediaTask extends Task {
     }
 
     public SubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
-
         super(holder, params);
+
+        // 任务执行成功将账号与公众号的关系数据插入数据库
+        this.doneCallbacks.add(new Thread(() -> {
+
+        }));
+
+        // 任务失败记录日志
+        this.failureCallbacks.add(new Thread(() -> {
+
+        }));
     }
 
     @Override
-    public void execute() throws InterruptedException, IOException, AdapterException.OperationException {
+    public void execute() throws InterruptedException, AdapterException.OperationException {
 
+        try {
+
+            // A 启动微信
+            adapter.start();
+
+            // B 点击搜索
+            adapter.goToSearchPage();
+
+            // C 点击公众号
+            adapter.goToSearchPublicAccountPage();
+
+            // D 输入公众号进行搜索
+            adapter.goToSearchNoSubscribePublicAccountResult(media_nick);
+
+            // F 进入公众号首页
+            adapter.goToNoSubscribePublicAccountHome();
+
+            // G 点击订阅
+            adapter.subscribePublicAccount();
+
+            // 无可用账号异常
+        } catch (AccountException.NoAvailableAccount noAvailableAccount) {
+
+            logger.error("Error no available account! cause[{}]", noAvailableAccount);
+
+            // Adapter状态异常
+        } catch (AdapterException.IllegalStateException e) {
+
+            logger.error("AndroidDevice state error! cause[{}]", e);
+
+        }
     }
 
     public static String genId(String nick) {
         return StringUtil.MD5(platform.short_name + "-" + nick);
     }
-
-    /**
-     * save subscribe record
-     *
-     * @param mediaName media
-     * @param topic     redis topic
-     */
-//	private void saveSubscribeRecord(String mediaName, String topic) {
-//		try {
-//			long tempCount = Tab.subscribeDao.queryBuilder().where()
-//					.eq("media_name", mediaName)
-//					.countOf();
-//			if (tempCount == 0) {
-//				AccountMediaSubscribe e = new AccountMediaSubscribe();
-//				e.udid = adapter.device.udid;
-//				e.media_name = mediaName;
-//				e.number = 100;
-//				e.retry_count = 0;
-//				e.status = AccountMediaSubscribe.State.NOT_FINISH.status;
-//				e.topic = topic;
-//				e.relative = 1;
-//				e.insert();
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-
 }

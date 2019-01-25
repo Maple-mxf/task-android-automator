@@ -424,7 +424,6 @@ public class AndroidDevice extends ModelL {
             logger.info("[{}] Stop done.", name);
 
             runCallbacks(idleCallbacks);
-
         }
         //
         catch (InterruptedException e) {

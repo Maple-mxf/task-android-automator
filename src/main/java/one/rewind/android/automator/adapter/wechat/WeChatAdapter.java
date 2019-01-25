@@ -43,6 +43,7 @@ public class WeChatAdapter extends Adapter {
         Home_Login,                               // 登陆
         Home,                                  // 首页
         Search,                                // 首页点进去的搜索
+        SearchPublicAccount,                   // 首页点进去的搜索之后在点击公众号到达的页面
         PublicAccount_Search_Result,           // 公众号搜索结果
         PublicAccount_Home,                    // 公众号首页
         PublicAccount_MoreInfo,                // 公众号更多资料
@@ -241,6 +242,63 @@ public class WeChatAdapter extends Adapter {
         device.touch(70, 168, 1000);
     }
 
+
+    /**
+     * 进入搜索页
+     *
+     * @throws AdapterException.IllegalStateException
+     */
+    public void goToSearchPage() throws AdapterException.IllegalStateException {
+        if (this.status != Status.Home)
+            throw new AdapterException.IllegalStateException(this);
+
+        // 从首页点搜索按钮
+        device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'搜索')]")).click();
+        this.status = Status.Search;
+    }
+
+    /**
+     * 进入搜索公众号页
+     *
+     * @throws AdapterException.IllegalStateException
+     */
+    public void goToSearchPublicAccountPage() throws AdapterException.IllegalStateException {
+        if (this.status != Status.Search)
+            throw new AdapterException.IllegalStateException(this);
+
+        // 在搜索页点公众号
+        device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
+        this.status = Status.SearchPublicAccount;
+    }
+
+    /**
+     * 搜索新的公众号公众号
+     *
+     * @throws AdapterException.IllegalStateException
+     */
+    public void goToSearchNoSubscribePublicAccountResult(String mediaName) throws AdapterException.IllegalStateException, InterruptedException {
+        if (this.status != Status.SearchPublicAccount)
+            throw new AdapterException.IllegalStateException(this);
+        // 输入框输入公众号
+        device.driver.findElement(By.className("android.widget.EditText")).sendKeys("\"" + mediaName + "\"");
+
+        // 点击搜索
+        device.touch(1318, 2259, 5000);
+
+        this.status = Status.PublicAccount_Search_Result;
+    }
+
+    public void goToNoSubscribePublicAccountHome() throws InterruptedException, AdapterException.IllegalStateException {
+        if (this.status != Status.PublicAccount_Search_Result)
+            throw new AdapterException.IllegalStateException(this);
+
+        // 点击第一个结果
+        device.touch(347, 525, 2000);
+
+        this.status = Status.PublicAccount_Home;
+    }
+
+
     /**
      * 从 首页/通讯录
      * 进入已订阅公众号的列表页面
@@ -274,7 +332,7 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.NoResponseException
      * @throws NoSubscribeMediaException              在订阅列表中找不到指定的公众号
      */
-    public void goToPublicAccountHome(String mediaName) throws InterruptedException, AdapterException.IllegalStateException, IOException, AdapterException.NoResponseException, NoSubscribeMediaException {
+    public void goToSubscribedPublicAccountHome(String mediaName) throws InterruptedException, AdapterException.IllegalStateException, IOException, AdapterException.NoResponseException, NoSubscribeMediaException {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -290,8 +348,6 @@ public class WeChatAdapter extends Adapter {
         // 点确认
         device.touch(720, 150, 1000);
 
-
-        // TODO 如果当前帐号没有订阅公众号怎么办？
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'无结果')]"));
 
@@ -510,24 +566,6 @@ public class WeChatAdapter extends Adapter {
         this.status = Status.PublicAccount_Essay_List;
     }
 
-    /**
-     * TODO 获取当前订阅的微信公众号列表
-     */
-    public List<String> getCurrentSubscribePublicAccountList() {
-
-        // A 从通讯中点击公众号
-
-        // B 到达已订阅的公众号列表
-
-        // C 截图识别
-
-        // D 翻到最后一个
-
-        // 依次重复执行若干次
-
-        return new ArrayList<>();
-    }
-
 
     /**
      *
@@ -549,7 +587,7 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws InterruptedException
      */
-    public void loginOut() throws InterruptedException, AdapterException.OperationException {
+    public void loginOut() throws AdapterException.OperationException {
 
         try {
             // A 点击我
