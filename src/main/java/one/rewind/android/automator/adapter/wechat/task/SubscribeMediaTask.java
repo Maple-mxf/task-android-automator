@@ -8,6 +8,8 @@ import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.txt.StringUtil;
 
+import java.io.IOException;
+
 /**
  * 订阅公众号
  *
@@ -50,10 +52,9 @@ public class SubscribeMediaTask extends Task {
     }
 
     @Override
-    public void execute() throws InterruptedException, AdapterException.OperationException {
+    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
 
         try {
-
             // A 启动微信
             adapter.start();
 
@@ -72,6 +73,9 @@ public class SubscribeMediaTask extends Task {
             // G 点击订阅
             adapter.subscribePublicAccount();
 
+            // 任务执行成功回调
+            runCallbacks(doneCallbacks);
+
             // 无可用账号异常
         } catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
@@ -83,6 +87,7 @@ public class SubscribeMediaTask extends Task {
             logger.error("AndroidDevice state error! cause[{}]", e);
 
         }
+        return Boolean.TRUE;
     }
 
     public static String genId(String nick) {

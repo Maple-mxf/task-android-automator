@@ -37,17 +37,11 @@ public class GetSelfSubscribeMediaTask extends Task {
         this.doneCallbacks.add(new Thread(() -> {
 
             // 更新数据库
-
         }));
     }
 
-    /**
-     * @throws InterruptedException
-     * @throws IOException
-     * @throws AdapterException.OperationException
-     */
     @Override
-    public void execute() throws InterruptedException, IOException, AdapterException.OperationException {
+    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
         try {
             adapter.start();
 
@@ -78,6 +72,9 @@ public class GetSelfSubscribeMediaTask extends Task {
 
             }
 
+            // 任务执行成功回调
+            runCallbacks(doneCallbacks);
+
             // 无可用账号异常
         } catch (AccountException.NoAvailableAccount noAvailableAccount) {
             logger.error("Error no available account! cause[{}]", noAvailableAccount);
@@ -86,5 +83,6 @@ public class GetSelfSubscribeMediaTask extends Task {
         } catch (AdapterException.IllegalStateException e) {
             logger.error("AndroidDevice state error! cause[{}]", e);
         }
+        return Boolean.TRUE;
     }
 }

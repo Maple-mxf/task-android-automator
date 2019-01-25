@@ -43,16 +43,8 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
     }
 
     // 任务的生命周期
-    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
+    public abstract Boolean call() throws InterruptedException, IOException, AdapterException.OperationException;
 
-        execute();
-
-        runCallbacks(doneCallbacks);
-
-        return Boolean.TRUE;
-    }
-
-    public abstract void execute() throws InterruptedException, IOException, AdapterException.OperationException;
 
     /**
      * 参数异常

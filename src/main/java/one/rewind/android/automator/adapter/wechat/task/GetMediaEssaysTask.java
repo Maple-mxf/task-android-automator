@@ -75,6 +75,16 @@ public class GetMediaEssaysTask extends Task {
             throw new IllegalParamsException(Arrays.stream(params).collect(Collectors.joining(", ")));
 
         media_nick = params[0];
+
+        // 任务执行成功回调
+        this.doneCallbacks.add((Runnable) () -> {
+
+            // TODO 通知redis队列
+
+            // 移除过滤器
+            removeFilters();
+
+        });
     }
 
     /**
@@ -91,21 +101,9 @@ public class GetMediaEssaysTask extends Task {
         }
     }
 
-
     @Override
-    public void execute() throws InterruptedException, IOException, AdapterException.OperationException {
-
+    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
         setupFilters();
-
-        // 任务执行成功回调
-        this.doneCallbacks.add((Runnable) () -> {
-
-            // TODO 通知redis队列
-
-            // 移除过滤器
-            removeFilters();
-
-        });
 
         // 任务执行
         try {
@@ -161,6 +159,10 @@ public class GetMediaEssaysTask extends Task {
                     }
                 }
             }
+
+            // 任务执行成功回调
+            runCallbacks(doneCallbacks);
+
             // 获取公众号文章列表没反应
         } catch (GetPublicAccountEssayListFrozenException e) {
 
@@ -197,7 +199,9 @@ public class GetMediaEssaysTask extends Task {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+        return Boolean.TRUE;
     }
+
 
     /**
      *
