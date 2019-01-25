@@ -134,13 +134,13 @@ public class WeChatAdapter extends Adapter {
      */
     public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
             throws IOException, AdapterException.NoResponseException,
-            SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
+            SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, ParseException {
 
         // A 获取截图
         String screenShotPath = this.device.screenShot();
 
         // B 获取可点击文本区域  Http请求ocr服务 TODO  BUG   getTextArea类型转换存在问题   在此处类型转换会存在问题ClassCastException
-        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
+        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
 
         // C 删除图片文件
         new File(screenShotPath).delete();
@@ -165,43 +165,57 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
+     * 获取微信公众号列表
+     *
+     * @return
+     * @throws IOException
+     */
+    public List<OCRParser.TouchableTextArea> getPublicAccountList() throws IOException {
+
+        // A 获取截图
+        String screenShotPath = this.device.screenShot();
+
+        // B 获取可点击文本区域  Http请求ocr服务 TODO  BUG   getTextArea类型转换存在问题   在此处类型转换会存在问题ClassCastException
+        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
+
+        // C 删除图片文件
+        new File(screenShotPath).delete();
+
+        return textAreaList;
+    }
+
+
+    /**
      * 由于默认的解析方法会把两行标题解析成两个文本框，此时需要根据顺序关系和坐标关系，对文本框进行合并
      *
      * @param originalTextAreas 初始解析的文本框列表
      * @param gap               文本框之间的最大距离
      * @return 合并后的文本框列表
      */
-    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) {
+    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) throws ParseException {
 
-        try {
-            List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
+        List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
 
-            OCRParser.TouchableTextArea lastArea = null;
+        OCRParser.TouchableTextArea lastArea = null;
 
-            // 遍历初始获得的TextArea
-            for (OCRParser.TouchableTextArea area : originalTextAreas) {
+        // 遍历初始获得的TextArea
+        for (OCRParser.TouchableTextArea area : originalTextAreas) {
 
-                if (lastArea != null) {
+            if (lastArea != null) {
 
-                    // 判断是否与之前的TextArea合并
-                    if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
-                        lastArea = lastArea.add(area);
-                    } else {
-                        newTextAreas.add(area);
-                        lastArea = area;
-                    }
+                // 判断是否与之前的TextArea合并
+                if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
+                    lastArea = lastArea.add(area);
                 } else {
                     newTextAreas.add(area);
                     lastArea = area;
                 }
+            } else {
+                newTextAreas.add(area);
+                lastArea = area;
             }
-            return newTextAreas;
-
-            // TODO ParseException应该消化在上一层
-        } catch (ParseException e) {
-            logger.error("Error parse string to date failure; cause: [{}]", e);
         }
-        return originalTextAreas;
+        return newTextAreas;
     }
 
     /**
@@ -1374,7 +1388,7 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.NoResponseException
      * @throws AdapterException.IllegalStateException
      */
-    public void handUpdateTip() throws IOException, InterruptedException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException {
+    public void handUpdateTip() throws IOException, InterruptedException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException, ParseException {
 
         if (this.status != Status.Home) throw new AdapterException.IllegalStateException(this);
 

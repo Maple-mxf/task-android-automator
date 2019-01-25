@@ -7,6 +7,9 @@ import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.db.DaoManager;
+import one.rewind.json.JSON;
+import one.rewind.json.JSONable;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,6 +20,8 @@ import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -159,6 +164,8 @@ public class AndroidDeviceManager {
     }
 
     /**
+     * 从队列中拿任务
+     *
      * @param ad
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
@@ -176,8 +183,24 @@ public class AndroidDeviceManager {
 
         if (task.holder == null || task.holder.adapter_name == null) return;
 
-        // task.holder.udid; // 是否指定设备
-        // task.holder.adapter_name; // 指定App
+
+        // 没有指定设备  没有指定账号
+        if (StringUtils.isNotBlank(task.holder.adapter_name) && task.holder.account_id == 0) {
+
+            String randomAd = getRandomDevice();
+
+            BlockingQueue<Task> blockingQueue = deviceTaskMap.get(randomAd);
+
+            blockingQueue.add(task);
+
+        } else if (StringUtils.isNotBlank(task.holder.udid) && StringUtils.isNotBlank(task.holder.adapter_name)) {
+
+            BlockingQueue<Task> blockingQueue = deviceTaskMap.get(task.holder.udid);
+
+            blockingQueue.add(task);
+        }
+
+
         // task.holder.account_id; // 指定账户
 
         // 合法模式
@@ -187,9 +210,70 @@ public class AndroidDeviceManager {
 
         // 其他异常举例
         // 订阅公众号任务 预分派的Device account_id处于限流状态
-
-
     }
+
+
+    public String getRandomDevice() {
+        int size = androidDevices.size();
+        Random rand = new Random();
+        int index = rand.nextInt(size) + 1;
+        AndroidDevice.Status adStatus = androidDevices.get(index).status;
+        if (adStatus != AndroidDevice.Status.Failed || adStatus != AndroidDevice.Status.Terminated || adStatus != AndroidDevice.Status.Terminating) {
+            return androidDevices.get(index).udid;
+        } else {
+            return getRandomDevice();
+        }
+    }
+
+
+    /**
+     *
+     */
+    public static class SubmitInfo implements JSONable<SubmitInfo> {
+
+        public boolean success = true;
+
+        String localIp;
+        String domain;
+        String account;
+        String id;
+
+        Map<String, Object> agent;
+
+        /**
+         *
+         */
+        public SubmitInfo() {
+        }
+
+        /**
+         * @param success
+         */
+        public SubmitInfo(boolean success) {
+            this.success = success;
+        }
+
+        /**
+         * @param localIp
+         * @param domain
+         * @param account
+         * @param id
+         * @param agentInfo
+         */
+        public SubmitInfo(String localIp, String domain, String account, String id, Map<String, Object> agentInfo) {
+            this.localIp = localIp;
+            this.domain = domain;
+            this.account = account;
+            this.id = id;
+            this.agent = agentInfo;
+        }
+
+        @Override
+        public String toJSON() {
+            return JSON.toJson(this);
+        }
+    }
+
 
     /**
      * 加载数据库中,上一次未完成的任务

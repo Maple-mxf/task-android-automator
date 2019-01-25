@@ -45,6 +45,7 @@ import se.vidstige.jadb.JadbException;
 import se.vidstige.jadb.RemoteFile;
 import se.vidstige.jadb.managers.PackageManager;
 
+import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -84,8 +85,6 @@ public class AndroidDevice extends ModelL {
         Failed, // 出错
         Terminating, // 终止过程中
         Terminated,  // 已终止
-        Operation_Too_Frequent, // 单个设备的操作过多
-        Exceed_Subscribe_Limit, // 单个设备当日订阅到达上限
     }
 
 
@@ -215,7 +214,6 @@ public class AndroidDevice extends ModelL {
             } catch (InterruptedException e) {
 
                 logger.error("Interrupted, ", e);
-
             }
             // 对应的Adapter操作定义的有问题，已经与app对应不上
             catch (AdapterException.OperationException e) {
@@ -223,7 +221,6 @@ public class AndroidDevice extends ModelL {
                 logger.error("Adapter operation exception, ", e);
 
                 this.adapters.remove(adapter.getClass().getName());
-
             }
             // 没有可用账号了
             catch (AccountException.NoAvailableAccount e) {
@@ -233,19 +230,6 @@ public class AndroidDevice extends ModelL {
                 this.adapters.remove(adapter.getClass().getName());
             }
         });
-
-        this.idleCallbacks.add((d) -> {
-
-        });
-
-        this.failedCallbacks.add((d) -> {
-
-        });
-
-        this.terminatedCallbacks.add((d) -> {
-
-        });
-
         return this;
     }
 
@@ -456,7 +440,7 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] Stop failed. ", name, e.getCause());
             try {
                 throw e.getCause();
-            } catch (Throwable ex){
+            } catch (Throwable ex) {
 
             }
 
@@ -1045,7 +1029,7 @@ public class AndroidDevice extends ModelL {
             String path2 = screenShot();
 
             // D 比较 两个截图相似性
-            boolean similar = ImageUtil.compareImage(path1, path2);
+            boolean similar = ImageUtil.isSame(ImageIO.read(new File(path1)), ImageIO.read(new File(path2)));
 
             // E 如果相似 递归调用
             if (similar) {

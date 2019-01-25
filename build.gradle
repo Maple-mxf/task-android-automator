@@ -67,7 +67,7 @@ dependencies {
 
     compile group: 'org.apache.spark', name: 'spark-core_2.11', version: '2.3.0'
 
-    compile group: 'com.dw:ocr-service:0.1.4-SNAPSHOT'
+    compile group: 'com.dw', name: 'ocr-service', version: '0.1.7-SNAPSHOT'
 }
 
 task copyFiles() << {

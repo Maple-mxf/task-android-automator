@@ -131,12 +131,14 @@ public class GetMediaEssaysTask extends Task {
                 // D1 截图分析文章坐标  此处得到的图像识别结果是一个通用的东西  需要分解出日期的坐标
                 List<OCRParser.TouchableTextArea> textAreas = this.adapter.getPublicAccountEssayListTitles();
 
-                // D2 TODO 通过 textAreas 分析是否是最后一页
-                atBottom = true;
                 // TODO 需要把 最后一页 对应的 textArea 删掉，一般来讲都是最后一个
-
                 // D3 逐个文章去点击
                 for (OCRParser.TouchableTextArea area : textAreas) {
+
+                    // D2 通过 textAreas 分析是否是最后一页
+                    if (area.content.equals("已无更多")) {
+                        atBottom = true;
+                    }
 
                     // D31 判断是否进入了文章页
                     // 去重判断  TODO  发布日期处理
@@ -170,7 +172,7 @@ public class GetMediaEssaysTask extends Task {
             logger.error("Error search WeChat media not response! cause[{}]", e);
             e.printStackTrace();
 
-            // 安卓状态异常
+            // Adapter状态异常
         } catch (AdapterException.IllegalStateException e) {
 
             logger.error("AndroidDevice state error! cause[{}]", e);
@@ -191,6 +193,8 @@ public class GetMediaEssaysTask extends Task {
 
             logger.error("Error no available account! cause[{}]", noAvailableAccount);
             noAvailableAccount.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
 
 
