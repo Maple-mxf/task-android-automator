@@ -19,6 +19,7 @@ import java.util.List;
 @DatabaseTable(tableName = "tasks")
 public class TaskHolder extends ModelD {
 
+
 	@DatabaseField(dataType = DataType.STRING, width = 128)
 	public String udid;
 

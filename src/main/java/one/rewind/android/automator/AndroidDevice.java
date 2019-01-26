@@ -189,6 +189,9 @@ public class AndroidDevice extends ModelL {
         executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
         executor.setThreadFactory(new ThreadFactoryBuilder()
                 .setNameFormat(name + "-%d").build());
+    }
+
+    public AndroidDevice(){
 
     }
 

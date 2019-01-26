@@ -101,6 +101,8 @@ public class GetMediaEssaysTask extends Task {
     @Override
     public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
 
+        boolean success = false;
+
         setupFilters();
 
         // 任务执行
@@ -159,53 +161,56 @@ public class GetMediaEssaysTask extends Task {
             }
 
             // 任务执行成功回调
-            runCallbacks(doneCallbacks);
-
+            success = true;
 
         }
-		// 获取公众号文章列表没反应
+        // 获取公众号文章列表没反应
         catch (GetPublicAccountEssayListFrozenException e) {
 
             logger.error("Error enter [{}] essay list page error, touch not response, ", media_nick, e);
 
 
         }
-		// 搜索公众号没响应
+        // 搜索公众号没响应
         catch (SearchPublicAccountFrozenException e) {
 
             logger.error("Error search WeChat media not response! cause[{}]", e);
 
 
         }
-		// Adapter状态异常
+        // Adapter状态异常
         catch (AdapterException.IllegalStateException e) {
 
             logger.error("AndroidDevice state error! cause[{}]", e);
 
 
         }
-		// 点击没反应
+        // 点击没反应
         catch (AdapterException.NoResponseException e) {
 
             logger.error("Error enter essay detail touch not response! cause[{}]", e);
 
 
         }
-		// 在指定账号的订阅列表中找不到指定的公众号的异常
+        // 在指定账号的订阅列表中找不到指定的公众号的异常
         catch (NoSubscribeMediaException e) {
 
             logger.error("Error No subscribe current public account:[{}]! cause[{}]", media_nick, e);
 
 
         }
-		// 无可用账户异常
+        // 无可用账户异常
         catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
             logger.error("Error no available account! cause[{}]", noAvailableAccount);
         }
 
-		runCallbacks(failureCallbacks);
-
+        if (success) {
+            runCallbacks(doneCallbacks);
+        } else {
+            runCallbacks(failureCallbacks);
+        }
+        
         return Boolean.TRUE;
     }
 

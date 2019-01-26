@@ -44,6 +44,9 @@ public class SubscribeMediaTask extends Task {
         // 任务失败记录日志
         this.failureCallbacks.add(new Thread(() -> {
 
+            // 记录失败原因
+
+            //
         }));
     }
 

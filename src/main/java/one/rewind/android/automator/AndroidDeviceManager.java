@@ -69,7 +69,7 @@ public class AndroidDeviceManager {
     /**
      * 初始化设备
      */
-    private void initialize() throws Exception {
+    public void initialize() throws Exception {
 
         Dao<AndroidDevice, String> deviceDao = DaoManager.getDao(AndroidDevice.class);
 
@@ -168,7 +168,7 @@ public class AndroidDeviceManager {
     /**
      * @param task
      */
-    public void submit(Task task) {
+    public void submit(Task task) throws AndroidException.NoAvailableDeviceException {
 
         if (task.holder == null || task.holder.adapter_name == null) return;
 
@@ -176,9 +176,9 @@ public class AndroidDeviceManager {
         // 没有指定设备  没有指定账号
         if (StringUtils.isNotBlank(task.holder.adapter_name) && task.holder.account_id == 0) {
 
-            String randomAd = getRandomDevice();
+            AndroidDevice device = getDevice(task.holder.adapter_name);
 
-            BlockingQueue<Task> blockingQueue = deviceTaskMap.get(randomAd);
+            BlockingQueue<Task> blockingQueue = deviceTaskMap.get(device);
 
             blockingQueue.add(task);
 
@@ -202,21 +202,20 @@ public class AndroidDeviceManager {
     }
 
     /**
-     *
      * @param AdapterClassName
      * @return
      */
     public AndroidDevice getDevice(String AdapterClassName) throws AndroidException.NoAvailableDeviceException {
 
         List<AndroidDevice> devices = deviceTaskMap.keySet().stream()
-                .filter(d -> d.status == AndroidDevice.Status.Idle || d.status == AndroidDevice.Status.Busy)
+                .filter(d -> d.status == AndroidDevice.Status.Idle || d.status == AndroidDevice.Status.Busy && d.adapters.get(AdapterClassName) != null)
                 .map(d -> new AbstractMap.SimpleEntry<>(d, deviceTaskMap.get(d).size()))
                 .sorted(Map.Entry.comparingByValue())
                 .limit(1)
                 .map(entry -> entry.getKey())
                 .collect(Collectors.toList());
 
-        if(devices.size() == 1) {
+        if (devices.size() == 1) {
             return devices.get(0);
         }
 
@@ -562,15 +561,16 @@ public class AndroidDeviceManager {
 
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
-
         try {
 
-            Process p = Runtime.getRuntime().exec("adb androidDevices");
+            Process p = Runtime.getRuntime().exec("adb devices");
             br = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String line;
             while ((line = br.readLine()) != null) {
                 sb.append(line);
             }
+
+            logger.info("Console Output info is :[{}]",sb.toString());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -584,7 +584,8 @@ public class AndroidDeviceManager {
             }
         }
 
-        String r = sb.toString().replace("List of androidDevices attached", "").replace("\t", "");
+
+        String r = sb.toString().replace("List of devices attached", "").replace("\t", "");
 
         return r.split("device");
     }
