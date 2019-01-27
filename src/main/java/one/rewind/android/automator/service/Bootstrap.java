@@ -1,5 +1,5 @@
 /*
-package one.rewind.android.automator.api;
+package one.rewind.android.automator.service;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
@@ -19,8 +19,8 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.redisson.api.RPriorityQueue;
-import org.redisson.api.RTopic;
+import org.redisson.service.RPriorityQueue;
+import org.redisson.service.RTopic;
 import spark.Route;
 
 import javax.annotation.concurrent.ThreadSafe;
