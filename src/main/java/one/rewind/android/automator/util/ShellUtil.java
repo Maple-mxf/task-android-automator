@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 public class ShellUtil {
 
 	/**
-	 *
 	 * @param fileLac
 	 */
 	public static void exeCall(String fileLac) {
@@ -20,10 +19,10 @@ public class ShellUtil {
 		} catch (Exception e) {
 			System.out.println("open failure");
 		}
+
 	}
 
 	/**
-	 *
 	 * @param commandStr
 	 */
 	public static void exeCmd(String commandStr) {
