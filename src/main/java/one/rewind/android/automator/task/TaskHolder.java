@@ -48,7 +48,7 @@ public class TaskHolder extends ModelD {
 
     // 保存每一步执行的记录
     @DatabaseField(persisterClass = JSONableListPersister.class, columnDefinition = "MEDIUMTEXT")
-    public List<String> records = new ArrayList<String>();
+    public List<String> records = new ArrayList<>();
 
     /**
      * @param id
