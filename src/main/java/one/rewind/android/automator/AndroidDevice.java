@@ -69,10 +69,10 @@ public class AndroidDevice extends ModelL {
     private static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
 
     // 启动超时时间
-    private static int INIT_TIMEOUT = 120000;
+    private static int INIT_TIMEOUT = 200000;
 
     // 关闭超时时间
-    private static int CLOSE_TIMEOUT = 120000;
+    private static int CLOSE_TIMEOUT = 200000;
 
     // 截图保存的路径
     public static final String SCREEN_PATH = System.getProperty("user.dir") + "/screen/";
@@ -191,7 +191,7 @@ public class AndroidDevice extends ModelL {
                 .setNameFormat(name + "-%d").build());
     }
 
-    public AndroidDevice(){
+    public AndroidDevice() {
 
     }
 
@@ -675,7 +675,7 @@ public class AndroidDevice extends ModelL {
         capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, udid);
 
         // TODO 是否可以自动获取url?
-        driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
+        driver = new AndroidDriver(new URL("http://localhost:" + appiumPort + "/wd/hub"), capabilities);
 
         Thread.sleep(15000);
 

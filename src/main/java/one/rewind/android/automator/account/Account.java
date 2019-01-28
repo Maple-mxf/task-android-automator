@@ -59,7 +59,7 @@ public class Account extends ModelL {
     /**
      * 账号状态
      */
-    public enum Status {
+    public static enum Status {
 
         Normal,   // 正常状态
         Broken,   // 用户名无效 或密码无效
@@ -84,22 +84,29 @@ public class Account extends ModelL {
         Account account = null;
 
         try {
-
             Dao<Account, String> dao = DaoManager.getDao(Account.class);
 
-            account = dao.queryBuilder().where().isNotNull("id").and(
+           /* account = dao.queryBuilder().where().and(
                     dao.queryBuilder().where().eq("udid", udid),
                     dao.queryBuilder().where().eq("adapter_class_name", adapter_class_name),
                     dao.queryBuilder().where().eq("status", "Normal")
-                            .or().eq("status", "Search_Public_Account_Frozen").and().le("update_time", t - Default_Search_Public_Account_Frozen_Time)
-                            .or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
+                            .or().eq("status", "Search_Public_Account_Frozen").and().le("update_time",
+                            t - Default_Search_Public_Account_Frozen_Time)
+                            .or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time",
+                            t - Default_Get_Public_Account_Essay_List_Frozen_Time)
             ).queryForFirst();
+*/
+            account = dao.queryBuilder().where().
+                    eq("udid", udid).and().
+                    eq("adapter_class_name", adapter_class_name).
+                    and().
+                    eq("status", Status.Normal).
+                    queryForFirst();
 
             if (account != null) {
                 account.occupied = true;
                 account.update();
             }
-
         } catch (Exception e) {
             logger.error("Error get account, ", e);
         }

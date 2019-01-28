@@ -1,14 +1,12 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
-import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
-import one.rewind.db.DaoManager;
 import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
@@ -44,7 +42,13 @@ public class GetSelfSubscribeMediaTask extends Task {
 
             // 更新数据库
             try {
-                Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
+                accountMediaSubscribes.forEach(v -> {
+                    try {
+                        v.insert();
+                    } catch (Exception e) {
+                        logger.error("Error insert accountMediaSubscribe failure, cause [{}]", e);
+                    }
+                });
 
             } catch (Exception e) {
                 e.printStackTrace();

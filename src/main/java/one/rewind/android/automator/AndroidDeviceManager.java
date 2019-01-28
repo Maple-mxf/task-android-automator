@@ -1,11 +1,11 @@
 package one.rewind.android.automator;
 
+import com.google.common.base.Strings;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
-import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.db.DaoManager;
 import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
@@ -73,6 +73,7 @@ public class AndroidDeviceManager {
 
         Dao<AndroidDevice, String> deviceDao = DaoManager.getDao(AndroidDevice.class);
 
+
         // A 先找设备
         String[] udids = getAvailableDeviceUdids();
 
@@ -85,8 +86,10 @@ public class AndroidDeviceManager {
             deviceTaskMap.put(device, new LinkedBlockingDeque<>());
             logger.info("add device [{}] in device container", device.udid);
 
-            // A2 TODO 同步数据库对应记录
-            deviceDao.delete(device);
+
+            // A2 同步数据库对应记录
+            List<String> ids = deviceDao.queryBuilder().where().eq("udid", udid).query().stream().map(v -> String.valueOf(v.id)).collect(Collectors.toList());
+            deviceDao.deleteIds(ids);
             device.insert();
         }
 
@@ -170,19 +173,19 @@ public class AndroidDeviceManager {
      */
     public void submit(Task task) throws AndroidException.NoAvailableDeviceException {
 
-        if (task.holder == null || task.holder.adapter_name == null) return;
+        if (task.holder == null || task.holder.task_class_name == null) return;
 
 
         // 没有指定设备  没有指定账号
-        if (StringUtils.isNotBlank(task.holder.adapter_name) && task.holder.account_id == 0) {
+        if (StringUtils.isNotBlank(task.holder.task_class_name) && task.holder.account_id == 0 && Strings.isNullOrEmpty(task.holder.udid)) {
 
-            AndroidDevice device = getDevice(task.holder.adapter_name);
+            AndroidDevice device = getDevice(task.holder.task_class_name);
 
             BlockingQueue<Task> blockingQueue = deviceTaskMap.get(device);
 
             blockingQueue.add(task);
 
-        } else if (StringUtils.isNotBlank(task.holder.udid) && StringUtils.isNotBlank(task.holder.adapter_name)) {
+        } else if (StringUtils.isNotBlank(task.holder.udid) && StringUtils.isNotBlank(task.holder.task_class_name)) {
 
             BlockingQueue<Task> blockingQueue = deviceTaskMap.get(task.holder.udid);
 
@@ -555,9 +558,9 @@ public class AndroidDeviceManager {
      */
     public static String[] getAvailableDeviceUdids() {
 
-        ShellUtil.exeCmd("adb"); // 有可能需要先启动 adb 服务器
+        /*ShellUtil.exeCmd("adb"); // 有可能需要先启动 adb 服务器
 
-        ShellUtil.exeCmd("adb usb"); // 有可能需要刷新 adb udb 连接
+        ShellUtil.exeCmd("adb usb"); // 有可能需要刷新 adb udb 连接*/
 
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
@@ -565,13 +568,13 @@ public class AndroidDeviceManager {
 
             Process p = Runtime.getRuntime().exec("adb devices");
             br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
+            String line = null;
             while ((line = br.readLine()) != null) {
                 sb.append(line);
             }
+            System.out.println(sb.toString());
 
-            logger.info("Console Output info is :[{}]",sb.toString());
-
+            logger.info("Console Output info is :[{}]", sb.toString());
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -583,8 +586,6 @@ public class AndroidDeviceManager {
                 }
             }
         }
-
-
         String r = sb.toString().replace("List of devices attached", "").replace("\t", "");
 
         return r.split("device");

@@ -1,9 +1,9 @@
 package one.rewind.android.automator.test.adapter;
 
-import io.netty.handler.codec.http.HttpHeaders;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
@@ -12,7 +12,7 @@ import org.junit.Test;
 import se.vidstige.jadb.JadbException;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Stack;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
@@ -20,7 +20,7 @@ import java.util.*;
 public class WechatAdapterTest {
 
     //    String udid = "ZX1G323GNB";
-    String udid = "ZX1G322PNL";
+    String udid = AndroidDeviceManager.getAvailableDeviceUdids()[0];
     AndroidDevice device;
     WeChatAdapter adapter;
 
@@ -33,27 +33,7 @@ public class WechatAdapterTest {
         device.startProxy();
         device.setupRemoteWifiProxy();
 
-        RequestFilter requestFilter = (request, contents, messageInfo) -> {
-
-            String url = messageInfo.getOriginalUrl();
-
-            HttpHeaders headers = request.headers();
-
-            List<Map.Entry<String, String>> entryList = headers.entries();
-
-            System.out.println("Headers;Please Wait...");
-            entryList.forEach(entry -> {
-                System.out.println("key:" + entry.getKey());
-                System.out.println("value:" + entry.getValue());
-            });
-
-
-            if (url.contains("https://mp.weixin.qq.com/s"))
-                System.out.println(" . " + url);
-
-            return null;
-        };
-
+        RequestFilter requestFilter = (request, contents, messageInfo) -> null;
         Stack<String> content_stack = new Stack<>();
         Stack<String> stats_stack = new Stack<>();
         Stack<String> comments_stack = new Stack<>();

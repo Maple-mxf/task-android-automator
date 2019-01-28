@@ -8,6 +8,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
@@ -39,11 +42,10 @@ public class TaskFactory {
 
         Task task = null;
 
+        // A 检验holder参数
         try {
-            // A 检验holder参数
-
-            // A1 检验adapter name   必须指定
-            if (StringUtils.isBlank(holder.adapter_name)) return null;
+            // A1 检验task_class_name   指定任务类型
+            if (StringUtils.isBlank(holder.task_class_name)) return null;
 
             // A2 检验设备是否存在
             if (!AndroidDeviceManager.getInstance().deviceTaskMap.containsKey(holder.udid)) return null;
@@ -56,12 +58,15 @@ public class TaskFactory {
                     return null;
                 }
             }
-            // B 反射创建Task的实例  TODO?
+
+            // B 反射创建Task的实例
+            Class<?> clazz = Class.forName(holder.task_class_name);
+            Constructor<?> cons = clazz.getConstructor(TaskHolder.class, Array.class);
+            task = (Task) cons.newInstance(holder, holder.params);
 
         } catch (Exception e) {
-
+            logger.error("Error new instance of Task error. cause [{}] ", e);
         }
-
         return task;
     }
 
