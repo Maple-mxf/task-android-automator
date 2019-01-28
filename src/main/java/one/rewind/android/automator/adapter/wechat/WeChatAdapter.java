@@ -37,7 +37,7 @@ public class WeChatAdapter extends Adapter {
 
     public static boolean NeedAccount = true;
 
-    public static enum Status {
+    public enum Status {
         Init,                                  // 初始化
         Home_Login,                               // 登陆
         Home,                                  // 首页

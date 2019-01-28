@@ -6,6 +6,6 @@ package one.rewind.android.automator.adapter;
  */
 public interface Action<A extends Adapter, V> {
 
-	abstract V run(A adapter, String... params) throws Exception;
+	V run(A adapter, String... params) throws Exception;
 
 }
