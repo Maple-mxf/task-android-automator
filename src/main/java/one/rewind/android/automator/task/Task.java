@@ -70,19 +70,18 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
     }
 
     /**
-     *
      * @throws AdapterException.OperationException
      * @throws AccountException.NoAvailableAccount
      */
     public void checkAccountStatus() throws AdapterException.OperationException, AccountException.NoAvailableAccount {
 
         // TODO 判断 adapter 不能为null
-        if(!accountPermitStatuses.contains(adapter.account.status)) {
+        if (!accountPermitStatuses.contains(adapter.account.status)) {
 
             boolean switchAccount = false;
             int retryCount = 0;
 
-            while(retryCount < 2 && !switchAccount) {
+            while (retryCount < 2 && !switchAccount) {
 
                 Account account = Account.getAccount(adapter.device.udid, adapter.getClass().getName(), accountPermitStatuses);
 
@@ -91,8 +90,7 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
                     try {
                         adapter.switchAccount(account);
                         switchAccount = true;
-                    }
-                    catch (AccountException.Broken broken) {
+                    } catch (AccountException.Broken broken) {
                         logger.warn("Account[{}] broken, ", account.id, broken);
                         try {
                             broken.account.update();
@@ -100,13 +98,12 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
                             logger.error("Account[{}] update failure, ", account.id, e1);
                         }
                     }
-                }
-                else {
+                } else {
                     // 找不到可用账号
                     throw new AccountException.NoAvailableAccount();
                 }
 
-                retryCount ++;
+                retryCount++;
             }
         }
     }

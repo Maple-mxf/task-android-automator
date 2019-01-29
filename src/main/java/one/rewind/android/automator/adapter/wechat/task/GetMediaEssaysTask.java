@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
+import com.j256.ormlite.dao.Dao;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.account.Account;
@@ -10,17 +11,21 @@ import one.rewind.android.automator.adapter.wechat.exception.NoSubscribeMediaExc
 import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
+import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Source;
+import one.rewind.db.DaoManager;
+import one.rewind.db.RedissonAdapter;
 import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.txt.StringUtil;
+import org.redisson.api.RTopic;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -74,16 +79,34 @@ public class GetMediaEssaysTask extends Task {
 
         media_nick = params[0];
 
+        // 初始化Task时加载已经采集过的历史文章数据
+
+        try {
+            Dao<one.rewind.android.automator.adapter.wechat.model.Essay, String> essayDao = DaoManager.getDao(one.rewind.android.automator.adapter.wechat.model.Essay.class);
+            collectedEssays.addAll(essayDao.queryBuilder().where()
+                    .eq("media_nick", this.media_nick)
+                    .query()
+                    .stream()
+                    .map(e -> new EssayTitle(e.title, e.pubdate))
+                    .collect(Collectors.toList()));
+        } catch (Exception e) {
+            logger.error("Error load essay title failure, cause: [{}] ", e);
+        }
+
+        // 当前任务类型允许的账号状态
         accountPermitStatuses.add(Account.Status.Search_Public_Account_Frozen);
 
         // 任务完成回调
         this.addDoneCallback((t) -> {
 
-            // TODO 通知redis队列
+            GetMediaEssaysTask task = (GetMediaEssaysTask) t;
 
-            // 移除过滤器
-            ((GetMediaEssaysTask) t).removeFilters();
+            // A 移除过滤器
+            task.removeFilters();
 
+            // B 发布消息
+            RTopic<Object> topic = RedissonAdapter.redisson.getTopic(task.holder.id);
+            topic.publish(task.media_nick);
         });
     }
 
@@ -102,7 +125,7 @@ public class GetMediaEssaysTask extends Task {
     }
 
     @Override
-    public Boolean call() throws InterruptedException, IOException,  AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.OperationException, AdapterException.IllegalStateException, AdapterException.NoResponseException {
+    public Boolean call() throws InterruptedException, IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.OperationException, AdapterException.IllegalStateException, AdapterException.NoResponseException {
 
         boolean success = false;
 
@@ -122,8 +145,6 @@ public class GetMediaEssaysTask extends Task {
 
             // B 根据media name搜索到相关的公众号（已订阅的公众号）
             adapter.goToSubscribedPublicAccountHome(media_nick);
-
-            // TODO 同时从数据库查找已经采集的文章列表
 
             // C 进入历史文章数据列表页
             adapter.gotoPublicAccountEssayList();
@@ -145,36 +166,54 @@ public class GetMediaEssaysTask extends Task {
                         atBottom = true;
                     }
 
-                    // D2 去重判断  TODO  发布日期处理
+                    // D2 去重判断
                     EssayTitle et = new EssayTitle(area.content, area.date);
                     if (collectedEssays.contains(et) || visitedEssays.contains(et)) continue;
 
+                    // D3 进入文章
                     adapter.goToEssayDetail(area);
 
-                    // D3 判断是否进入了文章页
+                    // D4 判断是否进入了文章页
                     if (adapter.device.reliableTouch(area.left, area.top)) {
-                        // D3-1 如果进入成功 需要记录已经点击的文章标题-时间
+
+                        // D4-1 如果进入成功 需要记录已经点击的文章标题-时间
                         visitedEssays.add(et);
 
-                        // D3-2 如果点击无响应则不会返回 TODO 是否需要点击左上角叉号？（文章转载）
-                        adapter.device.goBack();
+                        // D4-2 关闭文章
+                        adapter.device.touch(67, 165, 1000);
                     }
 
-                    // D4 向下滑动两次
+                    // D5 向下滑动两次
                     for (int i = 0; i < 2; i++) {
                         this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                     }
                 }
             }
-
-            // 任务执行成功回调
             success = true;
-
         }
-        // 获取公众号文章列表没反应
+        // 微信查看全部消息被限流
         catch (GetPublicAccountEssayListFrozenException e) {
 
-            logger.error("Error enter Media[{}] essay list page error, ", media_nick, e);
+            logger.error("Error enter Media  [{}]  history essay list page error,cause [{}] ", media_nick, e);
+
+            try {
+                // 更新账号状态
+                this.adapter.account.status = Account.Status.Get_Public_Account_Essay_List_Frozen;
+                this.adapter.account.update();
+
+            } catch (Exception e1) {
+
+                logger.error("Error update account status failure, cause [{}] ", e);
+
+            }
+            //
+
+            // 将当前任务提交  下一次在执行任务的时候
+            try {
+                this.adapter.device.submit(this);
+            } catch (AndroidException.IllegalStatusException ill) {
+                logger.error("Error submit task failure, cause [{}]", ill);
+            }
 
         }
         // 搜索公众号没响应
@@ -189,7 +228,6 @@ public class GetMediaEssaysTask extends Task {
             logger.error("Account[{}] don't subscribe public account:[{}], ", adapter.account.id, media_nick, e);
 
         }
-        
         return success;
     }
 
@@ -231,7 +269,6 @@ public class GetMediaEssaysTask extends Task {
 
                     String url_permanent = null;
                     // TODO 此处模拟共享，复制链接，保存文章持久连接
-
 
                     String f_id = null;
 

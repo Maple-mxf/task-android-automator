@@ -10,7 +10,10 @@ import one.rewind.db.model.ModelL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -18,6 +21,12 @@ import java.util.List;
 @DBName("android_automator")
 @DatabaseTable(tableName = "app_accounts")
 public class Account extends ModelL {
+
+    static {
+
+        // 定时维护账户的状态
+        accountManager();
+    }
 
     private static final Logger logger = LogManager.getLogger(Account.class.getName());
 
@@ -117,7 +126,6 @@ public class Account extends ModelL {
     }
 
     /**
-     *
      * @param udid
      * @param adapter_class_name
      * @param statuses
@@ -145,7 +153,7 @@ public class Account extends ModelL {
                     eq("udid", udid)
                     .and().eq("adapter_class_name", adapter_class_name)
                     .and().in("status", statuses).
-                    queryForFirst();
+                            queryForFirst();
 
             if (account != null) {
                 account.occupied = true;
@@ -159,4 +167,47 @@ public class Account extends ModelL {
         return account;
     }
 
+    /**
+     * 管理账号的状态  每隔一小时去数据库中修改账号的状态
+     */
+    public static void accountManager() {
+        Timer timer = new Timer("account-status-manager");
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+
+                    long t = System.currentTimeMillis();
+
+                    Dao<Account, String> accountDao = DaoManager.getDao(Account.class);
+
+                    List<Account> accounts = accountDao.queryBuilder().where()
+                            .eq("status", Status.Get_Public_Account_Essay_List_Frozen)
+                            .and()
+                            .le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
+                            .query();
+
+                    List<Account> accounts2 = accountDao.queryBuilder().where()
+                            .eq("status", Status.Search_Public_Account_Frozen)
+                            .and()
+                            .le("update_time", t - Default_Search_Public_Account_Frozen_Time)
+                            .query();
+
+                    accounts.addAll(accounts2);
+
+                    accounts.forEach(a -> {
+                        try {
+                            a.update_time = new Date();
+                            a.status = Status.Normal;
+                            a.update();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 60 * 1000);
+    }
 }

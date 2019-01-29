@@ -76,6 +76,7 @@ public class AndroidDeviceManager {
     public void initialize() throws Exception {
     }
 
+
     public void detectDevices() throws Exception {
 
         // A 先找设备
@@ -112,6 +113,7 @@ public class AndroidDeviceManager {
                 Constructor<?> cons;
 
                 Field[] fields = clazz.getFields();
+
                 boolean needAccount = false;
 
                 for (Field field : fields) {
@@ -173,9 +175,6 @@ public class AndroidDeviceManager {
     }
 
     /**
-     *
-     *
-     *
      * @param task
      */
     public SubmitInfo submit(Task task) throws AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
@@ -188,30 +187,30 @@ public class AndroidDeviceManager {
         AndroidDevice device = null;
 
         // A 指定 account_id
-        if(task.holder.account_id != 0) {
+        if (task.holder.account_id != 0) {
             device = deviceTaskMap.keySet().stream()
                     .filter(d -> {
                         Adapter adapter = d.adapters.get(adapterClassName);
-                        if(adapter == null) return false;
-                        if(adapter.account == null) return false;
-                        if(adapter.account.id == task.holder.account_id) return true;
+                        if (adapter == null) return false;
+                        if (adapter.account == null) return false;
+                        if (adapter.account.id == task.holder.account_id) return true;
                         return false;
                     })
                     .collect(Collectors.toList())
                     .get(0);
 
-            if(device == null) throw new AccountException.AccountNotLoad();
+            if (device == null) throw new AccountException.AccountNotLoad();
         }
         // B 指定udid
-        else if(task.holder.udid != null) {
+        else if (task.holder.udid != null) {
             device = deviceTaskMap.keySet().stream()
                     .filter(d -> d.udid.equals(task.holder.udid))
                     .collect(Collectors.toList())
                     .get(0);
 
-            if(device != null && !device.adapters.containsKey(adapterClassName)) device = null;
+            if (device != null && !device.adapters.containsKey(adapterClassName)) device = null;
 
-            if(device == null) throw new AndroidException.NoAvailableDeviceException();
+            if (device == null) throw new AndroidException.NoAvailableDeviceException();
         }
         // C
         else {
@@ -274,7 +273,6 @@ public class AndroidDeviceManager {
         }
 
         /**
-         *
          * @param task
          * @param androidDevice
          */

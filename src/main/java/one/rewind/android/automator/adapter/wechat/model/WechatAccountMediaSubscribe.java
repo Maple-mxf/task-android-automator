@@ -7,6 +7,7 @@ import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.DBName;
 import one.rewind.db.DaoManager;
 import one.rewind.db.model.ModelL;
+import one.rewind.txt.StringUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,5 +57,17 @@ public class WechatAccountMediaSubscribe extends ModelL {
     public static List<String> getSubscribeMediaIds(int account_id) throws Exception {
         Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
         return dao.queryBuilder().where().eq("account_id", account_id).query().stream().map(ams -> ams.media_id).collect(Collectors.toList());
+    }
+
+
+    /**
+     * media_id生成策略
+     *
+     * @param media_name 微信账号
+     * @param media_nick 微信昵称
+     * @return
+     */
+    public static String genMediaId(String media_name, String media_nick) {
+        return StringUtil.MD5("WX-" + media_name + "-" + media_nick);
     }
 }

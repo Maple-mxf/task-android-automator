@@ -138,8 +138,7 @@ public class WeChatAdapter extends Adapter {
         // 验证到首页 或者 首页登陆界面 并更改状态
         if (!atHome()) {
             login();
-        }
-        else {
+        } else {
 
             status = Status.Home;
 
@@ -274,12 +273,11 @@ public class WeChatAdapter extends Adapter {
 
     }
 
-	/**
-	 *
-	 * @throws InterruptedException
-	 * @throws AdapterException.IllegalStateException
-	 */
-	public void goToNoSubscribePublicAccountHome() throws InterruptedException, AdapterException.IllegalStateException {
+    /**
+     * @throws InterruptedException
+     * @throws AdapterException.IllegalStateException
+     */
+    public void goToNoSubscribePublicAccountHome() throws InterruptedException, AdapterException.IllegalStateException {
         if (this.status != Status.PublicAccount_Search_Result)
             throw new AdapterException.IllegalStateException(this);
 
@@ -517,8 +515,12 @@ public class WeChatAdapter extends Adapter {
 
         this.status = Status.PublicAccount_Conversation;
 
-        touchUpperLeftButton();
+        // 返回到公众号主页
+        device.goBack();
+
+        this.status = Status.PublicAccount_Home;
     }
+
 
     /**
      * 公众号首页 取消订阅
