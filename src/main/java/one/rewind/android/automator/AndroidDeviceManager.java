@@ -168,11 +168,12 @@ public class AndroidDeviceManager {
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
      */
-    public void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException {
+    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException {
 
         Task task = deviceTaskMap.get(ad.udid).take();
         ad.submit(task);
     }
+
 
     /**
      * @param task
@@ -257,6 +258,7 @@ public class AndroidDeviceManager {
         String id;
         String task_class_name;
         int account_id;
+        String topic_name;
         AndroidDevice androidDevice;
 
         /**

@@ -3,6 +3,7 @@ package one.rewind.android.automator.adapter;
 import one.rewind.android.automator.AndroidDevice;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
@@ -25,8 +26,12 @@ public class DingdingAdapter extends Adapter {
 				"com.alibaba.android.rimet.biz.SplashActivity");
 	}
 
-	@Override
 	public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+
+	}
+
+	@Override
+	public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken {
 
 	}
 

@@ -49,8 +49,8 @@ public class SubscribeMediaTask extends Task {
 
                 var.account_id = adapter.account.id;
                 var.media_nick = media_nick;
-                var.media_id = WechatAccountMediaSubscribe.genMediaId(accountInfo.wechat_id, media_nick);
-                var.media_name = accountInfo.wechat_id;
+                var.media_id = WechatAccountMediaSubscribe.genMediaId(accountInfo.name, media_nick);
+                var.media_name = accountInfo.name;
 
                 var.insert();
             } catch (Exception e) {

@@ -2,7 +2,6 @@ package one.rewind.android.automator.test.task;
 
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.AndroidDeviceManager;
-import one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask;
 import one.rewind.android.automator.adapter.wechat.task.GetSelfSubscribeMediaTask;
 import one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask;
 import one.rewind.android.automator.exception.AndroidException;
@@ -52,7 +51,7 @@ public class TaskTestOfSingleDevice {
     @Test
     public void getEssaysTest() throws Exception {
 
-        AndroidDeviceManager deviceManager = AndroidDeviceManager.getInstance();
+      /*  AndroidDeviceManager deviceManager = AndroidDeviceManager.getInstance();
 
         deviceManager.initialize();
 
@@ -64,7 +63,7 @@ public class TaskTestOfSingleDevice {
 
         deviceManager.submit(task);
 
-        Thread.sleep(100000);
+        Thread.sleep(100000);*/
     }
 
     @Test
@@ -75,7 +74,7 @@ public class TaskTestOfSingleDevice {
         deviceManager.initialize();
 
         // 生成TaskHolder
-        TaskHolder holder = new TaskHolder("1", "ZX1G426B3V", "one.rewind.android.automator.adapter.wechat.WeChatAdapter", 1);
+        TaskHolder holder = new TaskHolder("1", "ZX1G426B3V", "one.rewind.android.automator.adapter.wechat.WeChatAdapter", "SubscribeMediaTask");
 
         // 生成Task
         SubscribeMediaTask task = new SubscribeMediaTask(holder, "");

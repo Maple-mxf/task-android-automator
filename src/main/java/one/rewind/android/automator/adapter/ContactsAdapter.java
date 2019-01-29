@@ -3,6 +3,7 @@ package one.rewind.android.automator.adapter;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
@@ -22,7 +23,6 @@ public class ContactsAdapter extends Adapter {
 				"com.android.contacts.activities.PeopleActivity");
 	}
 
-	@Override
 	public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
 
 	}
@@ -112,11 +112,11 @@ public class ContactsAdapter extends Adapter {
 
 		for (int i = 0; i < 3; i++) {
 
-			List<WebElement> lis = device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,name)]"));
+			List<WebElement> lis = device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,nick)]"));
 
 			if (lis.size() != 0) {
 
-				device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,name)]")).click();
+				device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,nick)]")).click();
 				Thread.sleep(700);
 
 				device.driver.findElementByAccessibilityId("更多选项").click();
@@ -138,5 +138,10 @@ public class ContactsAdapter extends Adapter {
 
 			Thread.sleep(300);
 		}
+	}
+
+	@Override
+	public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken {
+
 	}
 }

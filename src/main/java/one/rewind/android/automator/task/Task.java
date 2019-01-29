@@ -5,11 +5,14 @@ import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.callback.TaskCallback;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
+import one.rewind.db.RedissonAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.redisson.api.RTopic;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -37,6 +40,9 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
     // 任务完成回调
     public List<TaskCallback> doneCallbacks = new ArrayList<>();
 
+    // 任务成功回调
+    public List<TaskCallback> successCallbacks = new ArrayList<>();
+
     // 任务失败回调
     public List<TaskCallback> failureCallbacks = new ArrayList<>();
 
@@ -44,8 +50,38 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
      * @param holder
      */
     public Task(TaskHolder holder, String... params) throws IllegalParamsException {
+
         this.holder = holder;
         accountPermitStatuses.add(Account.Status.Normal);
+
+        // 设定任务成功回调
+        addSuccessCallback((t) -> {
+            t.holder.success = true;
+
+        });
+
+        // 设定任务失败回调
+        addFailureCallback((t) -> {
+            t.holder.success = false;
+        });
+
+        // 设定任务完成回调
+        addDoneCallback((t) -> {
+
+            if(t.holder.topic_name == null) return;
+
+            // 发布消息
+            RTopic<Object> topic = RedissonAdapter.redisson.getTopic(t.holder.topic_name);
+            topic.publish(t.holder);
+
+            // 记录Holder
+            try {
+                t.holder.update_time = new Date();
+                t.holder.insert();
+            } catch (Exception e) {
+                logger.error("Error insert holder, ", e);
+            }
+        });
     }
 
     // 任务的生命周期
@@ -61,6 +97,11 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
 
     public Task addDoneCallback(TaskCallback tc) {
         this.doneCallbacks.add(tc);
+        return this;
+    }
+
+    public Task addSuccessCallback(TaskCallback tc) {
+        this.successCallbacks.add(tc);
         return this;
     }
 

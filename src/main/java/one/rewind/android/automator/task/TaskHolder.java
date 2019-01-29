@@ -30,6 +30,9 @@ public class TaskHolder extends ModelD {
     @DatabaseField(dataType = DataType.INTEGER, width = 11)
     public int account_id; // =0 时 不需要Account
 
+    @DatabaseField(dataType = DataType.STRING, width = 128)
+    public String topic_name; // 如果需要发布到redisson topic 需要提供该值
+
     @DatabaseField(persisterClass = JSONableListPersister.class, width = 512)
     public List<String> params; // 全称
 

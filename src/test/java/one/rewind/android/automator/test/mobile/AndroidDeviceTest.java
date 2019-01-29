@@ -59,7 +59,7 @@ public class AndroidDeviceTest {
 	/*@Test
 	public void testAddContact() throws InterruptedException {
 
-		String name = "name";
+		String nick = "nick";
 		String number = "123456";
 		String filePath = "newFriend.txt";
 
@@ -68,9 +68,9 @@ public class AndroidDeviceTest {
 
 		ContactsAdapter ca = new ContactsAdapter(device);
 		ca.clearContacts();
-		ca.addContact(name, number);
+		ca.addContact(nick, number);
 		ca.addContactsFromFile(filePath);
-		ca.deleteOneContact(name);
+		ca.deleteOneContact(nick);
 	}
 
 	@Test

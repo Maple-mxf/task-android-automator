@@ -9,7 +9,7 @@ import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
-import one.rewind.android.automator.adapter.wechat.exception.NoSubscribeMediaException;
+import one.rewind.android.automator.adapter.wechat.exception.MediaException;
 import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.adapter.wechat.model.WechatContact;
 import one.rewind.android.automator.adapter.wechat.model.WechatMoment;
@@ -89,7 +89,7 @@ public class WeChatAdapter extends Adapter {
      * @return
      * @throws IOException
      */
-    public List<OCRParser.TouchableTextArea> getPublicAccountEssayListTitles()
+    public List<OCRParser.TouchableTextArea> getTextAreas()
             throws IOException, AdapterException.NoResponseException,
             SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
 
@@ -116,6 +116,7 @@ public class WeChatAdapter extends Adapter {
                 }
             }
         }
+
         textAreaList = mergeForTitle(textAreaList, 60);
 
         return textAreaList;
@@ -314,16 +315,18 @@ public class WeChatAdapter extends Adapter {
     /**
      * 已订阅公众号的列表页面 搜索到相关的公众号
      *
-     * @param mediaName 媒体名称
+     * @param media_nick 媒体名称
      * @throws InterruptedException
      * @throws AdapterException.IllegalStateException
      * @throws IOException
      * @throws AdapterException.NoResponseException
-     * @throws NoSubscribeMediaException              在订阅列表中找不到指定的公众号
+     * @throws MediaException              在订阅列表中找不到指定的公众号
      */
-    public void goToSubscribedPublicAccountHome(String mediaName) throws InterruptedException,
+    public void goToSubscribedPublicAccountHome(String media_nick) throws InterruptedException,
             AdapterException.IllegalStateException,
-            IOException, AdapterException.NoResponseException, NoSubscribeMediaException {
+            IOException,
+            AdapterException.NoResponseException,
+            MediaException {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -334,16 +337,16 @@ public class WeChatAdapter extends Adapter {
         Thread.sleep(1000);
 
         // 输入名称
-        device.driver.findElement(By.className("android.widget.EditText")).sendKeys(mediaName);
+        device.driver.findElement(By.className("android.widget.EditText")).sendKeys(media_nick);
 
         // 点确认
         device.touch(720, 150, 1000);
 
         try {
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'无结果')]"));
 
-            // 找到输入到输入框的media name 异常抛出
-            throw new NoSubscribeMediaException(account);
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'无结果')]"));
+            // 找到输入到输入框的media nick 异常抛出
+            throw new MediaException.NotSubscribe(account, media_nick);
 
         } catch (NoSuchElementException e) {
 
@@ -355,8 +358,6 @@ public class WeChatAdapter extends Adapter {
         // 点第一个结果 如果点击无反应则会抛出无响应异常
         device.reliableTouch(1350, 2250, 1000L, 0);
 
-        Thread.sleep(1000);
-
         this.status = Status.PublicAccount_Conversation;
 
         // 点右上角的人头图标
@@ -366,7 +367,22 @@ public class WeChatAdapter extends Adapter {
 
         Thread.sleep(1000);
 
+        List<WebElement> els = device.driver.findElementsByClassName("android.widget.TextView");
+
+        if (els.size() == 0) {
+            logger.info("Not into public account page.");
+            throw new AdapterException.IllegalStateException(this);
+        }
+
+        for (WebElement we : els) {
+            System.err.println(els.indexOf(we) + " --> " + we.getText());
+        }
+
         this.status = Status.PublicAccount_Home;
+
+        String real_media_nick = els.get(0).getText();
+
+        if(!real_media_nick.equals(media_nick)) throw new MediaException.NotEqual(account, media_nick);
     }
 
     /**
@@ -411,10 +427,10 @@ public class WeChatAdapter extends Adapter {
 
 
     public static class PublicAccountInfo {
-        public String name;      // 公众号名称
+        public String nick;      // 公众号名称
         public String content;   // 公众号简介
         public int essay_count;  // 原创统计
-        public String wechat_id; // 微信号
+        public String name; // 微信号
         public String subject;   // 主题
         public String trademark; // 商标保护
         public String phone;     // 联系电话
@@ -423,10 +439,10 @@ public class WeChatAdapter extends Adapter {
     /**
      * 添加公众号
      *
-     * @param name
+     * @param media_nick
      * @throws Exception
      */
-    public PublicAccountInfo getPublicAccountInfo(String name, boolean subscribe) throws AdapterException.IllegalStateException, InterruptedException {
+    public PublicAccountInfo getPublicAccountInfo(String media_nick, boolean subscribe) throws AdapterException.IllegalStateException, InterruptedException, MediaException.NotEqual {
 
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
@@ -444,15 +460,15 @@ public class WeChatAdapter extends Adapter {
             System.err.println(els.indexOf(we) + " --> " + we.getText());
         }
 
-        wpa.name = els.get(0).getText();
+        wpa.nick = els.get(0).getText();
 
-        if (!name.equals(wpa.name)) {
-            logger.info("Public account name is not the same.");
-        }
+        if (!media_nick.equals(wpa.nick)) throw new MediaException.NotEqual(account, media_nick);
 
         wpa.content = els.get(1).getText();
         wpa.essay_count = NumberFormatUtil.parseInt(
                 els.get(2).getText().replaceAll("篇原创文章.*$", ""));
+
+        if(subscribe) subscribePublicAccount();
 
         goToPublicAccountMoreInfoPage();
 
@@ -469,7 +485,7 @@ public class WeChatAdapter extends Adapter {
 
         for (String info_item : info) {
             if (info_item.contains("微信号")) {
-                wpa.wechat_id = info_item.replaceAll("微信号", "");
+                wpa.name = info_item.replaceAll("微信号", "");
             }
             if (info_item.contains("帐号主体")) {
                 wpa.subject = info_item.replaceAll("帐号主体", "");
@@ -690,7 +706,6 @@ public class WeChatAdapter extends Adapter {
             account.status = Account.Status.Broken;
 
             throw new AccountException.Broken(account);
-
         }
     }
 
@@ -1450,7 +1465,7 @@ public class WeChatAdapter extends Adapter {
         OCRParser.TouchableTextArea cellButtonArea = null;
 
         // A 文字识别
-        List<OCRParser.TouchableTextArea> textAreas = getPublicAccountEssayListTitles();
+        List<OCRParser.TouchableTextArea> textAreas = getTextAreas();
 
         for (OCRParser.TouchableTextArea area : textAreas) {
             if (area.content.contains("下载安装")) {

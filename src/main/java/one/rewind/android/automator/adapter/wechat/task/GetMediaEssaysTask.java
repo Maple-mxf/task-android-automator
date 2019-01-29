@@ -1,13 +1,12 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
-import com.j256.ormlite.dao.Dao;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
-import one.rewind.android.automator.adapter.wechat.exception.NoSubscribeMediaException;
+import one.rewind.android.automator.adapter.wechat.exception.MediaException;
 import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
@@ -19,17 +18,20 @@ import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Source;
 import one.rewind.db.DaoManager;
-import one.rewind.db.RedissonAdapter;
 import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.txt.StringUtil;
-import org.redisson.api.RTopic;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Stack;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,10 +63,14 @@ public class GetMediaEssaysTask extends Task {
     public Stack<String> comments_stack = new Stack<>();
 
     // 已经访问过的微信公众号文章页面
-    public List<EssayTitle> visitedEssays = new ArrayList<>();
+    public List<String> visitedEssays = new ArrayList<>();
 
     // 已经保存过的微信公众号文章
-    public List<EssayTitle> collectedEssays = new ArrayList<>();
+    public List<String> collectedEssays = new ArrayList<>();
+
+    public CountDownLatch countDown;
+
+    public volatile boolean forward = false;
 
     /**
      * @param holder
@@ -73,55 +79,24 @@ public class GetMediaEssaysTask extends Task {
      */
     public GetMediaEssaysTask(TaskHolder holder, String... params) throws IllegalParamsException {
 
+        // 0
         super(holder, params);
+
+        // A 参数判断 获取需要采集的公众号昵称
         if (params.length != 1)
             throw new IllegalParamsException(Arrays.stream(params).collect(Collectors.joining(", ")));
 
         media_nick = params[0];
 
-        // 初始化Task时加载已经采集过的历史文章数据
-
-        try {
-            Dao<one.rewind.android.automator.adapter.wechat.model.Essay, String> essayDao = DaoManager.getDao(one.rewind.android.automator.adapter.wechat.model.Essay.class);
-            collectedEssays.addAll(essayDao.queryBuilder().where()
-                    .eq("media_nick", this.media_nick)
-                    .query()
-                    .stream()
-                    .map(e -> new EssayTitle(e.title, e.pubdate))
-                    .collect(Collectors.toList()));
-        } catch (Exception e) {
-            logger.error("Error load essay title failure, cause: [{}] ", e);
-        }
-
-        // 当前任务类型允许的账号状态
+        // B 初始化当前任务类型允许的账号状态
         accountPermitStatuses.add(Account.Status.Search_Public_Account_Frozen);
 
-        // 任务完成回调
-        this.addDoneCallback((t) -> {
 
-            GetMediaEssaysTask task = (GetMediaEssaysTask) t;
-
-            // A 移除过滤器
-            task.removeFilters();
-
-            // B 发布消息
-            RTopic<Object> topic = RedissonAdapter.redisson.getTopic(task.holder.id);
-            topic.publish(task.media_nick);
+        // C 设定任务完成回调
+        addDoneCallback((t) -> {
+            // 移除过滤器
+            ((GetMediaEssaysTask) t).removeFilters();
         });
-    }
-
-    /**
-     * 文章标题-发布时间
-     */
-    class EssayTitle {
-
-        public String title;
-        public Date pubdate;
-
-        EssayTitle(String title, Date pubdate) {
-            this.title = title;
-            this.pubdate = pubdate;
-        }
     }
 
     @Override
@@ -130,21 +105,60 @@ public class GetMediaEssaysTask extends Task {
         boolean success = false;
 
         // A1 判定Adapter加载的Account的状态，并尝试切换账号
-        checkAccountStatus();
+        checkAccountStatus(); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
 
-        // A2 尝试
+        // A2 设定过滤器
         setupFilters();
 
         // 任务执行
         try {
-            // 0 重置微信进入首页
-            adapter.restart();
+            // B1 重置微信进入首页
+            adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
 
-            // A 进入已订阅公众号的列表页面params
+            // B2 进入已订阅公众号的列表页面params
             adapter.goToSubscribePublicAccountList();
 
-            // B 根据media name搜索到相关的公众号（已订阅的公众号）
+            // B3 根据 media_nick 搜索到相关的公众号（已订阅的公众号）
             adapter.goToSubscribedPublicAccountHome(media_nick);
+
+            // B4 基于media_nick 查询Media
+            try {
+
+                Media media = DaoManager.getDao(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
+
+                // 如果对应的media不存在
+                if (media == null) {
+
+                    WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(media_nick, false);
+
+                    media = new Media();
+                    media.name = pai.name;
+                    media.nick = pai.nick;
+                    media.content = pai.content;
+                    media.essay_count = pai.essay_count;
+                    media.subject = pai.subject;
+                    media.trademark = pai.trademark;
+                    media.phone = pai.phone;
+
+                    media.id = SubscribeMediaTask.genId(media.nick);
+
+                    media.insert();
+
+                }
+                // 加载media已经采集过的文章数据
+                else {
+
+                    DaoManager.getDao(Essay.class).queryBuilder()
+                            .where().eq("media_id", media.id)
+                            .query()
+                            .stream().forEach(essay -> {
+                        collectedEssays.add(essay.title + " " + DateFormatUtil.dfd.print(essay.pubdate.getTime()));
+                    });
+                }
+
+            } catch (Exception e) {
+                logger.error("Error handling DB, ", e);
+            }
 
             // C 进入历史文章数据列表页
             adapter.gotoPublicAccountEssayList();
@@ -155,39 +169,64 @@ public class GetMediaEssaysTask extends Task {
             while (!atBottom) {
 
                 // D1 截图分析文章坐标  此处得到的图像识别结果是一个通用的东西  需要分解出日期的坐标
-                List<OCRParser.TouchableTextArea> textAreas = this.adapter.getPublicAccountEssayListTitles();
+                List<OCRParser.TouchableTextArea> textAreas = this.adapter.getTextAreas();
 
-                // TODO 需要把 最后一页 对应的 textArea 删掉，一般来讲都是最后一个
                 // D3 逐个文章去点击
                 for (OCRParser.TouchableTextArea area : textAreas) {
 
-                    // D2 通过 textAreas 分析是否是最后一页
-                    if (area.content.equals("已无更多") && textAreas.indexOf(area) == textAreas.size()) {
+                    // D2 通过 textAreas 分析是否是最后一页 一般来讲都是最后一个 是 已无更多
+                    if (area.content.equals("已无更多") && textAreas.indexOf(area) == textAreas.size() - 1) {
                         atBottom = true;
+                        break;
                     }
 
                     // D2 去重判断
-                    EssayTitle et = new EssayTitle(area.content, area.date);
-                    if (collectedEssays.contains(et) || visitedEssays.contains(et)) continue;
+                    String feature = area.content + " " + DateFormatUtil.dfd.print(area.date.getTime());
+                    if (collectedEssays.contains(feature) || visitedEssays.contains(feature)) continue;
 
                     // D3 进入文章
+                    countDown = new CountDownLatch(1);
+
                     adapter.goToEssayDetail(area);
 
                     // D4 判断是否进入了文章页
                     if (adapter.device.reliableTouch(area.left, area.top)) {
 
-                        // D4-1 如果进入成功 需要记录已经点击的文章标题-时间
-                        visitedEssays.add(et);
+                        // D41 向下滑动两次
+                        for (int i = 0; i < 2; i++) {
+                            this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
+                        }
 
-                        // D4-2 关闭文章
-                        adapter.device.touch(67, 165, 1000);
-                    }
+                        countDown.await(10, TimeUnit.SECONDS);
 
-                    // D5 向下滑动两次
-                    for (int i = 0; i < 2; i++) {
-                        this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
+                        // D42 如果进入成功 需要记录已经点击的文章标题-时间
+                        visitedEssays.add(feature);
+
+                        // D43 在文章采集过程中 判断是否是转发文章
+                        if (forward) {
+
+                            countDown = new CountDownLatch(1);
+
+                            // 点进去被转发的文章
+                            adapter.device.touch(582, 557, 6000);
+
+                            for (int i = 0; i < 2; i++) {
+                                this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
+                            }
+                        }
+
+                        // D44 关闭文章
+                        adapter.touchUpperLeftButton();
+                        // adapter.device.touch(67, 165, 1000);
+
+                        forward = false;
                     }
                 }
+
+                // D5
+                // 确定回到文章列表页
+                // 向下滑动
+
             }
             success = true;
         }
@@ -203,16 +242,16 @@ public class GetMediaEssaysTask extends Task {
 
             } catch (Exception e1) {
 
-                logger.error("Error update account status failure, cause [{}] ", e);
+                logger.error("Error update account status failure, ", e);
 
             }
             //
 
-            // 将当前任务提交  下一次在执行任务的时候
+            // 将当前任务提交 下一次在执行任务的时候
             try {
                 this.adapter.device.submit(this);
-            } catch (AndroidException.IllegalStatusException ill) {
-                logger.error("Error submit task failure, cause [{}]", ill);
+            } catch (AndroidException.IllegalStatusException e1) {
+                logger.error("Error submit task failure, ", e1);
             }
 
         }
@@ -223,11 +262,12 @@ public class GetMediaEssaysTask extends Task {
 
         }
         // 在指定账号的订阅列表中找不到指定的公众号的异常
-        catch (NoSubscribeMediaException e) {
+        catch (MediaException e) {
 
-            logger.error("Account[{}] don't subscribe public account:[{}], ", adapter.account.id, media_nick, e);
+            logger.error("Account[{}] don't subscribe public account[{}], ", adapter.account.id, media_nick, e);
 
         }
+
         return success;
     }
 
@@ -277,7 +317,13 @@ public class GetMediaEssaysTask extends Task {
 
                     Essay essay = null;
 
+                    f_id = parseForwardId(content_src);
+
                     essay = parseContent(content_src, f_id);
+
+                    if (f_id != null) {
+                        forward = true;
+                    }
 
                     try {
                         // TODO source 内容无法更新
@@ -326,8 +372,12 @@ public class GetMediaEssaysTask extends Task {
                             }
                         });
                     }
+
+
+                    if (countDown != null) countDown.countDown();
                 }
             }
+
         };
 
         adapter.device.setProxyRequestFilter(requestFilter);
@@ -513,6 +563,53 @@ public class GetMediaEssaysTask extends Task {
         }
 
         return essay;
+    }
+
+    /**
+     * 解析转发文章的id
+     *
+     * @param content_src
+     * @return
+     */
+    public String parseForwardId(String content_src) {
+
+        String f_id = null;
+
+        // 找转发标题
+        String title = null, url_f = null, author = null, src_id = null;
+
+        Pattern pattern = Pattern.compile("(?si)<title>.*?</title>");
+        Matcher matcher = pattern.matcher(content_src);
+
+        if (matcher.find()) {
+            title = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
+        }
+
+        // 找转发公众号名称 和 原始文章链接
+        pattern = Pattern.compile("(?si)<div class=\"share_media\" id=\"js_share_content\">.*?<img class=\"account_avatar\" .*? alt=\"(?<a>.+?)\">.*?<a id=\"js_share_source\" href=\"(?<s>.+?)\">阅读全文");
+
+        matcher = pattern.matcher(content_src);
+
+        if (matcher.find()) {
+
+            url_f = matcher.group("s")
+                    .replaceAll("https?://mp.weixin.qq.com/", "")
+                    .replaceAll("&amp;(amp;)?", "&");
+
+            author = matcher.group("a");
+        }
+
+        // 原始文章mid
+        pattern = Pattern.compile("(?si)(?<=source_mid = \").+?(?=\";)");
+        matcher = pattern.matcher(content_src);
+        if (matcher.find()) {
+            src_id = matcher.group().replaceAll("\"| |\\|", "");
+        }
+
+        if (title != null || url_f != null || author != null) {
+            f_id = genId(author, title, src_id);
+        }
+        return f_id;
     }
 
     /**

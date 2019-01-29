@@ -93,7 +93,7 @@ public class GetSelfSubscribeMediaTask extends Task {
                 WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
 
                 // 缓存订阅关系的数据  TODO media_id
-                WechatAccountMediaSubscribe tmp = new WechatAccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.wechat_id, publicAccountInfo.name);
+                WechatAccountMediaSubscribe tmp = new WechatAccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.name, publicAccountInfo.nick);
                 accountMediaSubscribes.add(tmp);
 
                 // TODO 媒体账号信息的完善

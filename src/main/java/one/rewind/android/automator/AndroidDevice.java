@@ -195,7 +195,6 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     *
      * @param udid
      * @return
      * @throws Exception
@@ -205,7 +204,7 @@ public class AndroidDevice extends ModelL {
         Dao<AndroidDevice, String> dao = DaoManager.getDao(AndroidDevice.class);
         AndroidDevice ad = dao.queryBuilder().where().eq("udid", udid).queryForFirst();
 
-        if(ad == null) ad = new AndroidDevice(udid);
+        if (ad == null) ad = new AndroidDevice(udid);
 
         return ad;
     }
@@ -442,7 +441,6 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     *
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
@@ -713,8 +711,7 @@ public class AndroidDevice extends ModelL {
         capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, udid);
 
         // TODO 是否可以自动获取url?
-        driver = new AndroidDriver(new URL("http://localhost:" + appiumPort + "/wd/hub"), capabilities);
-
+        driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
         Thread.sleep(15000);
 
         // 设置宽高
@@ -1131,7 +1128,6 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     *
      * @param callbacks
      * @return
      */
