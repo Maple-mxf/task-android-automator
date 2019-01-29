@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -84,36 +83,59 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
-     * 截图 并获取可点击的文本区域信息
-     *
+     * 获取搜索微信公众号结果中的文本区域
      * @return
      * @throws IOException
+     * @throws AdapterException.NoResponseException
+     * @throws SearchPublicAccountFrozenException
      */
-    public List<OCRParser.TouchableTextArea> getTextAreas()
+    public List<OCRParser.TouchableTextArea> getSearchPublicAccountPageTextAreas()
             throws IOException, AdapterException.NoResponseException,
-            SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException {
+            SearchPublicAccountFrozenException, AdapterException.IllegalStateException {
 
-        // A 获取截图
-        String screenShotPath = this.device.screenShot();
+        if(status != Status.PublicAccount_Search_Result) throw new AdapterException.IllegalStateException(this);
 
-        // B 获取可点击文本区域  Http请求ocr服务 TODO  BUG   getTextArea类型转换存在问题   在此处类型转换会存在问题ClassCastException
-        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
+        // A 获取可点击文本区域
+        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
 
-        // C 删除图片文件
-        new File(screenShotPath).delete();
-
-        // D 根据返回的文本信息 进行异常判断
+        // B 根据返回的文本信息 进行异常判断
         for (OCRParser.TouchableTextArea area : textAreaList) {
 
             if (area.content.contains("微信没有响应")) throw new AdapterException.NoResponseException();
 
             if (area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
+                throw new SearchPublicAccountFrozenException(account);
+            }
+        }
 
-                if (status == Status.PublicAccount_Search_Result) {
-                    throw new SearchPublicAccountFrozenException(account);
-                } else if (status == Status.PublicAccount_Essay_List) {
-                    throw new GetPublicAccountEssayListFrozenException(account);
-                }
+        textAreaList = mergeForTitle(textAreaList, 60);
+
+        return textAreaList;
+    }
+
+    /**
+     * 获取搜索微信公众号结果中的文本区域
+     * @return
+     * @throws IOException
+     * @throws AdapterException.NoResponseException
+     * @throws SearchPublicAccountFrozenException
+     */
+    public List<OCRParser.TouchableTextArea> getEssayListTextAreas()
+            throws IOException, AdapterException.NoResponseException,
+            AdapterException.IllegalStateException, GetPublicAccountEssayListFrozenException {
+
+        if(status != Status.PublicAccount_Essay_List) throw new AdapterException.IllegalStateException(this);
+
+        // A 获取可点击文本区域
+        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
+
+        // B 根据返回的文本信息 进行异常判断
+        for (OCRParser.TouchableTextArea area : textAreaList) {
+
+            if (area.content.contains("微信没有响应")) throw new AdapterException.NoResponseException();
+
+            if (area.content.contains("操作频繁") || area.content.contains("请稍后再试")) {
+                throw new GetPublicAccountEssayListFrozenException(account);
             }
         }
 
@@ -175,39 +197,6 @@ public class WeChatAdapter extends Adapter {
 
 
     /**
-     * 由于默认的解析方法会把两行标题解析成两个文本框，此时需要根据顺序关系和坐标关系，对文本框进行合并
-     *
-     * @param originalTextAreas 初始解析的文本框列表
-     * @param gap               文本框之间的最大距离
-     * @return 合并后的文本框列表
-     */
-    private List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) {
-
-        List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
-
-        OCRParser.TouchableTextArea lastArea = null;
-
-        // 遍历初始获得的TextArea
-        for (OCRParser.TouchableTextArea area : originalTextAreas) {
-
-            if (lastArea != null) {
-
-                // 判断是否与之前的TextArea合并
-                if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
-                    lastArea = lastArea.add(area);
-                } else {
-                    newTextAreas.add(area);
-                    lastArea = area;
-                }
-            } else {
-                newTextAreas.add(area);
-                lastArea = area;
-            }
-        }
-        return newTextAreas;
-    }
-
-    /**
      * 重启微信
      */
     public void restart() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
@@ -260,7 +249,7 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws AdapterException.IllegalStateException
      */
-    public void goToSearchNoSubscribePublicAccountResult(String mediaName) throws AdapterException.IllegalStateException, InterruptedException {
+    public void searchPublicAccount(String mediaName) throws AdapterException.IllegalStateException, InterruptedException {
 
         if (this.status != Status.SearchPublicAccount)
             throw new AdapterException.IllegalStateException(this);
@@ -272,22 +261,12 @@ public class WeChatAdapter extends Adapter {
 
         this.status = Status.PublicAccount_Search_Result;
 
-    }
-
-    /**
-     * @throws InterruptedException
-     * @throws AdapterException.IllegalStateException
-     */
-    public void goToNoSubscribePublicAccountHome() throws InterruptedException, AdapterException.IllegalStateException {
-        if (this.status != Status.PublicAccount_Search_Result)
-            throw new AdapterException.IllegalStateException(this);
-
         // 点击第一个结果
         device.touch(347, 525, 2000);
 
+        // TODO 需要OCR验证第一个结果
         this.status = Status.PublicAccount_Home;
     }
-
 
     /**
      * 从 首页/通讯录
@@ -326,7 +305,9 @@ public class WeChatAdapter extends Adapter {
             AdapterException.IllegalStateException,
             IOException,
             AdapterException.NoResponseException,
-            MediaException {
+            MediaException.NotSubscribe,
+            MediaException.NotEqual
+    {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -1464,10 +1445,9 @@ public class WeChatAdapter extends Adapter {
 
         OCRParser.TouchableTextArea cellButtonArea = null;
 
-        // A 文字识别
-        List<OCRParser.TouchableTextArea> textAreas = getTextAreas();
+        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
 
-        for (OCRParser.TouchableTextArea area : textAreas) {
+        for (OCRParser.TouchableTextArea area : textAreaList) {
             if (area.content.contains("下载安装")) {
                 hasUpdateTipWindow = true;
             }

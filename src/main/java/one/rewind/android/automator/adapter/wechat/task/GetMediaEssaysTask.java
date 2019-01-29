@@ -7,10 +7,8 @@ import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
-import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
-import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Comment;
@@ -102,7 +100,7 @@ public class GetMediaEssaysTask extends Task {
     @Override
     public Boolean call() throws InterruptedException, IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.OperationException, AdapterException.IllegalStateException, AdapterException.NoResponseException {
 
-        boolean success = false;
+        boolean retry = false;
 
         // A1 判定Adapter加载的Account的状态，并尝试切换账号
         checkAccountStatus(); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
@@ -129,19 +127,7 @@ public class GetMediaEssaysTask extends Task {
                 // 如果对应的media不存在
                 if (media == null) {
 
-                    WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(media_nick, false);
-
-                    media = new Media();
-                    media.name = pai.name;
-                    media.nick = pai.nick;
-                    media.content = pai.content;
-                    media.essay_count = pai.essay_count;
-                    media.subject = pai.subject;
-                    media.trademark = pai.trademark;
-                    media.phone = pai.phone;
-
-                    media.id = SubscribeMediaTask.genId(media.nick);
-
+                    media = parseMedia(adapter.getPublicAccountInfo(media_nick, false));
                     media.insert();
 
                 }
@@ -169,7 +155,7 @@ public class GetMediaEssaysTask extends Task {
             while (!atBottom) {
 
                 // D1 截图分析文章坐标  此处得到的图像识别结果是一个通用的东西  需要分解出日期的坐标
-                List<OCRParser.TouchableTextArea> textAreas = this.adapter.getTextAreas();
+                List<OCRParser.TouchableTextArea> textAreas = this.adapter.getEssayListTextAreas();
 
                 // D3 逐个文章去点击
                 for (OCRParser.TouchableTextArea area : textAreas) {
@@ -223,17 +209,18 @@ public class GetMediaEssaysTask extends Task {
                     }
                 }
 
-                // D5
-                // 确定回到文章列表页
-                // 向下滑动
+                // D5 确定回到文章列表页
+                if(adapter.status != WeChatAdapter.Status.PublicAccount_Essay_List) throw new AdapterException.IllegalStateException(adapter);
+                // D51 向下滑动
+                this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
 
             }
-            success = true;
+
         }
         // 微信查看全部消息被限流
         catch (GetPublicAccountEssayListFrozenException e) {
 
-            logger.error("Error enter Media  [{}]  history essay list page error,cause [{}] ", media_nick, e);
+            logger.error("Error enter Media[{}] history essay list page, Account:[{}], ", media_nick, adapter.account.id, e);
 
             try {
                 // 更新账号状态
@@ -241,34 +228,26 @@ public class GetMediaEssaysTask extends Task {
                 this.adapter.account.update();
 
             } catch (Exception e1) {
-
                 logger.error("Error update account status failure, ", e);
-
             }
-            //
 
             // 将当前任务提交 下一次在执行任务的时候
-            try {
-                this.adapter.device.submit(this);
-            } catch (AndroidException.IllegalStatusException e1) {
-                logger.error("Error submit task failure, ", e1);
-            }
-
-        }
-        // 搜索公众号没响应
-        catch (SearchPublicAccountFrozenException e) {
-
-            logger.error("Search Media[{}] no response, ", media_nick, e);
+            retry = true;
 
         }
         // 在指定账号的订阅列表中找不到指定的公众号的异常
-        catch (MediaException e) {
+        catch (MediaException.NotSubscribe e) {
 
-            logger.error("Account[{}] don't subscribe public account[{}], ", adapter.account.id, media_nick, e);
+            logger.error("Account:[{}] didn't subscribe public account:[{}], ", adapter.account.id, media_nick, e);
+
+        }
+        catch (MediaException.NotEqual e) {
+
+            logger.error("Strange error for Account:[{}] public account:[{}], ", adapter.account.id, media_nick, e);
 
         }
 
-        return success;
+        return retry;
     }
 
 
@@ -310,23 +289,19 @@ public class GetMediaEssaysTask extends Task {
                     String url_permanent = null;
                     // TODO 此处模拟共享，复制链接，保存文章持久连接
 
-                    String f_id = null;
+                    // 获取转发的Essay Id
+                    String f_id = parseForwardId(content_src);
 
-                    // TODO 此处解析f_id
-                    // 如果是引用文章，模拟touch，采集原始文章
-
-                    Essay essay = null;
-
-                    f_id = parseForwardId(content_src);
-
-                    essay = parseContent(content_src, f_id);
-
+                    // 判定是否是转发文章
                     if (f_id != null) {
                         forward = true;
                     }
 
+                    Essay essay = null;
+
+                    essay = parseContent(content_src, f_id);
+
                     try {
-                        // TODO source 内容无法更新
                         Source source = new Source(essay.id, url_permanent, null, essay.id + ".html", "text/xml", content_src.getBytes());
                         source.insert();
                     } catch (Exception e) {
@@ -576,7 +551,7 @@ public class GetMediaEssaysTask extends Task {
         String f_id = null;
 
         // 找转发标题
-        String title = null, url_f = null, author = null, src_id = null;
+        String title = null, url_f = null, media_nick = null, src_id = null;
 
         Pattern pattern = Pattern.compile("(?si)<title>.*?</title>");
         Matcher matcher = pattern.matcher(content_src);
@@ -596,19 +571,21 @@ public class GetMediaEssaysTask extends Task {
                     .replaceAll("https?://mp.weixin.qq.com/", "")
                     .replaceAll("&amp;(amp;)?", "&");
 
-            author = matcher.group("a");
+            media_nick = matcher.group("a");
         }
 
         // 原始文章mid
         pattern = Pattern.compile("(?si)(?<=source_mid = \").+?(?=\";)");
         matcher = pattern.matcher(content_src);
+
         if (matcher.find()) {
             src_id = matcher.group().replaceAll("\"| |\\|", "");
         }
 
-        if (title != null || url_f != null || author != null) {
-            f_id = genId(author, title, src_id);
+        if (title != null || url_f != null || media_nick != null) {
+            f_id = genId(media_nick, title, src_id);
         }
+
         return f_id;
     }
 
@@ -658,6 +635,27 @@ public class GetMediaEssaysTask extends Task {
      */
     public static String genId(String media_nick, String title, String src_id) {
         return StringUtil.MD5(SubscribeMediaTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
+    }
+
+    /**
+     *
+     * @param pai
+     * @return
+     */
+    public static Media parseMedia(WeChatAdapter.PublicAccountInfo pai) {
+
+        Media media = new Media();
+        media.name = pai.name;
+        media.nick = pai.nick;
+        media.content = pai.content;
+        media.essay_count = pai.essay_count;
+        media.subject = pai.subject;
+        media.trademark = pai.trademark;
+        media.phone = pai.phone;
+
+        media.id = SubscribeMediaTask.genId(media.nick);
+
+        return media;
     }
 
 }

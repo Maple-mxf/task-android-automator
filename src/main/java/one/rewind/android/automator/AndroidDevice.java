@@ -1004,6 +1004,16 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
+     *
+     * @return
+     * @throws IOException
+     */
+    public byte[] screenshot() throws IOException {
+
+        return ((TakesScreenshot) this.driver).getScreenshotAs(OutputType.BYTES);
+    }
+
+    /**
      * 截图
      *
      * @return 获取保存的文件路径

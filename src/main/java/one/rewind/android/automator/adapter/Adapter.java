@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter;
 
+import com.dw.ocr.parser.OCRParser;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.exception.AccountException;
@@ -11,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -84,4 +86,37 @@ public abstract class Adapter {
             return JSON.toJson(this);
         }
     }
+    /**
+     * 由于默认的解析方法会把两行标题解析成两个文本框，此时需要根据顺序关系和坐标关系，对文本框进行合并
+     *
+     * @param originalTextAreas 初始解析的文本框列表
+     * @param gap               文本框之间的最大距离
+     * @return 合并后的文本框列表
+     */
+    public List<OCRParser.TouchableTextArea> mergeForTitle(List<OCRParser.TouchableTextArea> originalTextAreas, int gap) {
+
+        List<OCRParser.TouchableTextArea> newTextAreas = new LinkedList<>();
+
+        OCRParser.TouchableTextArea lastArea = null;
+
+        // 遍历初始获得的TextArea
+        for (OCRParser.TouchableTextArea area : originalTextAreas) {
+
+            if (lastArea != null) {
+
+                // 判断是否与之前的TextArea合并
+                if (area.left == lastArea.left && (area.top - (lastArea.top + lastArea.height)) < gap) {
+                    lastArea = lastArea.add(area);
+                } else {
+                    newTextAreas.add(area);
+                    lastArea = area;
+                }
+            } else {
+                newTextAreas.add(area);
+                lastArea = area;
+            }
+        }
+        return newTextAreas;
+    }
+
 }
