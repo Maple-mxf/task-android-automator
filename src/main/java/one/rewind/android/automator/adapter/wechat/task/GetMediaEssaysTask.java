@@ -3,6 +3,7 @@ package one.rewind.android.automator.adapter.wechat.task;
 import com.dw.ocr.parser.OCRParser;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
 import one.rewind.android.automator.adapter.wechat.exception.NoSubscribeMediaException;
@@ -73,13 +74,15 @@ public class GetMediaEssaysTask extends Task {
 
         media_nick = params[0];
 
-        // 任务执行成功回调
-        this.doneCallbacks.add((Runnable) () -> {
+        accountPermitStatuses.add(Account.Status.Search_Public_Account_Frozen);
+
+        // 任务完成回调
+        this.addDoneCallback((t) -> {
 
             // TODO 通知redis队列
 
             // 移除过滤器
-            removeFilters();
+            ((GetMediaEssaysTask) t).removeFilters();
 
         });
     }
@@ -99,16 +102,20 @@ public class GetMediaEssaysTask extends Task {
     }
 
     @Override
-    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
+    public Boolean call() throws InterruptedException, IOException,  AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.OperationException, AdapterException.IllegalStateException, AdapterException.NoResponseException {
 
         boolean success = false;
 
+        // A1 判定Adapter加载的Account的状态，并尝试切换账号
+        checkAccountStatus();
+
+        // A2 尝试
         setupFilters();
 
         // 任务执行
         try {
             // 0 重置微信进入首页
-            adapter.start();
+            adapter.restart();
 
             // A 进入已订阅公众号的列表页面params
             adapter.goToSubscribePublicAccountList();
@@ -116,7 +123,7 @@ public class GetMediaEssaysTask extends Task {
             // B 根据media name搜索到相关的公众号（已订阅的公众号）
             adapter.goToSubscribedPublicAccountHome(media_nick);
 
-            // 同时从数据库查找已经采集的文章列表
+            // TODO 同时从数据库查找已经采集的文章列表
 
             // C 进入历史文章数据列表页
             adapter.gotoPublicAccountEssayList();
@@ -167,51 +174,23 @@ public class GetMediaEssaysTask extends Task {
         // 获取公众号文章列表没反应
         catch (GetPublicAccountEssayListFrozenException e) {
 
-            logger.error("Error enter [{}] essay list page error, touch not response, ", media_nick, e);
-
+            logger.error("Error enter Media[{}] essay list page error, ", media_nick, e);
 
         }
         // 搜索公众号没响应
         catch (SearchPublicAccountFrozenException e) {
 
-            logger.error("Error search WeChat media not response! cause[{}]", e);
-
-
-        }
-        // Adapter状态异常
-        catch (AdapterException.IllegalStateException e) {
-
-            logger.error("AndroidDevice state error! cause[{}]", e);
-
-
-        }
-        // 点击没反应
-        catch (AdapterException.NoResponseException e) {
-
-            logger.error("Error enter essay detail touch not response! cause[{}]", e);
-
+            logger.error("Search Media[{}] no response, ", media_nick, e);
 
         }
         // 在指定账号的订阅列表中找不到指定的公众号的异常
         catch (NoSubscribeMediaException e) {
 
-            logger.error("Error No subscribe current public account:[{}]! cause[{}]", media_nick, e);
+            logger.error("Account[{}] don't subscribe public account:[{}], ", adapter.account.id, media_nick, e);
 
-
-        }
-        // 无可用账户异常
-        catch (AccountException.NoAvailableAccount noAvailableAccount) {
-
-            logger.error("Error no available account! cause[{}]", noAvailableAccount);
-        }
-
-        if (success) {
-            runCallbacks(doneCallbacks);
-        } else {
-            runCallbacks(failureCallbacks);
         }
         
-        return Boolean.TRUE;
+        return success;
     }
 
 

@@ -2,6 +2,7 @@ package one.rewind.android.automator;
 
 import com.dw.ocr.util.ImageUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -30,6 +31,7 @@ import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
 import one.rewind.db.DBName;
+import one.rewind.db.DaoManager;
 import one.rewind.db.model.ModelL;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
@@ -85,8 +87,8 @@ public class AndroidDevice extends ModelL {
         Failed, // 出错
         Terminating, // 终止过程中
         Terminated,  // 已终止
+        Broken // 不可用
     }
-
 
     @DatabaseField(dataType = DataType.ENUM_STRING, width = 32)
     public Status status = Status.New;
@@ -94,7 +96,7 @@ public class AndroidDevice extends ModelL {
     @DatabaseField(dataType = DataType.STRING, width = 32)
     private String local_ip; // 本地IP
 
-    @DatabaseField(dataType = DataType.STRING, width = 32)
+    @DatabaseField(dataType = DataType.STRING, width = 32, canBeNull = false, unique = true)
     public String udid; // 设备 udid
 
     @DatabaseField(dataType = DataType.STRING, width = 32)
@@ -176,9 +178,6 @@ public class AndroidDevice extends ModelL {
     public AndroidDevice(String udid) {
 
         this.udid = udid;
-        this.appiumPort = Tab.appiumPort.getAndIncrement();
-        this.proxyPort = Tab.proxyPort.getAndIncrement();
-        this.localProxyPort = Tab.localProxyPort.getAndIncrement();
 
         this.local_ip = NetworkUtil.getLocalIp();
         logger.info("Local IP: {}", local_ip);
@@ -193,6 +192,22 @@ public class AndroidDevice extends ModelL {
 
     public AndroidDevice() {
 
+    }
+
+    /**
+     *
+     * @param udid
+     * @return
+     * @throws Exception
+     */
+    public static AndroidDevice getAndroidDeviceByUdid(String udid) throws Exception {
+
+        Dao<AndroidDevice, String> dao = DaoManager.getDao(AndroidDevice.class);
+        AndroidDevice ad = dao.queryBuilder().where().eq("udid", udid).queryForFirst();
+
+        if(ad == null) ad = new AndroidDevice(udid);
+
+        return ad;
     }
 
     /**
@@ -213,7 +228,7 @@ public class AndroidDevice extends ModelL {
         this.initCallbacks.add((d) -> {
 
             try {
-                adapter.init();
+                adapter.start();
             } catch (InterruptedException e) {
 
                 logger.error("Interrupted, ", e);
@@ -226,13 +241,14 @@ public class AndroidDevice extends ModelL {
                 this.adapters.remove(adapter.getClass().getName());
             }
             // 没有可用账号了
-            catch (AccountException.NoAvailableAccount e) {
+            catch (AccountException.Broken e) {
 
-                logger.error("{} No Available Account, ", adapter.getClass().getSimpleName(), e);
+                logger.error("{} Account[{}] broken, ", adapter.getClass().getSimpleName(), e.account.id, e);
 
                 this.adapters.remove(adapter.getClass().getName());
             }
         });
+
         return this;
     }
 
@@ -244,6 +260,10 @@ public class AndroidDevice extends ModelL {
         public Boolean call() throws Exception {
 
             logger.info("Init...");
+
+            AndroidDevice.this.appiumPort = Tab.appiumPort.getAndIncrement();
+            AndroidDevice.this.proxyPort = Tab.proxyPort.getAndIncrement();
+            AndroidDevice.this.localProxyPort = Tab.localProxyPort.getAndIncrement();
 
             // 安装CA
             // installCA();
@@ -257,7 +277,7 @@ public class AndroidDevice extends ModelL {
             // 启动相关服务
             initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI"));
 
-            runCallbacks(initCallbacks);
+            runCallbacks(initCallbacks).get();
 
             init_time = new Date();
 
@@ -322,7 +342,9 @@ public class AndroidDevice extends ModelL {
             // 执行状态回调函数
             runCallbacks(idleCallbacks);
 
-        } catch (InterruptedException e) {
+        }
+        // 当前进程被终止
+        catch (InterruptedException e) {
 
             status = Status.Failed;
             logger.error("[{}] INIT interrupted. ", name, e);
@@ -360,8 +382,11 @@ public class AndroidDevice extends ModelL {
      */
     public synchronized AndroidDevice stop(boolean runCallbacks) throws AndroidException.IllegalStatusException {
 
-
         if (!(status == Status.Init || status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
+            // TODO New
+            // Terminating, // 终止过程中
+            // Terminated,  // 已终止
+            // Broken // 不可用
             throw new AndroidException.IllegalStatusException();
         }
 
@@ -392,6 +417,12 @@ public class AndroidDevice extends ModelL {
             closeFuture.cancel(true);
             status = Status.Failed;
             logger.error("[{}] Stop failed. ", name, e);
+        } finally {
+            try {
+                this.update();
+            } catch (Exception e) {
+                logger.error("Can't update device, ", e);
+            }
         }
 
         return this;
@@ -410,6 +441,11 @@ public class AndroidDevice extends ModelL {
         start();
     }
 
+    /**
+     *
+     * @param task
+     * @throws AndroidException.IllegalStatusException
+     */
     public synchronized void submit(Task task) throws AndroidException.IllegalStatusException {
 
         if (!(status == Status.Idle || status == Status.Busy)) {
@@ -417,6 +453,8 @@ public class AndroidDevice extends ModelL {
         }
 
         this.status = Status.Busy;
+
+        task.adapter = adapters.get(task.holder.adapter_class_name);
 
         taskFuture = executor.submit(task);
 
@@ -1092,11 +1130,24 @@ public class AndroidDevice extends ModelL {
         return this;
     }
 
-    private void runCallbacks(List<AndroidDeviceCallBack> callbacks) {
+    /**
+     *
+     * @param callbacks
+     * @return
+     */
+    private Future runCallbacks(List<AndroidDeviceCallBack> callbacks) {
 
-        if (callbacks == null) return;
-        for (AndroidDeviceCallBack callback : callbacks) {
-            callback.call(this);
-        }
+        if (callbacks == null) return null;
+
+        return AndroidDeviceManager.getInstance().executor.submit(() -> {
+
+            try {
+                for (AndroidDeviceCallBack callback : callbacks) {
+                    callback.call(this);
+                }
+            } catch (Exception e) {
+                logger.error("Error execute callback, ", e);
+            }
+        });
     }
 }

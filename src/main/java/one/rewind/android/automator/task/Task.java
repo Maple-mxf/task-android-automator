@@ -1,6 +1,9 @@
 package one.rewind.android.automator.task;
 
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.callback.TaskCallback;
+import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,22 +32,84 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
     // Flag 在call()和调用方法中，显式调用，判断任务是否继续执行
     public volatile boolean stop = false;
 
+    public List<Account.Status> accountPermitStatuses = new ArrayList<>();
+
     // 任务完成回调
-    public List<Runnable> doneCallbacks = new ArrayList<>();
+    public List<TaskCallback> doneCallbacks = new ArrayList<>();
 
     // 任务失败回调
-    public List<Runnable> failureCallbacks = new ArrayList<>();
+    public List<TaskCallback> failureCallbacks = new ArrayList<>();
 
     /**
      * @param holder
      */
     public Task(TaskHolder holder, String... params) throws IllegalParamsException {
         this.holder = holder;
+        accountPermitStatuses.add(Account.Status.Normal);
     }
 
     // 任务的生命周期
-    public abstract Boolean call() throws InterruptedException, IOException, AdapterException.OperationException;
+    public abstract Boolean call()
+            throws InterruptedException, // 任务中断
+            IOException, //
+            AccountException.NoAvailableAccount, // 没有可用账号
+            AccountException.Broken, // 账号不可用
+            AdapterException.OperationException, // Adapter 逻辑出错
+            AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
+            AdapterException.NoResponseException // App 没有响应
+    ;
 
+    public Task addDoneCallback(TaskCallback tc) {
+        this.doneCallbacks.add(tc);
+        return this;
+    }
+
+    public Task addFailureCallback(TaskCallback tc) {
+        this.failureCallbacks.add(tc);
+        return this;
+    }
+
+    /**
+     *
+     * @throws AdapterException.OperationException
+     * @throws AccountException.NoAvailableAccount
+     */
+    public void checkAccountStatus() throws AdapterException.OperationException, AccountException.NoAvailableAccount {
+
+        // TODO 判断 adapter 不能为null
+        if(!accountPermitStatuses.contains(adapter.account.status)) {
+
+            boolean switchAccount = false;
+            int retryCount = 0;
+
+            while(retryCount < 2 && !switchAccount) {
+
+                Account account = Account.getAccount(adapter.device.udid, adapter.getClass().getName(), accountPermitStatuses);
+
+                if (account != null) {
+
+                    try {
+                        adapter.switchAccount(account);
+                        switchAccount = true;
+                    }
+                    catch (AccountException.Broken broken) {
+                        logger.warn("Account[{}] broken, ", account.id, broken);
+                        try {
+                            broken.account.update();
+                        } catch (Exception e1) {
+                            logger.error("Account[{}] update failure, ", account.id, e1);
+                        }
+                    }
+                }
+                else {
+                    // 找不到可用账号
+                    throw new AccountException.NoAvailableAccount();
+                }
+
+                retryCount ++;
+            }
+        }
+    }
 
     /**
      * 参数异常

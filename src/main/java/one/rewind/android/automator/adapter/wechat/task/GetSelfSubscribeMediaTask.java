@@ -38,7 +38,7 @@ public class GetSelfSubscribeMediaTask extends Task {
         super(holder, params);
 
         // 任务完成回调
-        this.doneCallbacks.add(new Thread(() -> {
+        addDoneCallback((t) -> {
 
             // 更新数据库
             try {
@@ -53,68 +53,59 @@ public class GetSelfSubscribeMediaTask extends Task {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }));
+        });
     }
 
     @Override
-    public Boolean call() throws InterruptedException, IOException, AdapterException.OperationException {
+    public Boolean call() throws InterruptedException, IOException,  AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.OperationException, AdapterException.IllegalStateException, AdapterException.NoResponseException {
 
-        try {
-            adapter.start();
+        adapter.start();
 
-            // A 进入已订阅公众号的列表页面params
-            adapter.goToSubscribePublicAccountList();
+        // A 进入已订阅公众号的列表页面params
+        adapter.goToSubscribePublicAccountList();
 
-            // 最后一页
-            boolean atBottom = false;
+        // 最后一页
+        boolean atBottom = false;
 
-            while (!atBottom) {
-                // B 向下滑动一页
-                this.adapter.device.slideToPoint(1000, 500, 1000, 2000, 1000);
+        while (!atBottom) {
+            // B 向下滑动一页
+            this.adapter.device.slideToPoint(1000, 500, 1000, 2000, 1000);
 
-                // C 获取当前页截图
-                List<OCRParser.TouchableTextArea> accountList = this.adapter.getPublicAccountList();
+            // C 获取当前页截图
+            List<OCRParser.TouchableTextArea> accountList = this.adapter.getPublicAccountList();
 
-                // D 添加到公众号集合中
-                for (OCRParser.TouchableTextArea area : accountList) {
+            // D 添加到公众号集合中
+            for (OCRParser.TouchableTextArea area : accountList) {
 
-                    // 最后一页
-                    if (area.content.matches("\\d[个公众号]")) {
-                        atBottom = true;
-                        break;
-                    }
-
-                    if (mediaSet.contains(area.content)) continue;
-                    mediaSet.add(area.content);
-
-                    // 进入公众号Home页
-                    this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
-
-                    // 查看公众号的更多资料
-                    WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
-
-                    // 缓存订阅关系的数据  TODO media_id
-                    WechatAccountMediaSubscribe tmp = new WechatAccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.wechat_id, publicAccountInfo.name);
-                    accountMediaSubscribes.add(tmp);
-
-                    // TODO 媒体账号信息的完善
-
-                    // 返回到原来的页面
-                    this.adapter.goBackToPublicAccountListFromMoreInfo();
+                // 最后一页
+                if (area.content.matches("\\d[个公众号]")) {
+                    atBottom = true;
+                    break;
                 }
+
+                if (mediaSet.contains(area.content)) continue;
+                mediaSet.add(area.content);
+
+                // 进入公众号Home页
+                this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
+
+                // 查看公众号的更多资料
+                WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
+
+                // 缓存订阅关系的数据  TODO media_id
+                WechatAccountMediaSubscribe tmp = new WechatAccountMediaSubscribe(this.adapter.account.id, "", publicAccountInfo.wechat_id, publicAccountInfo.name);
+                accountMediaSubscribes.add(tmp);
+
+                // TODO 媒体账号信息的完善
+
+                // 返回到原来的页面
+                this.adapter.goBackToPublicAccountListFromMoreInfo();
             }
-
-            // 任务执行成功回调
-            runCallbacks(doneCallbacks);
-
-            // 无可用账号异常
-        } catch (AccountException.NoAvailableAccount noAvailableAccount) {
-            logger.error("Error no available account! cause[{}]", noAvailableAccount);
-
-            // Adapter状态异常
-        } catch (AdapterException.IllegalStateException e) {
-            logger.error("AndroidDevice state error! cause[{}]", e);
         }
+
+        // 任务执行成功回调
+        runCallbacks(doneCallbacks);
+
         return Boolean.TRUE;
     }
 

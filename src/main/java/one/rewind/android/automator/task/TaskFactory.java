@@ -45,7 +45,7 @@ public class TaskFactory {
         // A 检验holder参数
         try {
             // A1 检验task_class_name   指定任务类型
-            if (StringUtils.isBlank(holder.task_class_name)) return null;
+            if (StringUtils.isBlank(holder.class_name)) return null;
 
             // A2 检验设备是否存在
             if (!AndroidDeviceManager.getInstance().deviceTaskMap.containsKey(holder.udid)) return null;
@@ -59,8 +59,8 @@ public class TaskFactory {
                 }
             }
 
-            // B 反射创建Task的实例
-            Class<?> clazz = Class.forName(holder.task_class_name);
+            // B 反射生成Task的实例
+            Class<?> clazz = Class.forName(holder.class_name);
             Constructor<?> cons = clazz.getConstructor(TaskHolder.class, Array.class);
             task = (Task) cons.newInstance(holder, holder.params);
 

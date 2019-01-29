@@ -71,36 +71,6 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
-     *
-     */
-    public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
-
-        // A 启动Adapter 启动Adapter之后确认在APP首页
-        start();
-
-        Thread.sleep(5000);
-
-        // B1 验证是否在微信首页
-        if (atHome()) {
-            status = Status.Home;
-
-            // B11 验证当前微信用户 与 account 相对应
-            UserInfo userInfo = getLocalUserInfo();
-            // 微信昵称 与 微信号 有一个不对应
-            if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
-                loginOut();
-                login();
-            }
-        }
-        // B2 验证是否时登陆页面
-        // 此时假设设备上的微信都登陆过账号
-        // 如果是登陆页面，使用当前account进行登陆
-        else {
-            login();
-        }
-    }
-
-    /**
      * @return
      */
     public boolean atHome() {
@@ -110,19 +80,6 @@ public class WeChatAdapter extends Adapter {
         } catch (Exception e) {
             logger.warn("Can't find '微信' tab, ", e);
             return false;
-        }
-    }
-
-    /**
-     * @throws Exception
-     */
-    public void start() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
-        super.start();
-        // 验证到首页 或者 首页登陆界面 并更改状态
-        if (!atHome()) {
-            restart();
-        } else {
-            status = Status.Home;
         }
     }
 
@@ -162,6 +119,38 @@ public class WeChatAdapter extends Adapter {
         textAreaList = mergeForTitle(textAreaList, 60);
 
         return textAreaList;
+    }
+
+    /**
+     * 启动Adapter 启动Adapter之后确认在APP首页
+     *
+     * @throws Exception
+     */
+    public void start() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
+
+        super.start();
+
+        Thread.sleep(5000);
+
+        // A 验证是否时登陆页面
+        // 此时假设设备上的微信都登陆过账号
+        // 如果是登陆页面，使用当前account进行登陆
+        // 验证到首页 或者 首页登陆界面 并更改状态
+        if (!atHome()) {
+            login();
+        }
+        else {
+
+            status = Status.Home;
+
+            // B11 验证当前微信用户 与 account 相对应
+            UserInfo userInfo = getLocalUserInfo();
+            // 微信昵称 与 微信号 有一个不对应
+            if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
+                loginOut();
+                login();
+            }
+        }
     }
 
     /**
@@ -221,14 +210,11 @@ public class WeChatAdapter extends Adapter {
     /**
      * 重启微信
      */
-    public void restart() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+    public void restart() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
 
         super.restart();
 
-        // 无法正常进入主页
-        if (!atHome()) {
-            init();
-        }
+        start();
     }
 
     /**
@@ -657,7 +643,7 @@ public class WeChatAdapter extends Adapter {
     /**
      * 登录
      */
-    public void login() throws AdapterException.OperationException, AccountException.NoAvailableAccount {
+    public void login() throws AdapterException.OperationException, AccountException.Broken {
 
         try {
 
@@ -700,21 +686,9 @@ public class WeChatAdapter extends Adapter {
         else {
 
             account.status = Account.Status.Broken;
-            try {
-                account.update();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
 
-            Account new_account = Account.getAccount(device.udid, WeChatAdapter.class.getName());
-            if (new_account != null) {
-                account = new_account;
-                login();
-            }
-            // 没有合适的Account了
-            else {
-                throw new AccountException.NoAvailableAccount();
-            }
+            throw new AccountException.Broken(account);
+
         }
     }
 
@@ -1444,7 +1418,7 @@ public class WeChatAdapter extends Adapter {
      * 切换微信账号
      * TODO 之前账号的状态需要妥善处理
      */
-    public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.NoAvailableAccount {
+    public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken {
 
         this.account = account;
 

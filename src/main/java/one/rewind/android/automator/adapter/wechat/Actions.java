@@ -13,11 +13,6 @@ public class Actions {
 
 		adapter.restart();
 
-		// 无法正常进入主页
-		if (!adapter.atHome()) {
-			adapter.init();
-		}
-
 		return Boolean.TRUE;
 	};
 

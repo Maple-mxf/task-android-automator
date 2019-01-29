@@ -1,14 +1,17 @@
 package one.rewind.android.automator;
 
-import com.google.common.base.Strings;
-import com.j256.ormlite.dao.Dao;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.android.automator.exception.TaskException;
+import one.rewind.android.automator.log.SysLog;
 import one.rewind.android.automator.task.Task;
-import one.rewind.db.DaoManager;
 import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
+import one.rewind.util.NetworkUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,9 +25,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -58,43 +59,51 @@ public class AndroidDeviceManager {
     // 所有设备的任务
     public ConcurrentHashMap<AndroidDevice, BlockingQueue<Task>> deviceTaskMap = new ConcurrentHashMap<>();
 
+    public ThreadPoolExecutor executor;
 
     /**
      *
      */
     private AndroidDeviceManager() {
-
+        executor = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>());
+        executor.setThreadFactory(new ThreadFactoryBuilder()
+                .setNameFormat("AndroidDeviceManager-%d").build());
     }
 
     /**
      * 初始化设备
      */
     public void initialize() throws Exception {
+    }
 
-        Dao<AndroidDevice, String> deviceDao = DaoManager.getDao(AndroidDevice.class);
-
+    public void detectDevices() throws Exception {
 
         // A 先找设备
         String[] udids = getAvailableDeviceUdids();
 
+        List<AndroidDevice> devices = new ArrayList<>();
+
         for (String udid : udids) {
 
             // A1 创建 AndroidDevice 对象
-            AndroidDevice device = new AndroidDevice(udid);
-            logger.info("udid: " + device.udid);
+            if (deviceTaskMap.keySet().stream().map(d -> d.udid).collect(Collectors.toList()).contains(udid)) {
 
-            deviceTaskMap.put(device, new LinkedBlockingDeque<>());
-            logger.info("add device [{}] in device container", device.udid);
+                // 此时假设对应Device已经序列化
+                logger.info("Device {} already initialized.", udid);
 
+            } else {
 
-            // A2 同步数据库对应记录
-            List<String> ids = deviceDao.queryBuilder().where().eq("udid", udid).query().stream().map(v -> String.valueOf(v.id)).collect(Collectors.toList());
-            deviceDao.deleteIds(ids);
-            device.insert();
+                AndroidDevice device = AndroidDevice.getAndroidDeviceByUdid(udid);
+                logger.info("udid: " + device.udid);
+
+                // A2 同步数据库对应记录
+                device.update();
+                devices.add(device);
+            }
         }
 
         // B 加载默认的Adapters
-        for (AndroidDevice ad : deviceTaskMap.keySet()) {
+        for (AndroidDevice ad : devices) {
 
             for (String className : DefaultAdapterClassNameList) {
 
@@ -124,7 +133,10 @@ public class AndroidDeviceManager {
                     }
                     // 找不到账号，对应设备无法启动
                     else {
+
+                        SysLog.log("Device [" + ad.udid + "] Add Failed, No available account for " + className);
                         ad.status = AndroidDevice.Status.Failed;
+                        ad.update();
                     }
 
                 } else {
@@ -133,26 +145,18 @@ public class AndroidDeviceManager {
                 }
             }
 
-            ad.idleCallbacks.add((d) -> {
-                try {
-                    assign(d);
-                } catch (InterruptedException | AndroidException.IllegalStatusException e) {
-                    logger.error("Error assign task to Device[{}], ", d.udid, e);
-                    d.status = AndroidDevice.Status.Failed;
-                }
+            // 添加到容器中 并添加队列
+            deviceTaskMap.put(ad, new LinkedBlockingDeque<>());
+            logger.info("add device [{}] in device container", ad.udid);
+
+            // 设备INIT
+            ad.start();
+
+            // 添加 idle 回掉方法 获取执行任务
+            ad.initCallbacks.add((d) -> {
+                assign(d);
             });
         }
-
-        // C 设备INIT
-        deviceTaskMap.keySet().parallelStream()
-                .filter(d -> d.status != AndroidDevice.Status.Failed)
-                .forEach(d -> {
-                    try {
-                        d.start();
-                    } catch (AndroidException.IllegalStatusException e) {
-                        logger.error("Start Device[{}] failed, ", d.udid, e);
-                    }
-                });
     }
 
     /**
@@ -169,46 +173,64 @@ public class AndroidDeviceManager {
     }
 
     /**
+     *
+     *
+     *
      * @param task
      */
-    public void submit(Task task) throws AndroidException.NoAvailableDeviceException {
+    public SubmitInfo submit(Task task) throws AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
-        if (task.holder == null || task.holder.task_class_name == null) return;
+        if (task.holder == null || task.holder.class_name == null) throw new TaskException.IllegalParamException();
 
+        String adapterClassName = task.holder.adapter_class_name;
+        if (StringUtils.isNotBlank(adapterClassName)) throw new TaskException.IllegalParamException();
 
-        // 没有指定设备  没有指定账号
-        if (StringUtils.isNotBlank(task.holder.task_class_name) && task.holder.account_id == 0 && Strings.isNullOrEmpty(task.holder.udid)) {
+        AndroidDevice device = null;
 
-            AndroidDevice device = getDevice(task.holder.task_class_name);
+        // A 指定 account_id
+        if(task.holder.account_id != 0) {
+            device = deviceTaskMap.keySet().stream()
+                    .filter(d -> {
+                        Adapter adapter = d.adapters.get(adapterClassName);
+                        if(adapter == null) return false;
+                        if(adapter.account == null) return false;
+                        if(adapter.account.id == task.holder.account_id) return true;
+                        return false;
+                    })
+                    .collect(Collectors.toList())
+                    .get(0);
 
-            BlockingQueue<Task> blockingQueue = deviceTaskMap.get(device);
+            if(device == null) throw new AccountException.AccountNotLoad();
+        }
+        // B 指定udid
+        else if(task.holder.udid != null) {
+            device = deviceTaskMap.keySet().stream()
+                    .filter(d -> d.udid.equals(task.holder.udid))
+                    .collect(Collectors.toList())
+                    .get(0);
 
-            blockingQueue.add(task);
+            if(device != null && !device.adapters.containsKey(adapterClassName)) device = null;
 
-        } else if (StringUtils.isNotBlank(task.holder.udid) && StringUtils.isNotBlank(task.holder.task_class_name)) {
-
-            BlockingQueue<Task> blockingQueue = deviceTaskMap.get(task.holder.udid);
-
-            blockingQueue.add(task);
+            if(device == null) throw new AndroidException.NoAvailableDeviceException();
+        }
+        // C
+        else {
+            device = getDevice(adapterClassName);
         }
 
+        deviceTaskMap.get(device).offer(task);
 
-        // task.holder.account_id; // 指定账户
-
-        // 合法模式
-        // 1. adapter_name
-        // 2. udid adapter_name
-        // 3. adapter_name account_id
-
-        // 其他异常举例
-        // 订阅公众号任务 预分派的Device account_id处于限流状态
+        return new SubmitInfo(task, device);
     }
 
     /**
+     * 选择任务最少的Device 保证公平性
+     *
      * @param AdapterClassName
      * @return
      */
     public AndroidDevice getDevice(String AdapterClassName) throws AndroidException.NoAvailableDeviceException {
+
 
         List<AndroidDevice> devices = deviceTaskMap.keySet().stream()
                 .filter(d -> d.status == AndroidDevice.Status.Idle || d.status == AndroidDevice.Status.Busy && d.adapters.get(AdapterClassName) != null)
@@ -225,7 +247,6 @@ public class AndroidDeviceManager {
         throw new AndroidException.NoAvailableDeviceException();
     }
 
-
     /**
      *
      */
@@ -233,12 +254,11 @@ public class AndroidDeviceManager {
 
         public boolean success = true;
 
-        String localIp;
-        String domain;
-        String account;
+        String localIp = NetworkUtil.getLocalIp();
         String id;
-
-        Map<String, Object> agent;
+        String task_class_name;
+        int account_id;
+        AndroidDevice androidDevice;
 
         /**
          *
@@ -254,18 +274,15 @@ public class AndroidDeviceManager {
         }
 
         /**
-         * @param localIp
-         * @param domain
-         * @param account
-         * @param id
-         * @param agentInfo
+         *
+         * @param task
+         * @param androidDevice
          */
-        public SubmitInfo(String localIp, String domain, String account, String id, Map<String, Object> agentInfo) {
-            this.localIp = localIp;
-            this.domain = domain;
-            this.account = account;
-            this.id = id;
-            this.agent = agentInfo;
+        public SubmitInfo(Task task, AndroidDevice androidDevice) {
+            this.id = task.holder.id;
+            this.account_id = task.holder.account_id;
+            this.task_class_name = task.holder.class_name;
+            this.androidDevice = androidDevice;
         }
 
         @Override

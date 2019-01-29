@@ -13,9 +13,8 @@ public class AccountException extends Exception {
 	 */
 	public static class NoAvailableAccount extends Exception {}
 
-	/**
-	 * 账户失效异常
-	 */
+	public static class AccountNotLoad extends Exception {}
+
 	public static class Broken extends Exception {
 
 		public Account account;

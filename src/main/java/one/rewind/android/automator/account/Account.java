@@ -10,6 +10,8 @@ import one.rewind.db.model.ModelL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.List;
+
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
@@ -94,8 +96,8 @@ public class Account extends ModelL {
                             t - Default_Search_Public_Account_Frozen_Time)
                             .or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time",
                             t - Default_Get_Public_Account_Essay_List_Frozen_Time)
-            ).queryForFirst();
-*/
+            ).queryForFirst();*/
+
             account = dao.queryBuilder().where().
                     eq("udid", udid).and().
                     eq("adapter_class_name", adapter_class_name).
@@ -113,4 +115,48 @@ public class Account extends ModelL {
 
         return account;
     }
+
+    /**
+     *
+     * @param udid
+     * @param adapter_class_name
+     * @param statuses
+     * @return
+     */
+    public static synchronized Account getAccount(String udid, String adapter_class_name, List<Status> statuses) {
+
+        long t = System.currentTimeMillis();
+        Account account = null;
+
+        try {
+            Dao<Account, String> dao = DaoManager.getDao(Account.class);
+
+            /* account = dao.queryBuilder().where().and(
+                    dao.queryBuilder().where().eq("udid", udid),
+                    dao.queryBuilder().where().eq("adapter_class_name", adapter_class_name),
+                    dao.queryBuilder().where().eq("status", "Normal")
+                            .or().eq("status", "Search_Public_Account_Frozen").and().le("update_time",
+                            t - Default_Search_Public_Account_Frozen_Time)
+                            .or().eq("status", "Get_Public_Account_Essay_List_Frozen").and().le("update_time",
+                            t - Default_Get_Public_Account_Essay_List_Frozen_Time)
+            ).queryForFirst();*/
+
+            account = dao.queryBuilder().where().
+                    eq("udid", udid)
+                    .and().eq("adapter_class_name", adapter_class_name)
+                    .and().in("status", statuses).
+                    queryForFirst();
+
+            if (account != null) {
+                account.occupied = true;
+                account.update();
+            }
+
+        } catch (Exception e) {
+            logger.error("Error get account, ", e);
+        }
+
+        return account;
+    }
+
 }
