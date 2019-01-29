@@ -68,6 +68,9 @@ public class SubscribeMediaTask extends Task {
             // D 输入公众号进行搜索
             adapter.searchPublicAccount(media_nick);
 
+            // E 截图识别是否被限流了
+
+
             // E 点击订阅  订阅完成之后返回到上一个页面
             WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(media_nick, true);
 
@@ -104,9 +107,9 @@ public class SubscribeMediaTask extends Task {
             } catch (Exception ex) {
                 logger.error("Error handling DB, ", ex);
             }
-
-
         }
+
+        // 搜索公众号接口限流
         catch (SearchPublicAccountFrozenException e) {
 
         }
@@ -143,10 +146,6 @@ public class SubscribeMediaTask extends Task {
 
             logger.error("Error account not equals, ", notEqual);
 
-        }
-        // 账号处于不可用状态
-        catch (AccountException.Broken broken) {
-            logger.error("Error account broken, ", broken);
         }
         return Boolean.TRUE;
     }
