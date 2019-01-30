@@ -2,7 +2,7 @@ package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,7 +34,7 @@ public class Tab {
 
 	static {
 		try {
-			subscribeDao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
+			subscribeDao = Daos.get(WechatAccountMediaSubscribe.class);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

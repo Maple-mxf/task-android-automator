@@ -9,6 +9,7 @@ import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.TaskException;
 import one.rewind.android.automator.log.SysLog;
 import one.rewind.android.automator.task.Task;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
 import one.rewind.util.NetworkUtil;
@@ -17,7 +18,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -156,18 +156,14 @@ public class AndroidDeviceManager {
             executor.submit(()->{
                 try {
                     ad.start();
-                } catch (AndroidException.IllegalStatusException e) {
+                } catch (AndroidException.IllegalStatusException | SQLException | DBInitException e) {
                     logger.error("Unable to start Device:[{}]", ad.udid, e);
                 }
-            });
+			});
 
             // 添加 idle 回掉方法 获取执行任务
             ad.initCallbacks.add((d) -> {
-                try {
-                    assign(d);
-                } catch (Exception e) {
-                    logger.error("Unable to assign Device:[{}]", ad.udid, e);
-                }
+				assign(d);
             });
         }
     }
@@ -179,7 +175,7 @@ public class AndroidDeviceManager {
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
      */
-    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, IOException {
+    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException {
 
         Task task = deviceTaskMap.get(ad.udid).take();
         ad.submit(task);

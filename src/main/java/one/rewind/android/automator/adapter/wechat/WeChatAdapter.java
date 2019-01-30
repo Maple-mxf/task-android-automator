@@ -17,10 +17,12 @@ import one.rewind.android.automator.adapter.wechat.model.WechatMsg;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.txt.NumberFormatUtil;
 import org.openqa.selenium.*;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -601,67 +603,54 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws InterruptedException
      */
-    public void loginOut() throws AdapterException.OperationException {
+    public void loginOut() throws AdapterException.OperationException, InterruptedException {
 
-        try {
-            // A 点击我
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
-            Thread.sleep(500);
+		// A 点击我
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
+		Thread.sleep(500);
 
-            // B 点击设置
-            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
-            Thread.sleep(500);
+		// B 点击设置
+		device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
+		Thread.sleep(500);
 
-            // C 向下滑
-            device.slideToPoint(500, 1800, 600, 1000, 500);
+		// C 向下滑
+		device.slideToPoint(500, 1800, 600, 1000, 500);
 
-            // D 点击退出
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出')]")).click();
-            Thread.sleep(1000);
+		// D 点击退出
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出')]")).click();
+		Thread.sleep(1000);
 
-            // D 点击退出
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出登录')]")).click();
-            Thread.sleep(5000);
-            // 不能正常执行上述操作
-        } catch (Exception e) {
-            logger.error("Failure to perform required operations, ", e);
-            throw new AdapterException.OperationException(this);
-        }
+		// D 点击退出
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出登录')]")).click();
+		Thread.sleep(5000);
+		// 不能正常执行上述操作
     }
 
     /**
      * 登录
      */
-    public void login() throws AdapterException.OperationException, AccountException.Broken {
+    public void login() throws AdapterException.OperationException, AccountException.Broken, InterruptedException {
 
-        try {
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多')]")).click();
+		Thread.sleep(2000);
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多')]")).click();
-            Thread.sleep(2000);
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录其他帐号')]")).click();
+		Thread.sleep(2000);
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录其他帐号')]")).click();
-            Thread.sleep(2000);
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
+		Thread.sleep(2000);
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
-            Thread.sleep(2000);
+		// A 输入账号密码  appAccount
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).sendKeys(account.src_id);
+		Thread.sleep(1000);
 
-            // A 输入账号密码  appAccount
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).sendKeys(account.src_id);
-            Thread.sleep(1000);
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'请填写密码')]")).sendKeys(account.password);
+		Thread.sleep(1000);
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'请填写密码')]")).sendKeys(account.password);
-            Thread.sleep(1000);
+		// B 点击登录
+		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录')]")).click();
+		Thread.sleep(5000);
 
-            // B 点击登录
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录')]")).click();
-            Thread.sleep(5000);
-
-        }
-        // 不能正常执行上述操作
-        catch (Exception e) {
-            logger.error("Failure to perform required operations, ", e);
-            throw new AdapterException.OperationException(this);
-        }
 
         // C 验证是否存在拖拽操作等安全验证操作  TODO
 
@@ -1406,7 +1395,7 @@ public class WeChatAdapter extends Adapter {
      * 切换微信账号
      * TODO 之前账号的状态需要妥善处理
      */
-    public void switchAccount(Account account) throws AccountException.Broken, AdapterException.OperationException {
+    public void switchAccount(Account account) throws InterruptedException, AccountException.Broken, AdapterException.OperationException {
 
         this.account = account;
 
@@ -1416,6 +1405,24 @@ public class WeChatAdapter extends Adapter {
         // B 登录账号  TODO 登录账号需要改变当前类的Account
         login();
     }
+
+	public void switchAccount() throws InterruptedException, AccountException.NoAvailableAccount, AdapterException.OperationException, DBInitException, SQLException {
+
+		Account account = Account.getAccount(device.udid, WeChatAdapter.class.getName());
+
+		if(account != null) {
+			try {
+				switchAccount(account);
+			} catch (AccountException.Broken broken) {
+				account.status = Account.Status.Broken;
+				account.update();
+				switchAccount();
+			}
+		}
+		else {
+			throw new AccountException.NoAvailableAccount();
+		}
+	}
 
     /**
      * 判断首页是否存在更新提示    Adapter的Home状态回调函数

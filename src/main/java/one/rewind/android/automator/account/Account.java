@@ -4,8 +4,8 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.db.DBName;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
+import one.rewind.db.annotation.DBName;
 import one.rewind.db.model.ModelL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,7 +95,7 @@ public class Account extends ModelL {
         Account account = null;
 
         try {
-            Dao<Account, String> dao = DaoManager.getDao(Account.class);
+            Dao<Account, String> dao = Daos.get(Account.class);
 
            /* account = dao.queryBuilder().where().and(
                     dao.queryBuilder().where().eq("udid", udid),
@@ -137,7 +137,7 @@ public class Account extends ModelL {
         Account account = null;
 
         try {
-            Dao<Account, String> dao = DaoManager.getDao(Account.class);
+            Dao<Account, String> dao = Daos.get(Account.class);
 
             /* account = dao.queryBuilder().where().and(
                     dao.queryBuilder().where().eq("udid", udid),
@@ -179,7 +179,7 @@ public class Account extends ModelL {
 
                     long t = System.currentTimeMillis();
 
-                    Dao<Account, String> accountDao = DaoManager.getDao(Account.class);
+                    Dao<Account, String> accountDao = Daos.get(Account.class);
 
                     List<Account> accounts = accountDao.queryBuilder().where()
                             .eq("status", Status.Get_Public_Account_Essay_List_Frozen)

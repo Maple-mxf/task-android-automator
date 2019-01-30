@@ -6,11 +6,13 @@ import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,7 +68,9 @@ public abstract class Adapter {
         device.startApp(appInfo);
     }
 
-    public abstract void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken;
+    public abstract void switchAccount(Account account) throws InterruptedException, AdapterException.OperationException, AccountException.Broken;
+
+	public abstract void switchAccount() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount, DBInitException, SQLException;
 
     /**
      *

@@ -15,7 +15,7 @@ import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Source;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
 import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
@@ -121,7 +121,7 @@ public class GetMediaEssaysTask extends Task {
             // B4 基于media_nick 查询Media
             try {
 
-                Media media = DaoManager.getDao(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
+                Media media = Daos.get(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
 
                 // 如果对应的media不存在
                 if (media == null) {
@@ -133,7 +133,7 @@ public class GetMediaEssaysTask extends Task {
                 // 加载media已经采集过的文章数据
                 else {
 
-                    DaoManager.getDao(Essay.class).queryBuilder()
+					Daos.get(Essay.class).queryBuilder()
                             .where().eq("media_id", media.id)
                             .query()
                             .stream().forEach(essay -> {

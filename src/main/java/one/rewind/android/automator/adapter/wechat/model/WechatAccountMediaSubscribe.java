@@ -4,8 +4,8 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.db.DBName;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
+import one.rewind.db.annotation.DBName;
 import one.rewind.db.model.ModelL;
 
 import java.util.List;
@@ -54,7 +54,7 @@ public class WechatAccountMediaSubscribe extends ModelL {
      * @throws Exception
      */
     public static List<String> getSubscribeMediaIds(int account_id) throws Exception {
-        Dao<WechatAccountMediaSubscribe, String> dao = DaoManager.getDao(WechatAccountMediaSubscribe.class);
+        Dao<WechatAccountMediaSubscribe, String> dao = Daos.get(WechatAccountMediaSubscribe.class);
         return dao.queryBuilder().where().eq("account_id", account_id).query().stream().map(ams -> ams.media_id).collect(Collectors.toList());
     }
 }

@@ -11,7 +11,7 @@ import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Platform;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
 import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
@@ -71,7 +71,7 @@ public class SubscribeMediaTask extends Task {
 
             try {
 
-                Media media = DaoManager.getDao(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
+                Media media = Daos.get(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
 
                 // 如果对应的media不存在
                 if (media == null) {

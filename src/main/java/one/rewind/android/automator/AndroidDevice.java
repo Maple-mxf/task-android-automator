@@ -6,6 +6,7 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import com.sun.xml.internal.bind.v2.TODO;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.remote.AutomationName;
@@ -22,6 +23,7 @@ import net.lightbody.bmp.filters.ResponseFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.callback.AndroidDeviceCallBack;
 import one.rewind.android.automator.callback.TaskCallback;
@@ -31,16 +33,19 @@ import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
-import one.rewind.db.DBName;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
+import one.rewind.db.annotation.DBName;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.ModelL;
+import one.rewind.io.requester.chrome.ChromeAgent;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.*;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.ErrorHandler;
+import org.openqa.selenium.remote.UnreachableBrowserException;
 import se.vidstige.jadb.JadbConnection;
 import se.vidstige.jadb.JadbDevice;
 import se.vidstige.jadb.JadbException;
@@ -50,9 +55,13 @@ import se.vidstige.jadb.managers.PackageManager;
 import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.*;
+import java.util.NoSuchElementException;
 import java.util.concurrent.*;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Android 设备管理
@@ -182,7 +191,7 @@ public class AndroidDevice extends ModelL {
         this.local_ip = NetworkUtil.getLocalIp();
         logger.info("Local IP: {}", local_ip);
 
-        name = "AD[" + udid + "]";
+        name = "AD-" + udid + "";
 
         // 初始化单线程执行器
         executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
@@ -199,9 +208,9 @@ public class AndroidDevice extends ModelL {
      * @return
      * @throws Exception
      */
-    public static AndroidDevice getAndroidDeviceByUdid(String udid) throws Exception {
+    public static AndroidDevice getAndroidDeviceByUdid(String udid) throws DBInitException, SQLException {
 
-        Dao<AndroidDevice, String> dao = DaoManager.getDao(AndroidDevice.class);
+        Dao<AndroidDevice, String> dao = Daos.get(AndroidDevice.class);
         AndroidDevice ad = dao.queryBuilder().where().eq("udid", udid).queryForFirst();
 
         if (ad == null) ad = new AndroidDevice(udid);
@@ -226,35 +235,47 @@ public class AndroidDevice extends ModelL {
 
         this.initCallbacks.add((d) -> {
 
-            try {
-                adapter.start();
-            } catch (InterruptedException e) {
+			try {
+				d.startAdapter(adapter);
+			} catch (AdapterException.OperationException e) {
+				logger.error("Adapter operation exception, ", e);
+				this.adapters.remove(adapter.getClass().getName());
+			} catch (AccountException.NoAvailableAccount noAvailableAccount) {
+				logger.error("Device:[{}] Adapter:[{}] no available account, ", name, adapter.getClass().getSimpleName(), noAvailableAccount);
+				this.adapters.remove(adapter.getClass().getName());
+			}
 
-                logger.error("Interrupted, ", e);
-                this.adapters.remove(adapter.getClass().getName());
-            }
-            // 对应的Adapter操作定义的有问题，已经与app对应不上
-            catch (AdapterException.OperationException e) {
-
-                logger.error("Adapter operation exception, ", e);
-
-                this.adapters.remove(adapter.getClass().getName());
-            }
-            // 没有可用账号了
-            catch (AccountException.Broken e) {
-
-                logger.error("{} Account[{}] broken, ", adapter.getClass().getSimpleName(), e.account.id, e);
-
-                this.adapters.remove(adapter.getClass().getName());
-            }
-        });
+		});
 
         return this;
     }
 
-    /**
-     *
-     */
+	/**
+	 *
+	 * @param adapter
+	 * @return
+	 */
+	public AndroidDevice startAdapter(Adapter adapter) throws DBInitException, SQLException, InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+
+		try {
+			adapter.start();
+		}
+		catch (AccountException.Broken broken) {
+
+			logger.error("{} Account[{}] broken, ", adapter.getClass().getSimpleName(), broken.account.id, broken);
+			broken.account.status = Account.Status.Broken;
+			broken.account.update();
+
+			adapter.switchAccount();
+		}
+
+    	return this;
+	}
+
+
+	/**
+	 *
+	 */
     public class Init implements Callable<Boolean> {
 
         public Boolean call() throws Exception {
@@ -312,13 +333,32 @@ public class AndroidDevice extends ModelL {
         }
     }
 
+	/**
+	 *
+	 */
+	public class Clear implements Callable<Boolean> {
+
+		public Boolean call() throws IOException {
+
+			logger.info("Before clean Device:[{}] ...", name);
+
+			killAllBackgroundProcess();
+			clearCacheLog();
+			clearAllLog();
+
+			logger.info("Device:[{}] cleaned.", name);
+
+			return true;
+		}
+	}
+
     /**
      * 同步方法
      *
      * @return
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized AndroidDevice start() throws AndroidException.IllegalStatusException {
+    public synchronized AndroidDevice start() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
 
         if (!(status == Status.New || status == Status.Terminated)) {
             throw new AndroidException.IllegalStatusException();
@@ -350,13 +390,15 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] INIT interrupted. ", name, e);
             stop();
 
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] INIT failed. ", name, e.getCause());
             stop();
 
-        } catch (TimeoutException e) {
+        }
+        catch (TimeoutException e) {
 
             initFuture.cancel(true);
 
@@ -372,7 +414,7 @@ public class AndroidDevice extends ModelL {
      * @return
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized AndroidDevice stop() throws AndroidException.IllegalStatusException {
+    public synchronized AndroidDevice stop() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
         return stop(true);
     }
 
@@ -380,7 +422,7 @@ public class AndroidDevice extends ModelL {
      * @return
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized AndroidDevice stop(boolean runCallbacks) throws AndroidException.IllegalStatusException {
+    public synchronized AndroidDevice stop(boolean runCallbacks) throws AndroidException.IllegalStatusException, DBInitException, SQLException {
 
         if (!(status == Status.Init || status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
             // TODO New
@@ -417,27 +459,62 @@ public class AndroidDevice extends ModelL {
             closeFuture.cancel(true);
             status = Status.Failed;
             logger.error("[{}] Stop failed. ", name, e);
+
         } finally {
-            try {
-                this.update();
-            } catch (Exception e) {
-                logger.error("Can't update device, ", e);
-            }
+			this.update();
         }
 
         return this;
     }
+
+	/**
+	 *
+	 * @throws AndroidException.IllegalStatusException
+	 * @throws DBInitException
+	 * @throws SQLException
+	 */
+	public void clear() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
+
+    	Future<Boolean> feature = executor.submit(new Clear());
+
+		try {
+
+			feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+			logger.info("Device:[{}] clear done.", name);
+
+		}
+		catch (InterruptedException e) {
+
+			status = Status.Failed;
+			logger.error("[{}] clear interrupted. ", name, e);
+
+		}
+		catch (ExecutionException e) {
+
+			status = Status.Failed;
+			logger.error("[{}] clear failed. ", name, e.getCause());
+
+		}
+		catch (TimeoutException e) {
+
+			feature.cancel(true);
+			status = Status.Failed;
+			logger.error("[{}] clear failed. ", name, e);
+
+		}
+		finally {
+			this.update();
+		}
+	}
 
     /**
      * 重启
      * TODO 是否可以通过添加Terminated回调来实现？
      * 场景: 设备运行时间过程, 没有响应
      */
-    public void restart() throws IOException, InterruptedException, AndroidException.IllegalStatusException {
+    public void restart() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
         stop();
         clear();
-        clearCacheLog();
-        clearAllLog();
         start();
     }
 
@@ -445,7 +522,7 @@ public class AndroidDevice extends ModelL {
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, IOException, InterruptedException {
+    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, InterruptedException, DBInitException, SQLException {
 
         if (!(status == Status.Idle || status == Status.Busy)) {
             throw new AndroidException.IllegalStatusException();
@@ -506,12 +583,67 @@ public class AndroidDevice extends ModelL {
             status = Status.Failed;
 
             try {
+
+				/* TODO 可能需要处理的异常列表，需要讨论处理级别
+				ElementClickInterceptedException
+				ElementNotInteractableException
+				ElementNotSelectableException
+				ElementNotVisibleException
+				InvalidElementStateException
+				InvalidSelectorException
+				NoSuchElementException
+				NoSuchSessionException
+				NoSuchWindowException
+				NotFoundException
+				SessionNotCreatedException
+				StaleElementReferenceException
+				UnsupportedCommandException
+				WebDriverException
+				 */
+
                 throw e.getCause();
             }
-            // 异常精细处理
-            catch (Throwable ex) {
+			// 代理问题
+			catch (SocketException ex) {
+				logger.error("{}, Proxy may error, ", name, ex);
+			}
+			// 脚本异常
+			// 异常参考 http://www.softwaretestingstudio.com/common-exceptions-selenium-webdriver/
+			catch (ElementNotVisibleException |
+					NoAlertPresentException |
+					ElementNotSelectableException |
+					NoSuchFrameException |
+					org.openqa.selenium.NoSuchElementException ex) {
+				logger.error("{}, Task script error, ", name, ex);
+			}
+			// WebDriver 命令超时问题 网络连接问题
+			catch (org.openqa.selenium.TimeoutException ex) {
+				logger.error("{}, WebDriver command timeout, ", name, ex);
+			}
+			catch (NoSuchWindowException ex) {
+				logger.error("{}, Window unreachable, ", name, ex);
+			}
+			// chromedriver连接问题 --> 关闭
+			catch (UnreachableBrowserException ex) {
+				logger.error("{}, Browser unreachable, ", name, ex);
+			}
+			//
+			catch (SessionNotCreatedException ex) {
 
-                ex.printStackTrace();
+			}
+			// 非正常 WebDriver.quit() 调用
+			catch (NoSuchSessionException ex) {
+				logger.error("{}, Session broken, ", name, ex);
+			}
+			// 服务端问题 --> 关闭
+			catch (ErrorHandler.UnknownServerException ex) {
+				logger.error("{}, Server failed, ", name, ex);
+			}
+			// 无法正常调用WebDriver --> 关闭
+			catch (WebDriverException ex) {
+				logger.error("{}, WebDriver exception, ", name, ex);
+			}
+            catch (Throwable ex) {
 
                 // 无可用账号异常
                 if (ex instanceof AccountException.NoAvailableAccount) {
@@ -546,6 +678,7 @@ public class AndroidDevice extends ModelL {
                 }
 
                 // Adapter操作无响应异常
+				// 第一次 adapter重启 + clear 第二次 重启手机 第三次 设置不可用
                 if (ex instanceof AdapterException.NoResponseException) {
 
                     // 手机处于崩溃状态
@@ -553,7 +686,6 @@ public class AndroidDevice extends ModelL {
 
                     // 重启手机
                     reboot(this.udid);
-
                     this.status = Status.New;
                 }
             }
@@ -948,7 +1080,6 @@ public class AndroidDevice extends ModelL {
         ShellUtil.exeCmd("adb shell input text " + PIN_PASSWORD);
     }
 
-
     /**
      * 唤醒设备
      *
@@ -956,7 +1087,7 @@ public class AndroidDevice extends ModelL {
      * @throws IOException
      * @throws InterruptedException
      */
-    public void notifyDevice(AndroidDriver driver) throws IOException, InterruptedException {
+    public void awake(AndroidDriver driver) throws IOException, InterruptedException {
         Runtime runtime = Runtime.getRuntime();
 
         clickPower();
@@ -1032,14 +1163,10 @@ public class AndroidDevice extends ModelL {
     /**
      * 清空缓存日志
      */
-    public void clearCacheLog() {
-        try {
-            String command = "adb -s " + this.udid + " logcat -c -b events";
-            Runtime.getRuntime().exec(command);
-            logger.info("清空设备 {} 的缓存日志");
-        } catch (Exception ignore) {
-            logger.error(ignore);
-        }
+    public void clearCacheLog() throws IOException {
+		String command = "adb -s " + this.udid + " logcat -c -b events";
+		Runtime.getRuntime().exec(command);
+		logger.info("Clear Device:[{}] cache log events", name);
     }
 
     /**
@@ -1060,7 +1187,7 @@ public class AndroidDevice extends ModelL {
      * 返回桌面 am start -a android.intent.action.MAIN -c android.intent.category.HOME
      * 清理app进程 am kill <package_name>
      */
-    public void clear() throws IOException, InterruptedException {
+    public void killAllBackgroundProcess() throws IOException {
 
     }
 

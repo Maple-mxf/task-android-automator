@@ -59,7 +59,7 @@ dependencies {
 
     compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
 
-    compile 'one.rewind:raw-data:1.0.49-SNAPSHOT'
+    compile 'one.rewind:raw-data:1.0.50-SNAPSHOT'
 
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.12.0'
 

@@ -3,6 +3,9 @@ package one.rewind.android.automator.callback;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.db.exception.DBInitException;
+
+import java.sql.SQLException;
 
 /**
  * @author scisaga@gmail.com
@@ -10,6 +13,6 @@ import one.rewind.android.automator.exception.AndroidException;
  */
 public interface AndroidDeviceCallBack {
 
-	void call(AndroidDevice ad) throws AndroidException.IllegalStatusException, InterruptedException, AccountException.Broken;
+	void call(AndroidDevice ad) throws AndroidException.IllegalStatusException, InterruptedException, AccountException.Broken, SQLException, DBInitException;
 
 }

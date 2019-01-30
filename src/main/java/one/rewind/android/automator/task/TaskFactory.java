@@ -3,7 +3,7 @@ package one.rewind.android.automator.task;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,7 +52,7 @@ public class TaskFactory {
 
             // A3 检验账号是否存在
             if (holder.account_id != 0) {
-                Dao<Account, String> accountDao = DaoManager.getDao(Account.class);
+                Dao<Account, String> accountDao = Daos.get(Account.class);
                 // 指定的账号不存在
                 if (accountDao.queryBuilder().where().eq("id", holder.account_id).queryForFirst() == null) {
                     return null;

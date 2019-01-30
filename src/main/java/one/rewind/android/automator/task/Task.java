@@ -139,6 +139,7 @@ public abstract class Task implements Callable<Boolean> {
                             logger.error("Account[{}] update failure, ", account.id, e1);
                         }
                     }
+
                 } else {
                     // 找不到可用账号
                     throw new AccountException.NoAvailableAccount();
