@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
+import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.OCRParser;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
@@ -8,6 +9,7 @@ import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
+import one.rewind.data.raw.model.Media;
 import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
@@ -36,34 +38,28 @@ public class GetSelfSubscribeMediaTask extends Task {
      * @param params
      */
     public GetSelfSubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
+
         super(holder, params);
-
-        // 任务完成回调
-        addDoneCallback((t) -> {
-
-            // 更新数据库
-            try {
-                accountMediaSubscribes.forEach(v -> {
-                    try {
-                        v.insert();
-                    } catch (Exception e) {
-                        logger.error("Error insert accountMediaSubscribe failure, cause [{}]", e);
-                    }
-                });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
     }
 
     @Override
-    public Boolean call() throws InterruptedException {
+    public Boolean call() throws
+            InterruptedException, // 任务中断
+            IOException, //
+            AccountException.NoAvailableAccount, // 没有可用账号
+            AccountException.Broken, // 账号不可用
+            AdapterException.OperationException, // Adapter 逻辑出错
+            AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
+            AdapterException.NoResponseException // App 没有响应
+    {
+
+
+        boolean retry = false;
 
         try {
 
             // 0 启动APP
-            adapter.start();
+            adapter.restart();
 
             // A 进入已订阅公众号的列表页面params
             adapter.goToSubscribePublicAccountList();
@@ -72,74 +68,83 @@ public class GetSelfSubscribeMediaTask extends Task {
             boolean atBottom = false;
 
             while (!atBottom) {
-                // B 向下滑动一页
-                this.adapter.device.slideToPoint(1000, 500, 1000, 2000, 1000);
 
-                // C 获取当前页截图
-                List<OCRParser.TouchableTextArea> accountList = this.adapter.getPublicAccountList();
 
-                // D 添加到公众号集合中
+                // B 获取当前页截图
+                List<OCRParser.TouchableTextArea> accountList = OCRClient.getInstance().getTextBlockArea(adapter.device.screenshot());
+
+                // C 获取公众号信息
                 for (OCRParser.TouchableTextArea area : accountList) {
 
-                    // 最后一页
+                    // C1 最后一页判别
                     if (area.content.matches("\\d[个公众号]")) {
                         atBottom = true;
                         break;
                     }
 
-                    if (mediaSet.contains(area.content)) continue;
-                    mediaSet.add(area.content);
+                    // C2 获取订阅的公众号名称
+                    String media_nick = area.content;
 
-                    // 进入公众号Home页
-                    this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
+                    // C3 去重判别
+                    if (mediaSet.contains(media_nick)) continue;
+                    mediaSet.add(media_nick);
 
-                    // 查看公众号的更多资料
-                    WeChatAdapter.PublicAccountInfo publicAccountInfo = this.adapter.getPublicAccountInfo(area.content, false);
+                    Media media = null;
 
-                    // 缓存订阅关系的数据
-                    String nick = publicAccountInfo.nick;
-                    WechatAccountMediaSubscribe tmp = new WechatAccountMediaSubscribe(this.adapter.account.id, SubscribeMediaTask.genId(nick), publicAccountInfo.name, nick);
-                    accountMediaSubscribes.add(tmp);
+                    try {
+                        // C4 查找对应的Media
+                        media = (Media) Media.getById(Media.class, SubscribeMediaTask.genId(media_nick));
 
-                    // 返回到原来的页面
-                    this.adapter.goBackToPublicAccountListFromMoreInfo();
+                    } catch (Exception e) {
+                        logger.error("Error get media, ", e);
+                    }
+                        //
+                    if (media == null) {
+
+                        // D1 进入公众号Home页
+                        this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
+
+                        // D2 查看公众号的更多资料
+                        WeChatAdapter.PublicAccountInfo pai = this.adapter.getPublicAccountInfo(area.content, false);
+
+                        media = GetMediaEssaysTask.parseMedia(pai);
+
+                        try {
+                            media.insert();
+                        } catch (Exception e) {
+                            logger.error("Error get media, ", e);
+                        }
+
+                        // D3 返回到原来的页面
+                        adapter.device.goBack();
+                        adapter.device.goBack();
+
+                        adapter.status = WeChatAdapter.Status.Subscribe_PublicAccount_List;
+
+                    }
+
+                    // 记录Account订阅的Media信息
+                    WechatAccountMediaSubscribe wams = new WechatAccountMediaSubscribe(this.adapter.account.id, media.id, media.name, media.nick);
+
+                    try {
+                        wams.insert();
+                    } catch (Exception e) {
+                        logger.error("Error get media, ", e);
+                    }
                 }
+
+                // E 向下滑动一页
+                this.adapter.device.slideToPoint(1000, 500, 1000, 2000, 1000);
             }
-
-
-        }
-        // 操作异常
-        catch (AdapterException.OperationException e) {
-
-            logger.error("Error update account status failure, ", e);
-
-        }
-        // Adapter状态异常
-        catch (AdapterException.IllegalStateException e) {
-
-            logger.error("Error update account status failure, ", e);
-
-        }
-        // 账号状态异常
-        catch (AccountException.Broken broken) {
-
-            logger.error("Error account is broken, ", broken);
-
         }
         // 当前登录的账号和指定的账号  这个异常
         catch (MediaException.NotEqual ignore) {
 
-            logger.error(ignore);
+            logger.error("Error media not equals, ", ignore);
 
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
-
-        // 任务执行成功回调
-        runCallbacks(doneCallbacks);
-
-        return Boolean.TRUE;
+        return retry;
     }
 
     /**

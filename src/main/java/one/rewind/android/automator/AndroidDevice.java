@@ -24,6 +24,7 @@ import net.lightbody.bmp.mitm.PemFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.callback.AndroidDeviceCallBack;
+import one.rewind.android.automator.callback.TaskCallback;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
@@ -35,7 +36,6 @@ import one.rewind.db.DaoManager;
 import one.rewind.db.model.ModelL;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.OutputType;
@@ -64,20 +64,20 @@ import java.util.concurrent.*;
  * 第三部 通过AppiumDriverLocalService本地服务地址, 初始化AndroidDevice, 实现对设备的自动化操作
  * AndroidDriver --> AppiumDriverLocalService(HTTP) --> (ADB/HTTP Wired JSON) --> AppiumServer
  */
-@DBName("android_automator")
+@DBName("raw")
 @DatabaseTable(tableName = "androidDevices")
 public class AndroidDevice extends ModelL {
 
     private static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
+
+    // 设备的pin密码
+    public static final String PIN_PASSWORD = "1234";
 
     // 启动超时时间
     private static int INIT_TIMEOUT = 200000;
 
     // 关闭超时时间
     private static int CLOSE_TIMEOUT = 200000;
-
-    // 截图保存的路径
-    public static final String SCREEN_PATH = System.getProperty("user.dir") + "/screen/";
 
     public enum Status {
         New,  // 新创建
@@ -231,6 +231,7 @@ public class AndroidDevice extends ModelL {
             } catch (InterruptedException e) {
 
                 logger.error("Interrupted, ", e);
+                this.adapters.remove(adapter.getClass().getName());
             }
             // 对应的Adapter操作定义的有问题，已经与app对应不上
             catch (AdapterException.OperationException e) {
@@ -444,7 +445,7 @@ public class AndroidDevice extends ModelL {
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException {
+    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, IOException, InterruptedException {
 
         if (!(status == Status.Idle || status == Status.Busy)) {
             throw new AndroidException.IllegalStatusException();
@@ -452,43 +453,130 @@ public class AndroidDevice extends ModelL {
 
         this.status = Status.Busy;
 
-        task.adapter = adapters.get(task.holder.adapter_class_name);
+        task.adapter = adapters.get(task.h.adapter_class_name);
 
-        taskFuture = executor.submit(task);
+        boolean retry = false;
 
         try {
+            //  任务提交线程池
+            taskFuture = executor.submit(task);
 
-            taskFuture.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+            // 如果任务不需要重试  则直接退出循环
+            retry = taskFuture.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+
+            // 执行成功回调
+            for (TaskCallback callback : task.successCallbacks) {
+                callback.call(task);
+            }
+
             status = Status.Idle;
-            logger.info("[{}] Stop done.", name);
 
             runCallbacks(idleCallbacks);
         }
-        //
+        // 线程中断异常 TODO 捕获不到 原因未知
         catch (InterruptedException e) {
 
             status = Status.Failed;
             logger.error("[{}] Stop interrupted. ", name, e);
 
         }
-        // TODO 对执行时异常的精细处理
+        catch (CancellationException e) {
+
+            logger.error("[{}] Stop interrupted. ", name, e);
+
+            try {
+                task.adapter.start();
+            } catch (InterruptedException ex) {
+
+                logger.error("Interrupted, ", ex);
+                this.adapters.remove(task.adapter.getClass().getName());
+            }
+            // 对应的Adapter操作定义的有问题，已经与app对应不上
+            catch (AdapterException.OperationException ex) {
+
+                logger.error("Adapter operation exception, ", ex);
+
+                this.adapters.remove(task.adapter.getClass().getName());
+            }
+            // 没有可用账号了
+            catch (AccountException.Broken ex) {
+
+                logger.error("{} Account[{}] broken, ", task.adapter.getClass().getSimpleName(), ex.account.id, ex);
+
+                this.adapters.remove(task.adapter.getClass().getName());
+            }
+
+            status = Status.Idle;
+        }
+        // 基本不会捕获，如果捕获该异常
+        catch (TimeoutException e) {
+
+            taskFuture.cancel(true);
+
+            this.adapters.remove(task.adapter.getClass().getName());
+
+            status = Status.Failed;
+            logger.error("[{}] Stop failed. ", name, e);
+        }
+        //
         catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] Stop failed. ", name, e.getCause());
             try {
                 throw e.getCause();
-            } catch (Throwable ex) {
 
             }
+            // 异常精细处理
+            catch (Throwable ex) {
 
-        }
-        //
-        catch (TimeoutException e) {
+                ex.printStackTrace();
 
-            taskFuture.cancel(true);
-            status = Status.Failed;
-            logger.error("[{}] Stop failed. ", name, e);
+                // 无可用账号异常
+                if (ex instanceof AccountException.NoAvailableAccount) {
+
+                    // 任务执行失败
+                    logger.error("Error execute task failure NoAvailableAccount, ", ex);
+                }
+
+                // 所有账号被限流
+                if (ex instanceof AccountException.Broken) {
+
+                    // 任务执行失败
+                    logger.error("Error execute task failure Account Broken, ", ex);
+                }
+
+                // 操作异常
+                if (ex instanceof AdapterException.OperationException) {
+
+                    logger.error("Error OperationException, ", ex);
+
+                    // 重置Adapter状态
+                    restart();
+                }
+
+                // Adapter状态异常
+                if (ex instanceof AdapterException.IllegalStateException) {
+
+                    logger.error("Error IllegalStateException, ", ex);
+
+                    // 重置Adapter状态
+                    restart();
+                }
+
+                // Adapter操作无响应异常
+                if (ex instanceof AdapterException.NoResponseException) {
+
+                    // 手机处于崩溃状态
+                    logger.error("Error Adapter operate not response, ", ex);
+
+                    // 重启手机
+                    reboot(this.udid);
+
+                    this.status = Status.New;
+                }
+            }
+
         }
 
         taskFuture = null;
@@ -865,12 +953,18 @@ public class AndroidDevice extends ModelL {
 
         Thread.sleep(120000);
 
-        enterADBShell(udid);
+        // enterADBShell(udid);
 
-        // TODO 执行 adb usb
+        // 尝试重新连接  重新连接 TODO  adb usb命令会影响其他USB连接？或者导致其他正在运行的手机出现丢失session的情况
+        ShellUtil.exeCmd("adb usb");
+
+        // 摁电源键 db shell input keyevent 26
 
         // 滑动解锁 TODO 如果不设定密码 就可以不用解锁了 默认到Home界面
         ShellUtil.exeCmd("adb shell input swipe 300 1000 300 500");
+
+        // 输入pin密码 adb shell input text 1234
+        ShellUtil.exeCmd("adb shell input text " + PIN_PASSWORD);
     }
 
 
@@ -1004,29 +1098,12 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     *
      * @return
      * @throws IOException
      */
     public byte[] screenshot() throws IOException {
 
         return ((TakesScreenshot) this.driver).getScreenshotAs(OutputType.BYTES);
-    }
-
-    /**
-     * 截图
-     *
-     * @return 获取保存的文件路径
-     */
-    public String screenShot() throws IOException {
-
-        File screenFile = ((TakesScreenshot) this.driver).getScreenshotAs(OutputType.FILE);
-
-        String imageFullName = SCREEN_PATH + UUID.randomUUID().toString() + ".png";
-
-        FileUtils.copyFile(screenFile, new File(imageFullName));
-
-        return imageFullName;
     }
 
     /**
@@ -1067,16 +1144,16 @@ public class AndroidDevice extends ModelL {
         if (retry < 3) {
 
             // A 截图1
-            String path1 = screenShot();
+            byte[] imageData1 = screenshot();
 
             // B 进行touch 操作
             touch(x, y, sleep);
 
             // C 截图2
-            String path2 = screenShot();
+            byte[] imageData2 = screenshot();
 
             // D 比较 两个截图相似性
-            boolean similar = ImageUtil.isSame(ImageIO.read(new File(path1)), ImageIO.read(new File(path2)));
+            boolean similar = ImageUtil.isSame(ImageIO.read(new ByteArrayInputStream(imageData1)), ImageIO.read(new ByteArrayInputStream(imageData2)));
 
             // E 如果相似 递归调用
             if (similar) {

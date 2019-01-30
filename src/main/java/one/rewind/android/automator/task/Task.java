@@ -24,13 +24,13 @@ import java.util.concurrent.Callable;
  * @author scisaga@gmail.com
  * @date 2019/1/14
  */
-public abstract class Task<A extends Adapter> implements Callable<Boolean> {
+public abstract class Task implements Callable<Boolean> {
 
     public static final Logger logger = LogManager.getLogger(Task.class.getName());
 
-    public A adapter;
+    public Adapter adapter;
 
-    public TaskHolder holder;
+    public TaskHolder h;
 
     // Flag 在call()和调用方法中，显式调用，判断任务是否继续执行
     public volatile boolean stop = false;
@@ -47,39 +47,39 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
     public List<TaskCallback> failureCallbacks = new ArrayList<>();
 
     /**
-     * @param holder
+     * @param h
      */
-    public Task(TaskHolder holder, String... params) throws IllegalParamsException {
+    public Task(TaskHolder h, String... params) throws IllegalParamsException {
 
-        this.holder = holder;
+        this.h = h;
         accountPermitStatuses.add(Account.Status.Normal);
 
         // 设定任务成功回调
         addSuccessCallback((t) -> {
-            t.holder.success = true;
+            t.h.success = true;
 
         });
 
         // 设定任务失败回调
         addFailureCallback((t) -> {
-            t.holder.success = false;
+            t.h.success = false;
         });
 
         // 设定任务完成回调
         addDoneCallback((t) -> {
 
-            if(t.holder.topic_name == null) return;
+            if(t.h.topic_name == null) return;
 
             // 发布消息
-            RTopic<Object> topic = RedissonAdapter.redisson.getTopic(t.holder.topic_name);
-            topic.publish(t.holder);
+            RTopic<Object> topic = RedissonAdapter.redisson.getTopic(t.h.topic_name);
+            topic.publish(t.h);
 
             // 记录Holder
             try {
-                t.holder.update_time = new Date();
-                t.holder.insert();
+                t.h.update_time = new Date();
+                t.h.insert();
             } catch (Exception e) {
-                logger.error("Error insert holder, ", e);
+                logger.error("Error insert h, ", e);
             }
         });
     }
@@ -114,7 +114,7 @@ public abstract class Task<A extends Adapter> implements Callable<Boolean> {
      * @throws AdapterException.OperationException
      * @throws AccountException.NoAvailableAccount
      */
-    public void checkAccountStatus() throws AdapterException.OperationException, AccountException.NoAvailableAccount {
+    public void checkAccountStatus() throws AccountException.NoAvailableAccount, AdapterException.OperationException {
 
         // TODO 判断 adapter 不能为null
         if (!accountPermitStatuses.contains(adapter.account.status)) {

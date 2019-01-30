@@ -56,10 +56,10 @@ public class TaskTestOfSingleDevice {
         deviceManager.initialize();
 
         // 生成TaskHolder
-        TaskHolder holder = new TaskHolder("1", "ZX1G426B3V", "one.rewind.android.automator.adapter.wechat.WeChatAdapter", 1);
+        TaskHolder h = new TaskHolder("1", "ZX1G426B3V", "one.rewind.android.automator.adapter.wechat.WeChatAdapter", 1);
 
         // 生成Task
-        GetMediaEssaysTask task = new GetMediaEssaysTask(holder, "");
+        GetMediaEssaysTask task = new GetMediaEssaysTask(h, "");
 
         deviceManager.submit(task);
 

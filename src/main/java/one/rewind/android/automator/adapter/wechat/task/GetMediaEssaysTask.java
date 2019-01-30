@@ -89,7 +89,6 @@ public class GetMediaEssaysTask extends Task {
         // B 初始化当前任务类型允许的账号状态
         accountPermitStatuses.add(Account.Status.Search_Public_Account_Frozen);
 
-
         // C 设定任务完成回调
         addDoneCallback((t) -> {
             // 移除过滤器
@@ -98,18 +97,18 @@ public class GetMediaEssaysTask extends Task {
     }
 
     @Override
-    public Boolean call() throws InterruptedException, IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.OperationException, AdapterException.IllegalStateException, AdapterException.NoResponseException {
+    public Boolean call() throws  IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.NoResponseException, AdapterException.OperationException {
 
         boolean retry = false;
 
-        // A1 判定Adapter加载的Account的状态，并尝试切换账号
-        checkAccountStatus(); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
-
-        // A2 设定过滤器
-        setupFilters();
-
         // 任务执行
         try {
+            // A1 判定Adapter加载的Account的状态，并尝试切换账号
+            checkAccountStatus(); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
+
+            // A2 设定过滤器
+            setupFilters();
+
             // B1 重置微信进入首页
             adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
 
@@ -178,7 +177,7 @@ public class GetMediaEssaysTask extends Task {
                     // D4 判断是否进入了文章页
                     if (adapter.device.reliableTouch(area.left, area.top)) {
 
-                        // D41 向下滑动两次
+                        h.r("D41 向下滑动两次");
                         for (int i = 0; i < 2; i++) {
                             this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                         }
@@ -210,12 +209,12 @@ public class GetMediaEssaysTask extends Task {
                 }
 
                 // D5 确定回到文章列表页
-                if(adapter.status != WeChatAdapter.Status.PublicAccount_Essay_List) throw new AdapterException.IllegalStateException(adapter);
+                if (adapter.status != WeChatAdapter.Status.PublicAccount_Essay_List)
+                    throw new AdapterException.IllegalStateException(adapter);
                 // D51 向下滑动
                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
 
             }
-
         }
         // 微信查看全部消息被限流
         catch (GetPublicAccountEssayListFrozenException e) {
@@ -223,6 +222,7 @@ public class GetMediaEssaysTask extends Task {
             logger.error("Error enter Media[{}] history essay list page, Account:[{}], ", media_nick, adapter.account.id, e);
 
             try {
+
                 // 更新账号状态
                 this.adapter.account.status = Account.Status.Get_Public_Account_Essay_List_Frozen;
                 this.adapter.account.update();
@@ -241,10 +241,24 @@ public class GetMediaEssaysTask extends Task {
             logger.error("Account:[{}] didn't subscribe public account:[{}], ", adapter.account.id, media_nick, e);
 
         }
+        // 指定的媒体账号和订阅的账号不一致
         catch (MediaException.NotEqual e) {
 
             logger.error("Strange error for Account:[{}] public account:[{}], ", adapter.account.id, media_nick, e);
 
+        }
+        // Adapter状态异常
+        catch (AdapterException.IllegalStateException e) {
+
+            logger.error("Adapter State IllegalStateException, ", e);
+
+            // 继续重试
+            retry = true;
+        }
+        // 线程中断异常   此异常在外部捕获不到
+        catch (InterruptedException e){
+
+            logger.error("Thread InterruptedException, ", e);
         }
 
         return retry;
@@ -638,7 +652,6 @@ public class GetMediaEssaysTask extends Task {
     }
 
     /**
-     *
      * @param pai
      * @return
      */

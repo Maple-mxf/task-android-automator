@@ -7,13 +7,14 @@ import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccount
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
-import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.db.DaoManager;
 import one.rewind.txt.StringUtil;
+
+import java.io.IOException;
 
 /**
  * 订阅公众号
@@ -41,25 +42,19 @@ public class SubscribeMediaTask extends Task {
     public SubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
 
         super(holder, params);
-
-        // 任务执行成功将账号与公众号的关系数据插入数据库
-        addSuccessCallback(t -> {
-
-        });
-
-        // 任务失败记录日志
-        addFailureCallback(t -> logger.error("Error execute subscribe task failure, wechat media nick [{}] ", media_nick));
     }
 
     @Override
     public Boolean call() throws InterruptedException, AdapterException.OperationException {
+
+        boolean retry = false;
 
         try {
 
             // A 启动微信
             adapter.restart();
 
-            // B
+            // B 进入搜索页
             adapter.goToSearchPage();
 
             // C 点击公众号
@@ -69,7 +64,7 @@ public class SubscribeMediaTask extends Task {
             adapter.searchPublicAccount(media_nick);
 
             // E 截图识别是否被限流了
-
+            adapter.getPublicAccountList();
 
             // E 点击订阅  订阅完成之后返回到上一个页面
             WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(media_nick, true);
@@ -109,19 +104,11 @@ public class SubscribeMediaTask extends Task {
             }
         }
 
+
         // 搜索公众号接口限流
         catch (SearchPublicAccountFrozenException e) {
 
-        }
-        // 无可用账号异常
-        catch (AdapterException.IllegalStateException e) {
-
-            logger.error("AndroidDevice state error! cause[{}]", e);
-
-            // 当前账号不可用
-        } catch (AccountException.Broken broken) {
-
-            logger.error("AndroidDevice state error! cause[{}]", broken);
+            logger.error("Error enter Media[{}] history essay list page, Account:[{}], ", media_nick, adapter.account.id, e);
 
             try {
                 // 更新账号状态
@@ -129,25 +116,37 @@ public class SubscribeMediaTask extends Task {
                 this.adapter.account.update();
 
             } catch (Exception e1) {
-
-                logger.error("Error update account status failure, cause [{}] ", e1);
-
+                logger.error("Error update account status failure, ", e);
             }
 
-            // 将当前任务提交  下一次在执行任务的时候
-            try {
-                this.adapter.device.submit(this);
-            } catch (AndroidException.IllegalStatusException ill) {
-                logger.error("Error submit task failure, cause [{}]", ill);
-            }
+            // 将当前任务提交 下一次在执行任务的时候
+            retry = true;
+
+        }
+        // Adapter 状态异常
+        catch (AdapterException.IllegalStateException e) {
+
+            logger.error("AndroidDevice state error, ", e);
+            retry = true;
+
+            // 当前账号不可用(切换也出现问题)
+        } catch (AccountException.Broken broken) {
+
+            // 不需要进行重试  任务失败即可
+            logger.error("AndroidDevice state error, ", broken);
         }
         // 订阅的媒体账号和指定的账号不相同
         catch (MediaException.NotEqual notEqual) {
 
             logger.error("Error account not equals, ", notEqual);
 
+        } catch (IOException e) {
+
+            logger.error("Error screen shot failure, ", e);
         }
-        return Boolean.TRUE;
+
+
+        return retry;
     }
 
     public static String genId(String nick) {

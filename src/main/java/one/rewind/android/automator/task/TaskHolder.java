@@ -14,9 +14,11 @@ import java.util.List;
  * @author scisaga@gmail.com
  * @date 2019/1/24
  */
-@DBName(value = "android_automator")
+@DBName(value = "raw")
 @DatabaseTable(tableName = "tasks")
 public class TaskHolder extends ModelD {
+
+    public TaskHolder(){}
 
     @DatabaseField(dataType = DataType.STRING, width = 128)
     public String udid;
@@ -89,10 +91,14 @@ public class TaskHolder extends ModelD {
     /**
      * @param content
      */
-    public void addRecord(String content) throws Exception {
-        TaskRecord record = new TaskRecord(this);
-        record.content = content;
-        record.insert();
+    public void r(String content) {
+        try {
+            TaskRecord record = new TaskRecord(this);
+            record.content = content;
+            record.insert();
+        } catch (Exception e) {
+            Task.logger.error("Error insert record, ", e);
+        }
     }
 
 }

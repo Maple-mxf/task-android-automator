@@ -18,10 +18,8 @@ import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.txt.NumberFormatUtil;
-import one.rewind.util.FileUtil;
 import org.openqa.selenium.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -67,6 +65,7 @@ public class WeChatAdapter extends Adapter {
     public WeChatAdapter(AndroidDevice device, Account account) throws AndroidException.IllegalStatusException {
         super(device);
         this.account = account;
+        this.appInfo = new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI");
     }
 
     /**
@@ -84,6 +83,7 @@ public class WeChatAdapter extends Adapter {
 
     /**
      * 获取搜索微信公众号结果中的文本区域
+     *
      * @return
      * @throws IOException
      * @throws AdapterException.NoResponseException
@@ -93,7 +93,7 @@ public class WeChatAdapter extends Adapter {
             throws IOException, AdapterException.NoResponseException,
             SearchPublicAccountFrozenException, AdapterException.IllegalStateException {
 
-        if(status != Status.PublicAccount_Search_Result) throw new AdapterException.IllegalStateException(this);
+        if (status != Status.PublicAccount_Search_Result) throw new AdapterException.IllegalStateException(this);
 
         // A 获取可点击文本区域
         List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
@@ -115,6 +115,7 @@ public class WeChatAdapter extends Adapter {
 
     /**
      * 获取搜索微信公众号结果中的文本区域
+     *
      * @return
      * @throws IOException
      * @throws AdapterException.NoResponseException
@@ -124,7 +125,7 @@ public class WeChatAdapter extends Adapter {
             throws IOException, AdapterException.NoResponseException,
             AdapterException.IllegalStateException, GetPublicAccountEssayListFrozenException {
 
-        if(status != Status.PublicAccount_Essay_List) throw new AdapterException.IllegalStateException(this);
+        if (status != Status.PublicAccount_Essay_List) throw new AdapterException.IllegalStateException(this);
 
         // A 获取可点击文本区域
         List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
@@ -181,18 +182,19 @@ public class WeChatAdapter extends Adapter {
      * @return
      * @throws IOException
      */
-    public List<OCRParser.TouchableTextArea> getPublicAccountList() throws IOException {
+    public List<OCRParser.TouchableTextArea> getPublicAccountList() throws IOException, SearchPublicAccountFrozenException {
 
-        // A 获取截图
-        String screenShotPath = this.device.screenShot();
+        // A 获取可点击文本区域  Http请求ocr服务
+        List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
 
-        // B 获取可点击文本区域  Http请求ocr服务 TODO  BUG   getTextArea类型转换存在问题   在此处类型转换会存在问题ClassCastException
-        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile(screenShotPath), 0, 0, 1056, 2550);
+        for (OCRParser.TouchableTextArea var : textAreas) {
+            // 限流标识确定
+            if (var.content.contains("frequently")) {
+                throw new SearchPublicAccountFrozenException(account);
+            }
+        }
 
-        // C 删除图片文件
-        new File(screenShotPath).delete();
-
-        return textAreaList;
+        return textAreas;
     }
 
 
@@ -299,15 +301,14 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.IllegalStateException
      * @throws IOException
      * @throws AdapterException.NoResponseException
-     * @throws MediaException              在订阅列表中找不到指定的公众号
+     * @throws MediaException                         在订阅列表中找不到指定的公众号
      */
     public void goToSubscribedPublicAccountHome(String media_nick) throws InterruptedException,
             AdapterException.IllegalStateException,
             IOException,
             AdapterException.NoResponseException,
             MediaException.NotSubscribe,
-            MediaException.NotEqual
-    {
+            MediaException.NotEqual {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -363,7 +364,7 @@ public class WeChatAdapter extends Adapter {
 
         String real_media_nick = els.get(0).getText();
 
-        if(!real_media_nick.equals(media_nick)) throw new MediaException.NotEqual(account, media_nick);
+        if (!real_media_nick.equals(media_nick)) throw new MediaException.NotEqual(account, media_nick);
     }
 
     /**
@@ -449,7 +450,7 @@ public class WeChatAdapter extends Adapter {
         wpa.essay_count = NumberFormatUtil.parseInt(
                 els.get(2).getText().replaceAll("篇原创文章.*$", ""));
 
-        if(subscribe) subscribePublicAccount();
+        if (subscribe) subscribePublicAccount();
 
         goToPublicAccountMoreInfoPage();
 
@@ -484,17 +485,6 @@ public class WeChatAdapter extends Adapter {
 
         return wpa;
     }
-
-    /**
-     * 从公众号详情页面返回到公众号列表页
-     */
-    public void goBackToPublicAccountListFromMoreInfo() {
-        for (int i = 0; i < 3; i++) {
-            this.device.goBack();
-        }
-        this.status = Status.Subscribe_PublicAccount_List;
-    }
-
 
     /**
      * 公众号首页 订阅公众号
@@ -714,7 +704,7 @@ public class WeChatAdapter extends Adapter {
 
         UserInfo ui = new UserInfo(lis.get(1).getText(), lis.get(0).getText());
 
-        device.driver.navigate().back();
+        device.goBack();
 
         logger.info("Current user_id:{} user_name:{}", ui.id, ui.name);
 
@@ -1416,7 +1406,7 @@ public class WeChatAdapter extends Adapter {
      * 切换微信账号
      * TODO 之前账号的状态需要妥善处理
      */
-    public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken {
+    public void switchAccount(Account account) throws AccountException.Broken, AdapterException.OperationException {
 
         this.account = account;
 

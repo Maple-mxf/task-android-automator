@@ -184,13 +184,13 @@ public class Account extends ModelL {
                     List<Account> accounts = accountDao.queryBuilder().where()
                             .eq("status", Status.Get_Public_Account_Essay_List_Frozen)
                             .and()
-                            .le("update_time", t - Default_Get_Public_Account_Essay_List_Frozen_Time)
+                            .le("update_time", new Date(t - Default_Get_Public_Account_Essay_List_Frozen_Time))
                             .query();
 
                     List<Account> accounts2 = accountDao.queryBuilder().where()
                             .eq("status", Status.Search_Public_Account_Frozen)
                             .and()
-                            .le("update_time", t - Default_Search_Public_Account_Frozen_Time)
+                            .le("update_time", new Date(t - Default_Search_Public_Account_Frozen_Time))
                             .query();
 
                     accounts.addAll(accounts2);

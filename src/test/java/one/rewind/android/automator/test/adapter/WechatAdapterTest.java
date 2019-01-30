@@ -7,24 +7,29 @@ import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
-import org.junit.Before;
 import org.junit.Test;
-import se.vidstige.jadb.JadbException;
 
 import java.io.IOException;
 import java.util.Stack;
+import java.util.concurrent.*;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
 public class WechatAdapterTest {
 
+    // Executor Queue
+    private transient LinkedBlockingQueue queue = new LinkedBlockingQueue<Runnable>();
+
+    private transient ThreadPoolExecutor executor = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.MILLISECONDS, queue);
+
+
     //    String udid = "ZX1G323GNB";
     String udid = AndroidDeviceManager.getAvailableDeviceUdids()[0];
     AndroidDevice device;
     WeChatAdapter adapter;
-
-    @Before
+/*
+    @Before*/
     public void setup() throws Exception {
 
         device = new AndroidDevice(udid);
@@ -135,120 +140,60 @@ public class WechatAdapterTest {
 
     }
 
-    //先将公众号关注  再点击进去抓取文章
+    class InnerTask implements Callable<Void> {
 
-   /* @Test
-    public void testGetOnePublicAccountsEssays() {
-        adapter.digestionCrawler("阿里巴巴", true);
+        @Override
+        public Void call() throws Exception {
+            while (true) {
+                System.out.println("hhhh");
+                Thread.sleep(500);
+            }
+        }
     }
 
-    @Test
-    public void testGetOnePublicAccountsEssaysByHandlerException() {
-        adapter.digestionCrawler("成安邮政", true);
-    }*/
+    class Task implements Callable<Void> {
 
-   /* @Test
-    public void subscribe() {
-        Queue<String> collections = Queues.newConcurrentLinkedQueue();
+        Future<Void> future = null;
 
-        collections.add("阿里巴巴");
-        collections.add("今日头条");
-        collections.add("蚂蚁金服");
-        collections.add("抖音");
-        collections.add("菜鸟网络");
-
-        collections.forEach(v -> {
+        @Override
+        public Void call() throws Exception {
             try {
-                adapter.subscribeMedia(v);
+                future = executor.submit(new InnerTask());
+                System.err.println("AAA");
+                Object o = future.get();
+                System.err.println("BBB");
+            } catch (ExecutionException e) {
+                e.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });
-    }*/
-
-   /* @Test
-    public void testActiveApp() throws InterruptedException {
-        device.driver.closeApp();
-        DeviceUtil.activeWechat(device);
-    }
-*/
-
-   /* @Test
-    public void testSubscribeAccount() throws Exception {
-        adapter.digestionSubscribe("芋道源码");
-//        adapter.digestionCrawler("阿里巴巴", true);
-    }*/
-
-
-    @Test
-    public void testCloseAPP() {
-
-//		device.stop();
-//		device.driver.close();
-
-//		device.driver.manage().ime().deactivate();
-
-//		device.driver.terminateApp(udid);
-
-//		device.driver.stopApp();
-
-//		Route postAccounts = PublicAccountsHandler.postAccounts;
-
-    }
-
-
-    @Test
-    public void testAllotTask() throws InterruptedException {
-//        DefaultDeviceManager.originalAccounts.add("菜鸟教程");
-//        DefaultDeviceManager.originalAccounts.add("Java技术栈");
-//        DefaultDeviceManager manager = DefaultDeviceManager.getInstance();
-//        manager.allotTask(DefaultDeviceManager.TaskType.SUBSCRIBE);
-
-    }
-
-    @Test
-    public void testRemoveWifiProxy() throws InterruptedException, IOException, JadbException {
-        device.removeRemoteWifiProxy();
-    }
-
-    /*@Test
-    public void testDeviceSleepAndNotify() throws IOException, InterruptedException {
-        ShellUtil.clickPower(udid);
-        ShellUtil.notifyDevice(udid, device.driver);
-    }*/
-
-    @Test
-    public void testSendFile() throws InterruptedException, IOException, JadbException {
-        device.setupRemoteWifiProxy();
-    }
-
-   /* @Test
-    public void testUnsubscribeMedia() throws SQLException {
-        Calendar instance = Calendar.getInstance();
-        instance.set(Calendar.HOUR_OF_DAY, 0);
-        instance.set(Calendar.MINUTE, 0);
-        instance.set(Calendar.SECOND, 0);
-        Date time = instance.getTime();
-        List<WechatAccountMediaSubscribe> query = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).and().ge("insert_time", time).query();
-        for (WechatAccountMediaSubscribe media : query) {
-            adapter.unsubscribeMedia(media.media_name);
+            return null;
         }
     }
-*/
 
     @Test
-    public void testRealMediaName() {
-//        String var = WeChatAdapter.realMedia("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
-//
-//        System.out.println(var);
+    public void test1() throws IOException, InterruptedException {
+
+        // Thread.sleep(10000);
+
+        try {
+            Future<Void> future = null;
+            Task task = new Task();
+            try {
+
+                future = executor.submit(task);
+                Thread.sleep(5000);
+                task.future.cancel(true);
+                // future.get(5000, TimeUnit.MILLISECONDS);
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        Thread.sleep(10000);
+
     }
-
-    @Test
-    public void testRequestID() {
-        // result： $req_HKDFNMADSFQWTEHFBVM7
-//        String var = WeChatAdapter.requestID("芋道源码$req_HKDFNMADSFQWTEHFBVM7");
-
-//        System.out.println(var);
-    }
-
 }

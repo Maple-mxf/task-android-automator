@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -152,11 +153,21 @@ public class AndroidDeviceManager {
             logger.info("add device [{}] in device container", ad.udid);
 
             // 设备INIT
-            ad.start();
+            executor.submit(()->{
+                try {
+                    ad.start();
+                } catch (AndroidException.IllegalStatusException e) {
+                    logger.error("Unable to start Device:[{}]", ad.udid, e);
+                }
+            });
 
             // 添加 idle 回掉方法 获取执行任务
             ad.initCallbacks.add((d) -> {
-                assign(d);
+                try {
+                    assign(d);
+                } catch (Exception e) {
+                    logger.error("Unable to assign Device:[{}]", ad.udid, e);
+                }
             });
         }
     }
@@ -168,7 +179,7 @@ public class AndroidDeviceManager {
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
      */
-    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException {
+    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, IOException {
 
         Task task = deviceTaskMap.get(ad.udid).take();
         ad.submit(task);
@@ -180,21 +191,21 @@ public class AndroidDeviceManager {
      */
     public SubmitInfo submit(Task task) throws AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
-        if (task.holder == null || task.holder.class_name == null) throw new TaskException.IllegalParamException();
+        if (task.h == null || task.h.class_name == null) throw new TaskException.IllegalParamException();
 
-        String adapterClassName = task.holder.adapter_class_name;
+        String adapterClassName = task.h.adapter_class_name;
         if (StringUtils.isNotBlank(adapterClassName)) throw new TaskException.IllegalParamException();
 
         AndroidDevice device = null;
 
         // A 指定 account_id
-        if (task.holder.account_id != 0) {
+        if (task.h.account_id != 0) {
             device = deviceTaskMap.keySet().stream()
                     .filter(d -> {
                         Adapter adapter = d.adapters.get(adapterClassName);
                         if (adapter == null) return false;
                         if (adapter.account == null) return false;
-                        if (adapter.account.id == task.holder.account_id) return true;
+                        if (adapter.account.id == task.h.account_id) return true;
                         return false;
                     })
                     .collect(Collectors.toList())
@@ -203,9 +214,10 @@ public class AndroidDeviceManager {
             if (device == null) throw new AccountException.AccountNotLoad();
         }
         // B 指定udid
-        else if (task.holder.udid != null) {
+        else if (task.h.udid != null) {
+
             device = deviceTaskMap.keySet().stream()
-                    .filter(d -> d.udid.equals(task.holder.udid))
+                    .filter(d -> d.udid.equals(task.h.udid))
                     .collect(Collectors.toList())
                     .get(0);
 
@@ -279,9 +291,9 @@ public class AndroidDeviceManager {
          * @param androidDevice
          */
         public SubmitInfo(Task task, AndroidDevice androidDevice) {
-            this.id = task.holder.id;
-            this.account_id = task.holder.account_id;
-            this.task_class_name = task.holder.class_name;
+            this.id = task.h.id;
+            this.account_id = task.h.account_id;
+            this.task_class_name = task.h.class_name;
             this.androidDevice = androidDevice;
         }
 
