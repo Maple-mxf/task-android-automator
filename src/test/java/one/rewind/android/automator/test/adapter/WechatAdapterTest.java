@@ -165,6 +165,7 @@ public class WechatAdapterTest {
             } catch (ExecutionException e) {
                 e.printStackTrace();
             } catch (Exception e) {
+                System.err.println("ZZZ");
                 e.printStackTrace();
             }
             return null;

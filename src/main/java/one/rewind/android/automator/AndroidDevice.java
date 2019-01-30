@@ -473,59 +473,40 @@ public class AndroidDevice extends ModelL {
 
             runCallbacks(idleCallbacks);
         }
-        // 线程中断异常 TODO 捕获不到 原因未知
+        // E1 线程中断异常 TODO 捕获不到 原因未知
         catch (InterruptedException e) {
 
+            logger.error("Device:[{}] Adapter:[{}] Task:[{}] interrupted, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
             status = Status.Failed;
-            logger.error("[{}] Stop interrupted. ", name, e);
-
         }
+        // E2 任务被外部终止 什么都不用做 状态设为Idle
         catch (CancellationException e) {
 
-            logger.error("[{}] Stop interrupted. ", name, e);
-
-            try {
-                task.adapter.start();
-            } catch (InterruptedException ex) {
-
-                logger.error("Interrupted, ", ex);
-                this.adapters.remove(task.adapter.getClass().getName());
-            }
-            // 对应的Adapter操作定义的有问题，已经与app对应不上
-            catch (AdapterException.OperationException ex) {
-
-                logger.error("Adapter operation exception, ", ex);
-
-                this.adapters.remove(task.adapter.getClass().getName());
-            }
-            // 没有可用账号了
-            catch (AccountException.Broken ex) {
-
-                logger.error("{} Account[{}] broken, ", task.adapter.getClass().getSimpleName(), ex.account.id, ex);
-
-                this.adapters.remove(task.adapter.getClass().getName());
-            }
-
+            logger.error("Device:[{}] Adapter:[{}] Task:[{}] cancelled, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
             status = Status.Idle;
         }
-        // 基本不会捕获，如果捕获该异常
+        // E3 基本不会捕获
         catch (TimeoutException e) {
+
+            logger.error("Device:[{}] Adapter:[{}] Task:[{}] timeout, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
 
             taskFuture.cancel(true);
 
+            logger.info("Device:[{}] remove Adapter:[{}]", name, task.adapter.getClass().getSimpleName());
+
             this.adapters.remove(task.adapter.getClass().getName());
 
-            status = Status.Failed;
-            logger.error("[{}] Stop failed. ", name, e);
+            status = Status.Idle;
         }
-        //
+        // E4 执行异常
         catch (ExecutionException e) {
 
+            logger.error("Device:[{}] Adapter:[{}] Task:[{}] failed, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e.getCause());
+
             status = Status.Failed;
-            logger.error("[{}] Stop failed. ", name, e.getCause());
+
             try {
                 throw e.getCause();
-
             }
             // 异常精细处理
             catch (Throwable ex) {
