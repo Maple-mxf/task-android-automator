@@ -621,8 +621,8 @@ public class AndroidDevice extends ModelL {
 				logger.error("{}, WebDriver command timeout, ", name, ex);
 			}
 			catch (NoSuchWindowException ex) {
-				logger.error("{}, Window unreachable, ", name, ex);
-			}
+                logger.error("{}, Window unreachable, ", name, ex);
+            }
 			// chromedriver连接问题 --> 关闭
 			catch (UnreachableBrowserException ex) {
 				logger.error("{}, Browser unreachable, ", name, ex);
