@@ -7,8 +7,11 @@ import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.db.exception.DBInitException;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.sql.SQLException;
 
 /**
  * @author maxuefeng[m17793873123@163.com]
@@ -21,7 +24,7 @@ public class WechatAdapterTest1 {
     WeChatAdapter adapter;
 
     @Before
-    public void setup() throws AndroidException.IllegalStatusException, InterruptedException, AdapterException.OperationException, AccountException.Broken {
+    public void setup() throws AndroidException.IllegalStatusException, InterruptedException, AdapterException.OperationException, AccountException.Broken, DBInitException, SQLException {
         device = new AndroidDevice(udid);
         Account account = new Account();
         account.username = "一路有寒一世有勋";

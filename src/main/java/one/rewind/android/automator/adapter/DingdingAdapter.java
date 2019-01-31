@@ -7,15 +7,22 @@ import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.db.exception.DBInitException;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
+import java.sql.SQLException;
 import java.util.List;
 
 /**
  * 钉钉的自动化操作
  */
 public class DingdingAdapter extends Adapter {
+
+	@Override
+	public void switchAccount() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount, DBInitException, SQLException {
+
+	}
 
 	/**
 	 * @param androidDevice

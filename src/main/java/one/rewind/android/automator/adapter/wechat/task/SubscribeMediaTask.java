@@ -1,5 +1,6 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
+import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
@@ -31,9 +32,10 @@ public class SubscribeMediaTask extends Task {
 
     static {
         try {
+            Dao<Platform, String> platformDao = Daos.get(Platform.class);
             platform = new Platform("微信公众号平台", "WX");
             platform.id = 1;
-            platform.insert();
+            platformDao.createIfNotExists(platform);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,21 +54,27 @@ public class SubscribeMediaTask extends Task {
         try {
 
             // A 启动微信
+            h.r("A 启动微信");
             adapter.restart();
 
             // B 进入搜索页
+            h.r("B 进入搜索页");
             adapter.goToSearchPage();
 
             // C 点击公众号
+            h.r("C 点击公众号");
             adapter.goToSearchPublicAccountPage();
 
             // D 输入公众号进行搜索
+            h.r("D 输入公众号进行搜索");
             adapter.searchPublicAccount(media_nick);
 
             // E 截图识别是否被限流了
+            h.r("E 截图识别是否被限流了");
             adapter.getPublicAccountList();
 
             // E 点击订阅  订阅完成之后返回到上一个页面
+            h.r("E 点击订阅，订阅完成之后返回到上一个页面");
             WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(media_nick, true);
 
             try {

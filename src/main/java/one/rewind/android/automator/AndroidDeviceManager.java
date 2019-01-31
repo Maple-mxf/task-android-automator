@@ -71,13 +71,6 @@ public class AndroidDeviceManager {
                 .setNameFormat("AndroidDeviceManager-%d").build());
     }
 
-    /**
-     * 初始化设备
-     */
-    public void initialize() throws Exception {
-    }
-
-
     public void detectDevices() throws Exception {
 
         // A 先找设备
@@ -96,10 +89,7 @@ public class AndroidDeviceManager {
             } else {
 
                 AndroidDevice device = AndroidDevice.getAndroidDeviceByUdid(udid);
-                logger.info("udid: " + device.udid);
 
-                // A2 同步数据库对应记录
-                device.update();
                 devices.add(device);
             }
         }
@@ -124,7 +114,7 @@ public class AndroidDeviceManager {
                     }
                 }
 
-                // 如果Adapter必须使用Account
+                // 如果Adapter必须使用Account  反射创建Adapter对象
                 if (needAccount) {
 
                     cons = clazz.getConstructor(AndroidDevice.class, Account.class);
@@ -132,17 +122,17 @@ public class AndroidDeviceManager {
                     Account account = Account.getAccount(ad.udid, className);
 
                     if (account != null) {
+
                         cons.newInstance(ad, account);
                     }
                     // 找不到账号，对应设备无法启动
                     else {
-
                         SysLog.log("Device [" + ad.udid + "] Add Failed, No available account for " + className);
                         ad.status = AndroidDevice.Status.Failed;
                         ad.update();
                     }
-
                 } else {
+
                     cons = clazz.getConstructor(AndroidDevice.class);
                     cons.newInstance(ad);
                 }
@@ -153,20 +143,21 @@ public class AndroidDeviceManager {
             logger.info("add device [{}] in device container", ad.udid);
 
             // 设备INIT
-            executor.submit(()->{
+            executor.submit(() -> {
                 try {
                     ad.start();
                 } catch (AndroidException.IllegalStatusException | SQLException | DBInitException e) {
                     logger.error("Unable to start Device:[{}]", ad.udid, e);
                 }
-			});
+            });
 
             // 添加 idle 回掉方法 获取执行任务
             ad.initCallbacks.add((d) -> {
-				assign(d);
+                assign(d);
             });
         }
     }
+
 
     /**
      * 从队列中拿任务
@@ -177,8 +168,14 @@ public class AndroidDeviceManager {
      */
     private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException {
 
-        Task task = deviceTaskMap.get(ad.udid).take();
-        ad.submit(task);
+        AndroidDevice device = deviceTaskMap.keySet().stream().filter(d -> d.udid.equals(ad.udid)).findFirst().orElse(null);
+
+        if (device != null) {
+            Task task = deviceTaskMap.get(device).take();
+
+            // 提交任务
+            ad.submit(task);
+        }
     }
 
 
@@ -187,10 +184,12 @@ public class AndroidDeviceManager {
      */
     public SubmitInfo submit(Task task) throws AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
+        if (task == null) return new SubmitInfo(false);
+
         if (task.h == null || task.h.class_name == null) throw new TaskException.IllegalParamException();
 
         String adapterClassName = task.h.adapter_class_name;
-        if (StringUtils.isNotBlank(adapterClassName)) throw new TaskException.IllegalParamException();
+        if (StringUtils.isBlank(adapterClassName)) throw new TaskException.IllegalParamException();
 
         AndroidDevice device = null;
 
@@ -299,282 +298,6 @@ public class AndroidDeviceManager {
         }
     }
 
-
-    /**
-     * 加载数据库中,上一次未完成的任务
-     */
-	/* public void initMediaStack() {
-		Set<String> set = Sets.newHashSet();
-		obtainFullData(set, startPage, DeviceUtil.obtainDevices().length);
-		mediaStack.addAll(set);
-	}
-
-
-	private void run(WeChatAdapter adapter) {
-		try {
-			logger.info("start executed");
-			//计算任务类型
-			adapter.getDevice().taskType = calculateTaskType(adapter);
-
-			System.out.println("当前设备 : " + adapter.getDevice().udid + "的任务类型是: " + adapter.getDevice().taskType);
-			//初始化任务队列
-			switch (adapter.getDevice().taskType) {
-				case Subscribe: {
-					distributionSubscribeTask(adapter.getDevice());
-					break;
-				}
-				case Fetch: {
-					distributionFetchTask(adapter.getDevice());
-					break;
-				}
-				default:
-					logger.info("当前没有匹配到任何任务类型!");
-			}
-			adapter.start();
-		} catch (Exception e) {
-			logger.error("初始化任务失败！");
-		}
-	}
-
-
-	public void addIdleAdapter(WeChatAdapter adapter) {
-		synchronized (this) {
-			this.idleAdapters.add(adapter);
-		}
-	}
-
-	*//**
-     * 初始化订阅任务
-     *
-     * @param device d
-     * @throws SQLException e
-     *//*
-	private void distributionSubscribeTask(AndroidDevice device) throws SQLException {
-		device.queue.clear();
-
-		if (mediaStack.isEmpty()) {
-			// 如果没有数据了 先初始化订阅的公众号
-			startPage += 2;
-			initMediaStack();
-		}
-		// 今日订阅了多少个号
-		int numToday = DBUtil.obtainSubscribeNumToday(device.udid);
-
-		System.out.println("今天订阅了" + numToday + "个号");
-		// 处于等待状态
-		if (numToday > 40) {
-
-			device.status = AndroidDevice.Status.Exceed_Subscribe_Limit;
-
-			device.taskType = null;
-
-		} else {
-			RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
-
-			System.out.println("redis中的任务队列的数据是否为空? " + taskQueue.size());
-
-			String redisTask = redisTask(device.udid);
-
-			// 如果可以从redis中加到任务
-			if (StringUtils.isNotBlank(redisTask)) {
-				device.queue.add(redisTask);
-			} else {
-				device.queue.add(mediaStack.pop());
-			}
-		}
-	}
-
-	*//**
-     * 从redis中加载任务
-     *
-     * @param originUdid 设备udid标识
-     * @return 返回任务
-     *//*
-	private String redisTask(String originUdid) {
-		RPriorityQueue<String> taskQueue = redisClient.getPriorityQueue(Tab.TOPIC_MEDIA);
-
-		for (String var : taskQueue) {
-			if (var.contains(Tab.UDID_SUFFIX)) {
-
-				String udid = Tab.udid(var);
-
-				if (!Strings.isNullOrEmpty(udid) && originUdid.equals(udid)) {
-					taskQueue.remove(var);
-					return var;
-				}
-			} else {
-				taskQueue.remove(var);
-				return var;
-			}
-		}
-		return null;
-	}
-
-
-	*//**
-     * 从MySQL中初始化任务
-     *
-     * @param device d
-     * @throws SQLException sql e
-     *//*
-	private void distributionFetchTask(AndroidDevice device) throws SQLException {
-		device.queue.clear();
-		WechatAccountMediaSubscribe media =
-				Tab.subscribeDao.
-						queryBuilder().
-						where().
-						eq("udid", device.udid).
-						and().
-						eq("status", WechatAccountMediaSubscribe.State.NOT_FINISH.status).
-						queryForFirst();
-
-		// 相对于现在没有完成的任务
-		if (media == null) {
-			device.taskType = null;
-			// 处于等待状态
-			device.status = AndroidDevice.Status.Exceed_Subscribe_Limit;
-			return;
-		}
-		// 限制初始化一个任务
-		device.queue.add(media.media_name);
-	}
-
-
-	*//**
-     * 计算任务类型
-     *
-     * @param adapter
-     * @return
-     * @throws Exception
-     *//*
-	private AndroidDevice.Task.Type calculateTaskType(WeChatAdapter adapter) throws Exception {
-
-		String udid = adapter.getDevice().udid;
-
-		long allSubscribe = Tab.subscribeDao.queryBuilder().where().eq("udid", udid).countOf();
-
-		List<WechatAccountMediaSubscribe> notFinishR = Tab.subscribeDao.queryBuilder().where().
-				eq("udid", udid).and().
-				eq("status", WechatAccountMediaSubscribe.State.NOT_FINISH.status).
-				query();
-
-		int todaySubscribe = obtainSubscribeNumToday(udid);
-
-		if (allSubscribe >= 993) {
-			if (notFinishR.size() == 0) {
-				adapter.getDevice().status = AndroidDevice.Status.Exceed_Subscribe_Limit;
-				return null;   //当前设备订阅的公众号已经到上限
-			}
-			return AndroidDevice.Task.Type.Fetch;
-		} else if (todaySubscribe >= 40) {
-			if (notFinishR.size() == 0) {
-				adapter.getDevice().status = AndroidDevice.Status.Operation_Too_Frequent;
-				return null;
-			}
-			return AndroidDevice.Task.Type.Fetch;
-		} else {
-			adapter.getDevice().status = null;
-			// 当前设备订阅的号没有到达上限则分配订阅任务  有限分配订阅接口任务
-			if (notFinishR.size() == 0) {
-				return AndroidDevice.Task.Type.Subscribe;
-			} else {
-				return AndroidDevice.Task.Type.Fetch;
-			}
-		}
-	}
-
-	*//**
-     * 计算今日订阅了多少公众号
-     *
-     * @param udid
-     * @return
-     * @throws SQLException
-     *//*
-	private int obtainSubscribeNumToday(String udid) throws SQLException {
-		GenericRawResults<String[]> results = Tab.subscribeDao.
-				queryRaw("select count(id) as number from wechat_subscribe_account where `status` not in (2) and udid = ? and to_days(insert_time) = to_days(NOW())",
-						udid);
-		String[] firstResult = results.getFirstResult();
-		String var = firstResult[0];
-		return Integer.parseInt(var);
-	}
-
-	private void reset() {
-		try {
-			RQueue<Object> taskMedia = redisClient.getQueue(Tab.TOPIC_MEDIA);
-			List<WechatAccountMediaSubscribe> accounts = Tab.subscribeDao.queryForAll();
-			for (WechatAccountMediaSubscribe v : accounts) {
-
-				if (v.status == 2 && v.number == 0) {
-					if (v.topic != null) {
-						// 重试
-						taskMedia.add(v.media_name + v.topic);
-					}
-					// 删除记录
-					Tab.subscribeDao.delete(v);
-				}
-
-				if (v.status == 0) {
-					if (v.number >= 100) {
-						v.number = v.number * 2;
-					} else {
-						v.number = 100 * 2;
-					}
-				}
-				v.update();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-
-	static class Task implements Callable<Boolean> {
-		@Override
-		public Boolean call() throws Exception {
-
-			AndroidDeviceManager manager = AndroidDeviceManager.getInstance();
-
-			// 初始化设备
-			manager.init();
-
-			// 重置数据库数据
-			manager.reset();
-
-			// 初始化
-			manager.initMediaStack();
-
-			for (AndroidDevice device : manager.androidDevices) {
-				WeChatAdapter adapter = new WeChatAdapter(device);
-				adapter.setupDevice();
-				manager.idleAdapters.add(adapter);
-			}
-
-			do {
-				WeChatAdapter adapter = manager.idleAdapters.take();
-				// 获取到休闲设备进行任务执行
-				manager.run(adapter);
-			} while (true);
-		}
-	}
-
-	// 任务启动入口
-
-	public void run() {
-		ListenableFuture<Boolean> result = this.service.submit(new Task());
-
-		Futures.addCallback(result, new FutureCallback<Boolean>() {
-			@Override
-			public void onSuccess(@NullableDecl Boolean result) {
-				logger.info("run success ok!");
-			}
-
-			@Override
-			public void onFailure(Throwable t) {
-				logger.info("run failed Not OK Please focus on this");
-			}
-		});
-	}*/
 
     /**
      * 获取可用的设备 udid 列表

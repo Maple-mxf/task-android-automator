@@ -110,12 +110,15 @@ public class GetMediaEssaysTask extends Task {
             setupFilters();
 
             // B1 重置微信进入首页
+            h.r("B1 重置微信进入首页");
             adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
 
             // B2 进入已订阅公众号的列表页面params
+            h.r("B2 进入已订阅公众号的列表页面");
             adapter.goToSubscribePublicAccountList();
 
             // B3 根据 media_nick 搜索到相关的公众号（已订阅的公众号）
+            h.r("B3 搜索到相关的公众号（已订阅的公众号）");
             adapter.goToSubscribedPublicAccountHome(media_nick);
 
             // B4 基于media_nick 查询Media
@@ -145,7 +148,8 @@ public class GetMediaEssaysTask extends Task {
                 logger.error("Error handling DB, ", e);
             }
 
-            // C 进入历史文章数据列表页
+            // C1 进入历史文章数据列表页
+            h.r("C1 进入历史文章数据列表页");
             adapter.gotoPublicAccountEssayList();
 
             boolean atBottom = false;
@@ -172,9 +176,11 @@ public class GetMediaEssaysTask extends Task {
                     // D3 进入文章
                     countDown = new CountDownLatch(1);
 
+                    h.r("D3 进入文章");
                     adapter.goToEssayDetail(area);
 
                     // D4 判断是否进入了文章页
+                    h.r("D4 判断是否进入了文章页");
                     if (adapter.device.reliableTouch(area.left, area.top)) {
 
                         h.r("D41 向下滑动两次");
@@ -193,14 +199,17 @@ public class GetMediaEssaysTask extends Task {
                             countDown = new CountDownLatch(1);
 
                             // 点进去被转发的文章
+                            h.r("D43 点进去被转发的文章");
                             adapter.device.touch(582, 557, 6000);
 
+                            h.r("D44 向下滑动两次");
                             for (int i = 0; i < 2; i++) {
                                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                             }
                         }
 
                         // D44 关闭文章
+                        h.r("D45 关闭文章");
                         adapter.touchUpperLeftButton();
                         // adapter.device.touch(67, 165, 1000);
 
@@ -211,7 +220,9 @@ public class GetMediaEssaysTask extends Task {
                 // D5 确定回到文章列表页
                 if (adapter.status != WeChatAdapter.Status.PublicAccount_Essay_List)
                     throw new AdapterException.IllegalStateException(adapter);
+
                 // D51 向下滑动
+                h.r("D46 向下滑动一页");
                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
 
             }

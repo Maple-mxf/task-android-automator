@@ -6,7 +6,6 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import com.sun.xml.internal.bind.v2.TODO;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.remote.AutomationName;
@@ -37,7 +36,6 @@ import one.rewind.db.Daos;
 import one.rewind.db.annotation.DBName;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.ModelL;
-import one.rewind.io.requester.chrome.ChromeAgent;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
@@ -59,9 +57,8 @@ import java.net.SocketException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.NoSuchElementException;
-import java.util.concurrent.*;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 /**
  * Android 设备管理
@@ -100,7 +97,7 @@ public class AndroidDevice extends ModelL {
     }
 
     @DatabaseField(dataType = DataType.ENUM_STRING, width = 32)
-    public Status status = Status.New;
+    public volatile Status status = Status.New;
 
     @DatabaseField(dataType = DataType.STRING, width = 32)
     private String local_ip; // 本地IP
@@ -211,16 +208,23 @@ public class AndroidDevice extends ModelL {
     public static AndroidDevice getAndroidDeviceByUdid(String udid) throws DBInitException, SQLException {
 
         Dao<AndroidDevice, String> dao = Daos.get(AndroidDevice.class);
+
         AndroidDevice ad = dao.queryBuilder().where().eq("udid", udid).queryForFirst();
 
-        if (ad == null) ad = new AndroidDevice(udid);
+        // 同步数据库记录
+        if (ad == null) {
+            ad = new AndroidDevice(udid);
+            ad.insert();
+        } else {
+            ad.update();
+        }
 
         return ad;
     }
 
     /**
      * 添加Adapter
-     * 只有在 New 状态才能添加
+     * 只有在 New 状态才能添加 ?
      *
      * @param adapter
      * @return
@@ -233,49 +237,53 @@ public class AndroidDevice extends ModelL {
 
         this.adapters.put(adapter.getClass().getName(), adapter);
 
+        // 初始化回调函数
         this.initCallbacks.add((d) -> {
 
-			try {
-				d.startAdapter(adapter);
-			} catch (AdapterException.OperationException e) {
-				logger.error("Adapter operation exception, ", e);
-				this.adapters.remove(adapter.getClass().getName());
-			} catch (AccountException.NoAvailableAccount noAvailableAccount) {
-				logger.error("Device:[{}] Adapter:[{}] no available account, ", name, adapter.getClass().getSimpleName(), noAvailableAccount);
-				this.adapters.remove(adapter.getClass().getName());
-			}
+            try {
 
-		});
+                d.startAdapter(adapter);
+
+            } catch (AdapterException.OperationException e) {
+
+                logger.error("Adapter operation exception, ", e);
+
+                this.adapters.remove(adapter.getClass().getName());
+
+            } catch (AccountException.NoAvailableAccount noAvailableAccount) {
+
+                logger.error("Device:[{}] Adapter:[{}] no available account, ", name, adapter.getClass().getSimpleName(), noAvailableAccount);
+                this.adapters.remove(adapter.getClass().getName());
+            }
+
+        });
+        return this;
+    }
+
+    /**
+     * @param adapter
+     * @return
+     */
+    public AndroidDevice startAdapter(Adapter adapter) throws DBInitException, SQLException, InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+
+        try {
+            adapter.start();
+        } catch (AccountException.Broken broken) {
+
+            logger.error("{} Account[{}] broken, ", adapter.getClass().getSimpleName(), broken.account.id, broken);
+            broken.account.status = Account.Status.Broken;
+            broken.account.update();
+
+            adapter.switchAccount();
+        }
 
         return this;
     }
 
-	/**
-	 *
-	 * @param adapter
-	 * @return
-	 */
-	public AndroidDevice startAdapter(Adapter adapter) throws DBInitException, SQLException, InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
 
-		try {
-			adapter.start();
-		}
-		catch (AccountException.Broken broken) {
-
-			logger.error("{} Account[{}] broken, ", adapter.getClass().getSimpleName(), broken.account.id, broken);
-			broken.account.status = Account.Status.Broken;
-			broken.account.update();
-
-			adapter.switchAccount();
-		}
-
-    	return this;
-	}
-
-
-	/**
-	 *
-	 */
+    /**
+     *
+     */
     public class Init implements Callable<Boolean> {
 
         public Boolean call() throws Exception {
@@ -301,6 +309,8 @@ public class AndroidDevice extends ModelL {
             runCallbacks(initCallbacks).get();
 
             init_time = new Date();
+
+            logger.info("Android Device [{}] init device success", udid);
 
             return true;
         }
@@ -333,24 +343,59 @@ public class AndroidDevice extends ModelL {
         }
     }
 
-	/**
-	 *
-	 */
-	public class Clear implements Callable<Boolean> {
+    /**
+     *
+     */
+    public class Clear implements Callable<Boolean> {
 
-		public Boolean call() throws IOException {
+        public Boolean call() throws IOException {
 
-			logger.info("Before clean Device:[{}] ...", name);
+            logger.info("Before clean Device:[{}] ...", name);
 
-			killAllBackgroundProcess();
-			clearCacheLog();
-			clearAllLog();
+            killAllBackgroundProcess();
+            clearCacheLog();
+            clearAllLog();
 
-			logger.info("Device:[{}] cleaned.", name);
+            logger.info("Device:[{}] cleaned.", name);
 
-			return true;
-		}
-	}
+            return true;
+        }
+    }
+
+
+    public class Reboot implements Callable<Boolean> {
+
+        public Boolean call() throws Exception {
+
+            logger.info("Before reboot Device:[{}] ...", name);
+
+            enterADBShell(udid);
+
+            ShellUtil.exeCmd("reboot");
+
+            Thread.sleep(120000);
+
+            // enterADBShell(udid);
+
+            // 尝试重新连接  重新连接 TODO  adb usb命令会影响其他USB连接？或者导致其他正在运行的手机出现丢失session的情况
+            ShellUtil.exeCmd("adb usb");
+
+            // 摁电源键 adb shell input keyevent 26
+
+            // 滑动解锁 TODO 如果不设定密码 就可以不用解锁了 默认到Home界面
+            ShellUtil.exeCmd("adb shell input swipe 300 1000 300 500");
+
+            // 输入pin密码 adb shell input text 1234
+            ShellUtil.exeCmd("adb shell input text " + PIN_PASSWORD);
+
+            // 点击OK键
+            touch(1114, 2114, 3000);
+
+            logger.info("Device:[{}] booted.", name);
+
+            return true;
+        }
+    }
 
     /**
      * 同步方法
@@ -390,15 +435,13 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] INIT interrupted. ", name, e);
             stop();
 
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] INIT failed. ", name, e.getCause());
             stop();
 
-        }
-        catch (TimeoutException e) {
+        } catch (TimeoutException e) {
 
             initFuture.cancel(true);
 
@@ -461,51 +504,45 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] Stop failed. ", name, e);
 
         } finally {
-			this.update();
+            this.update();
         }
 
         return this;
     }
 
-	/**
-	 *
-	 * @throws AndroidException.IllegalStatusException
-	 * @throws DBInitException
-	 * @throws SQLException
-	 */
-	public void clear() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
+    /**
+     * @throws DBInitException
+     * @throws SQLException
+     */
+    public void clear() throws DBInitException, SQLException {
 
-    	Future<Boolean> feature = executor.submit(new Clear());
+        Future<Boolean> feature = executor.submit(new Clear());
 
-		try {
+        try {
 
-			feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-			logger.info("Device:[{}] clear done.", name);
+            feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+            logger.info("Device:[{}] clear done.", name);
 
-		}
-		catch (InterruptedException e) {
+        } catch (InterruptedException e) {
 
-			status = Status.Failed;
-			logger.error("[{}] clear interrupted. ", name, e);
+            status = Status.Failed;
+            logger.error("[{}] clear interrupted. ", name, e);
 
-		}
-		catch (ExecutionException e) {
+        } catch (ExecutionException e) {
 
-			status = Status.Failed;
-			logger.error("[{}] clear failed. ", name, e.getCause());
+            status = Status.Failed;
+            logger.error("[{}] clear failed. ", name, e.getCause());
 
-		}
-		catch (TimeoutException e) {
+        } catch (TimeoutException e) {
 
-			feature.cancel(true);
-			status = Status.Failed;
-			logger.error("[{}] clear failed. ", name, e);
+            feature.cancel(true);
+            status = Status.Failed;
+            logger.error("[{}] clear failed. ", name, e);
 
-		}
-		finally {
-			this.update();
-		}
-	}
+        } finally {
+            this.update();
+        }
+    }
 
     /**
      * 重启
@@ -522,7 +559,7 @@ public class AndroidDevice extends ModelL {
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, InterruptedException, DBInitException, SQLException {
+    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException {
 
         if (!(status == Status.Idle || status == Status.Busy)) {
             throw new AndroidException.IllegalStatusException();
@@ -592,8 +629,9 @@ public class AndroidDevice extends ModelL {
 				InvalidElementStateException
 				InvalidSelectorException
 				NoSuchElementException
-				NoSuchSessionException
 				NoSuchWindowException
+
+				NoSuchSessionException
 				NotFoundException
 				SessionNotCreatedException
 				StaleElementReferenceException
@@ -603,46 +641,48 @@ public class AndroidDevice extends ModelL {
 
                 throw e.getCause();
             }
-			// 代理问题
-			catch (SocketException ex) {
-				logger.error("{}, Proxy may error, ", name, ex);
-			}
-			// 脚本异常
-			// 异常参考 http://www.softwaretestingstudio.com/common-exceptions-selenium-webdriver/
-			catch (ElementNotVisibleException |
-					NoAlertPresentException |
-					ElementNotSelectableException |
-					NoSuchFrameException |
-					org.openqa.selenium.NoSuchElementException ex) {
-				logger.error("{}, Task script error, ", name, ex);
-			}
-			// WebDriver 命令超时问题 网络连接问题
-			catch (org.openqa.selenium.TimeoutException ex) {
-				logger.error("{}, WebDriver command timeout, ", name, ex);
-			}
-			catch (NoSuchWindowException ex) {
+            // 代理问题
+            catch (SocketException ex) {
+                logger.error("{}, Proxy may error, ", name, ex);
+            }
+            // 脚本异常
+            // 异常参考 http://www.softwaretestingstudio.com/common-exceptions-selenium-webdriver/
+            catch (ElementNotVisibleException |
+                    NoAlertPresentException |
+                    ElementNotSelectableException |
+                    NoSuchFrameException |
+                    org.openqa.selenium.NoSuchElementException ex) {
+                logger.error("{}, Task script error, ", name, ex);
+            }
+            // WebDriver 命令超时问题 网络连接问题
+            catch (org.openqa.selenium.TimeoutException ex) {
+                logger.error("{}, WebDriver command timeout, ", name, ex);
+            } catch (NoSuchWindowException ex) {
                 logger.error("{}, Window unreachable, ", name, ex);
             }
-			// chromedriver连接问题 --> 关闭
-			catch (UnreachableBrowserException ex) {
-				logger.error("{}, Browser unreachable, ", name, ex);
-			}
-			//
-			catch (SessionNotCreatedException ex) {
+            // chromedriver连接问题 --> 关闭
+            catch (UnreachableBrowserException ex) {
+                logger.error("{}, Browser unreachable, ", name, ex);
+            }
+            //
+            catch (SessionNotCreatedException ex) {
 
-			}
-			// 非正常 WebDriver.quit() 调用
-			catch (NoSuchSessionException ex) {
-				logger.error("{}, Session broken, ", name, ex);
-			}
-			// 服务端问题 --> 关闭
-			catch (ErrorHandler.UnknownServerException ex) {
-				logger.error("{}, Server failed, ", name, ex);
-			}
-			// 无法正常调用WebDriver --> 关闭
-			catch (WebDriverException ex) {
-				logger.error("{}, WebDriver exception, ", name, ex);
-			}
+            }
+            // 非正常 WebDriver.quit() 调用
+            catch (NoSuchSessionException ex) {
+                logger.error("{}, Session broken, ", name, ex);
+            }
+            // 服务端问题 --> 关闭
+            catch (ErrorHandler.UnknownServerException ex) {
+                logger.error("{}, Server failed, ", name, ex);
+            }
+            // 无法正常调用WebDriver --> 关闭
+            catch (WebDriverException ex) {
+
+                logger.error("{}, WebDriver exception, ", name, ex);
+
+            }
+            //
             catch (Throwable ex) {
 
                 // 无可用账号异常
@@ -678,20 +718,21 @@ public class AndroidDevice extends ModelL {
                 }
 
                 // Adapter操作无响应异常
-				// 第一次 adapter重启 + clear 第二次 重启手机 第三次 设置不可用
+                // 第一次 adapter重启 + clear 第二次 重启手机 第三次 设置不可用
                 if (ex instanceof AdapterException.NoResponseException) {
 
                     // 手机处于崩溃状态
                     logger.error("Error Adapter operate not response, ", ex);
 
                     // 重启手机
-                    reboot(this.udid);
+                    executor.submit(new Reboot());
+                    // 重置状态
                     this.status = Status.New;
+
                 }
             }
 
         }
-
         taskFuture = null;
     }
 
@@ -1052,35 +1093,6 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     * 重启设备
-     *
-     * @param udid
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public static void reboot(String udid) throws IOException, InterruptedException {
-
-        enterADBShell(udid);
-
-        ShellUtil.exeCmd("reboot");
-
-        Thread.sleep(120000);
-
-        // enterADBShell(udid);
-
-        // 尝试重新连接  重新连接 TODO  adb usb命令会影响其他USB连接？或者导致其他正在运行的手机出现丢失session的情况
-        ShellUtil.exeCmd("adb usb");
-
-        // 摁电源键 db shell input keyevent 26
-
-        // 滑动解锁 TODO 如果不设定密码 就可以不用解锁了 默认到Home界面
-        ShellUtil.exeCmd("adb shell input swipe 300 1000 300 500");
-
-        // 输入pin密码 adb shell input text 1234
-        ShellUtil.exeCmd("adb shell input text " + PIN_PASSWORD);
-    }
-
-    /**
      * 唤醒设备
      *
      * @param driver
@@ -1099,7 +1111,7 @@ public class AndroidDevice extends ModelL {
         Thread.sleep(2000);
 
         // 输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
-        String loginCommand = "adb -s " + udid + " shell input text szqj";
+        String loginCommand = "adb -s " + udid + " shell input text " + PIN_PASSWORD;
         runtime.exec(loginCommand);
         Thread.sleep(4000);
 
@@ -1164,9 +1176,9 @@ public class AndroidDevice extends ModelL {
      * 清空缓存日志
      */
     public void clearCacheLog() throws IOException {
-		String command = "adb -s " + this.udid + " logcat -c -b events";
-		Runtime.getRuntime().exec(command);
-		logger.info("Clear Device:[{}] cache log events", name);
+        String command = "adb -s " + this.udid + " logcat -c -b events";
+        Runtime.getRuntime().exec(command);
+        logger.info("Clear Device:[{}] cache log events", name);
     }
 
     /**

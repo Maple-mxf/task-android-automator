@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 
 /**
@@ -48,7 +47,9 @@ public class TaskFactory {
             if (StringUtils.isBlank(holder.class_name)) return null;
 
             // A2 检验设备是否存在
-            if (!AndroidDeviceManager.getInstance().deviceTaskMap.containsKey(holder.udid)) return null;
+            if (StringUtils.isNotBlank(holder.udid)) {
+                if (!AndroidDeviceManager.getInstance().deviceTaskMap.containsKey(holder.udid)) return null;
+            }
 
             // A3 检验账号是否存在
             if (holder.account_id != 0) {
@@ -61,8 +62,16 @@ public class TaskFactory {
 
             // B 反射生成Task的实例
             Class<?> clazz = Class.forName(holder.class_name);
-            Constructor<?> cons = clazz.getConstructor(TaskHolder.class, Array.class);
-            task = (Task) cons.newInstance(holder, holder.params);
+
+            Constructor<?> cons = clazz.getConstructor(TaskHolder.class, String[].class);
+
+            int length = holder.params.size();
+            String[] media = new String[length];
+            for (int i = 0; i < length; i++) {
+                media[i] = holder.params.get(i);
+            }
+
+            task = (Task) cons.newInstance(holder, media);
 
         } catch (Exception e) {
             logger.error("Error new instance of Task error. cause [{}] ", e);

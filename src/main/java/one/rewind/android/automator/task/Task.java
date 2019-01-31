@@ -68,7 +68,7 @@ public abstract class Task implements Callable<Boolean> {
         // 设定任务完成回调
         addDoneCallback((t) -> {
 
-            if(t.h.topic_name == null) return;
+            if (t.h.topic_name == null) return;
 
             // 发布消息
             RTopic<Object> topic = RedissonAdapter.redisson.getTopic(t.h.topic_name);
@@ -138,6 +138,10 @@ public abstract class Task implements Callable<Boolean> {
                         } catch (Exception e1) {
                             logger.error("Account[{}] update failure, ", account.id, e1);
                         }
+                    }
+                    // TODO  InterruptedException
+                    catch (InterruptedException e) {
+
                     }
 
                 } else {

@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.db;
 
-import one.rewind.data.raw.model.Comment;
-import one.rewind.db.Refacter;
+import one.rewind.data.raw.model.Platform;
+import one.rewind.db.util.Refactor;
 import org.junit.Test;
 
 /**
@@ -11,7 +11,7 @@ public class DBCreateTable {
 
     @Test
     public void createTable() throws Exception {
-        Refacter.createTable(Comment.class);
+        Refactor.createTable(Platform.class);
     }
 
 }

@@ -8,13 +8,20 @@ import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.util.ShellUtil;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.util.FileUtil;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
+import java.sql.SQLException;
 import java.util.List;
 
 public class ContactsAdapter extends Adapter {
+
+	@Override
+	public void switchAccount() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount, DBInitException, SQLException {
+
+	}
 
 	public ContactsAdapter(AndroidDevice androidDevice) throws AndroidException.IllegalStatusException {
 		super(androidDevice);

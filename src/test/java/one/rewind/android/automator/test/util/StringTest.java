@@ -1,8 +1,11 @@
 package one.rewind.android.automator.test.util;
 
+import com.google.common.collect.Maps;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.util.Tab;
 import org.junit.Test;
+
+import java.util.Map;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -34,5 +37,16 @@ public class StringTest {
             System.out.println(udid);
         }
 
+    }
+
+    @Test
+    public void testInt2String() {
+        int tmp = 2;
+
+        Map<String, Object> map = Maps.newHashMap();
+
+        map.put("account_id", tmp);
+
+        System.out.println(String.valueOf(map.get("account_id")));
     }
 }

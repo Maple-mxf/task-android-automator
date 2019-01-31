@@ -4,8 +4,8 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import one.rewind.db.DBName;
-import one.rewind.db.DaoManager;
+import one.rewind.db.Daos;
+import one.rewind.db.annotation.DBName;
 import one.rewind.db.model.ModelD;
 import one.rewind.db.persister.JSONableListPersister;
 
@@ -50,7 +50,7 @@ public class EssayComment extends ModelD {
      * @throws Exception
      */
     public static EssayComment getById(String  id) throws Exception {
-        Dao<EssayComment, String> dao = DaoManager.getDao(EssayComment.class);
+        Dao<EssayComment, String> dao = Daos.get(EssayComment.class);
         return dao.queryForId(id);
     }
 
@@ -62,7 +62,7 @@ public class EssayComment extends ModelD {
      * @throws Exception
      */
     public static List<EssayComment> findByEsssyId(String essay_id, long size, long offset) throws Exception {
-        Dao<EssayComment, String> dao = DaoManager.getDao(EssayComment.class);
+        Dao<EssayComment, String> dao = Daos.get(EssayComment.class);
         return dao.queryBuilder()
                 .limit(size).offset(offset)
                 .where()
@@ -77,7 +77,7 @@ public class EssayComment extends ModelD {
      * @throws Exception
      */
     public static long getCountByEsssyId(String essay_id) throws Exception {
-        Dao<EssayComment, String> dao = DaoManager.getDao(EssayComment.class);
+        Dao<EssayComment, String> dao = Daos.get(EssayComment.class);
         return dao.queryBuilder()
                 .where()
                 .eq("media_name", essay_id)
@@ -94,7 +94,7 @@ public class EssayComment extends ModelD {
      * @throws Exception
      */
     public static List<EssayComment> getLikeComments(String uid, long size, long offset) throws Exception {
-        Dao<EssayComment, String> dao = DaoManager.getDao(EssayComment.class);
+        Dao<EssayComment, String> dao = Daos.get(EssayComment.class);
         return dao.queryBuilder().limit(size).offset(offset).where()
                 .gt("like_count", 0).and().eq("uid", uid)
                 .query();
@@ -107,7 +107,7 @@ public class EssayComment extends ModelD {
      * @throws Exception
      */
     public static long getLikeCommentCountByUid(String uid) throws Exception {
-        Dao<EssayComment, String> dao = DaoManager.getDao(EssayComment.class);
+        Dao<EssayComment, String> dao = Daos.get(EssayComment.class);
         return dao.queryBuilder().where()
                 .gt("like_count", 0).and().eq("uid", uid)
                 .countOf();

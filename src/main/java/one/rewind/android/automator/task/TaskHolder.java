@@ -59,8 +59,8 @@ public class TaskHolder extends ModelD {
      * @param adapter_class_name
      * @param class_name
      */
-    public TaskHolder(String id, String adapter_class_name, String class_name) {
-        this(id, null, adapter_class_name, class_name, 0);
+    public TaskHolder(String id, String adapter_class_name, String class_name,List<String> params) {
+        this(id, null, adapter_class_name, class_name, 0,params);
     }
 
     /**
@@ -69,8 +69,8 @@ public class TaskHolder extends ModelD {
      * @param udid
      * @param class_name
      */
-    public TaskHolder(String id, String udid, String adapter_class_name, String class_name) {
-        this(id, udid, adapter_class_name, class_name, 0);
+    public TaskHolder(String id, String udid, String adapter_class_name, String class_name,List<String> params) {
+        this(id, udid, adapter_class_name, class_name, 0,params);
     }
 
     /**
@@ -79,13 +79,14 @@ public class TaskHolder extends ModelD {
      * @param class_name
      * @param account_id
      */
-    public TaskHolder(String id, String udid, String adapter_class_name, String class_name, int account_id) {
+    public TaskHolder(String id, String udid, String adapter_class_name, String class_name, int account_id,List<String> params) {
 
         this.id = id;
         this.udid = udid;
         this.adapter_class_name = adapter_class_name;
         this.class_name = class_name;
         this.account_id = account_id;
+        this.params = params;
     }
 
     /**

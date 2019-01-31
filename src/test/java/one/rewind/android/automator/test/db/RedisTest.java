@@ -61,5 +61,15 @@ public class RedisTest {
 		});
 	}
 
+	public void test2(String...args){
+		Class<? extends String[]> aClass = args.getClass();
+		boolean array = aClass.isArray();
+		System.out.println(args.getClass());
+		System.out.println(args.getClass());
+	}
 
+	@Test
+	public void test1(){
+		test2("1");
+	}
 }

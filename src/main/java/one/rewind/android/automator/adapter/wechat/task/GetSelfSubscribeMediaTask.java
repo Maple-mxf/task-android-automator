@@ -59,9 +59,11 @@ public class GetSelfSubscribeMediaTask extends Task {
         try {
 
             // 0 启动APP
+            h.r("0 启动APP");
             adapter.restart();
 
             // A 进入已订阅公众号的列表页面params
+            h.r("A 进入已订阅公众号的列表页面params");
             adapter.goToSubscribePublicAccountList();
 
             // 最后一页
@@ -71,6 +73,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 
 
                 // B 获取当前页截图
+                h.r("B 获取当前页截图");
                 List<OCRParser.TouchableTextArea> accountList = OCRClient.getInstance().getTextBlockArea(adapter.device.screenshot());
 
                 // C 获取公众号信息
@@ -102,9 +105,12 @@ public class GetSelfSubscribeMediaTask extends Task {
                     if (media == null) {
 
                         // D1 进入公众号Home页
+                        h.r("D1 进入公众号Home页");
                         this.adapter.goToSubscribedPublicAccountHome(area.left, area.top);
 
                         // D2 查看公众号的更多资料
+
+                        h.r("D2 查看公众号的更多资料");
                         WeChatAdapter.PublicAccountInfo pai = this.adapter.getPublicAccountInfo(area.content, false);
 
                         media = GetMediaEssaysTask.parseMedia(pai);
@@ -116,6 +122,7 @@ public class GetSelfSubscribeMediaTask extends Task {
                         }
 
                         // D3 返回到原来的页面
+                        h.r("D3 返回到原来的页面");
                         adapter.device.goBack();
                         adapter.device.goBack();
 
@@ -124,6 +131,7 @@ public class GetSelfSubscribeMediaTask extends Task {
                     }
 
                     // 记录Account订阅的Media信息
+                    h.r("D3 记录Account订阅的Media信息");
                     WechatAccountMediaSubscribe wams = new WechatAccountMediaSubscribe(this.adapter.account.id, media.id, media.name, media.nick);
 
                     try {
