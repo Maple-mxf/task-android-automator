@@ -18,8 +18,8 @@ import java.util.TimerTask;
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
-@DBName("raw")
-@DatabaseTable(tableName = "app_accounts")
+@DBName("android_automator")
+@DatabaseTable(tableName = "accounts")
 public class Account extends ModelL {
 
     static {
@@ -101,8 +101,9 @@ public class Account extends ModelL {
                     eq("udid", udid).and().
                     eq("adapter_class_name", adapter_class_name).
                     and().
-                    eq("status", Status.Normal).
-                    queryForFirst();
+                    eq("status", Status.Normal)
+                    .and().eq("occupied", 0)
+                    .queryForFirst();
 
             if (account != null) {
                 account.occupied = true;
@@ -128,11 +129,12 @@ public class Account extends ModelL {
         try {
             Dao<Account, String> dao = Daos.get(Account.class);
 
-            account = dao.queryBuilder().where().
-                    eq("udid", udid)
+            account = dao.queryBuilder().where()
+                    .eq("udid", udid)
                     .and().eq("adapter_class_name", adapter_class_name)
-                    .and().in("status", statuses).
-                            queryForFirst();
+                    .and().in("status", statuses)
+                    .and().eq("occupied", 0)
+                    .queryForFirst();
 
             if (account != null) {
                 account.occupied = true;

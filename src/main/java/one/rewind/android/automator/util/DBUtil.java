@@ -1,6 +1,11 @@
 package one.rewind.android.automator.util;
 
 import com.j256.ormlite.dao.GenericRawResults;
+import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.task.TaskHolder;
+import one.rewind.android.automator.task.TaskRecord;
+import one.rewind.db.util.Refactor;
 
 import java.sql.SQLException;
 
@@ -41,7 +46,23 @@ public class DBUtil {
 	/**
 	 * 初始化表
 	 */
-	public static void initDB() {
+	public static void initDB(boolean createRaw) {
 
+        Refactor.dropTables("one.rewind.android.automator.adapter.wechat.model");
+        Refactor.dropTable(TaskHolder.class);
+        Refactor.dropTable(TaskRecord.class);
+        Refactor.dropTable(Account.class);
+        Refactor.dropTable(AndroidDevice.class);
+
+        //Refactor.createTable(Platform.class);
+        Refactor.createTables("one.rewind.android.automator.adapter.wechat.model");
+        Refactor.createTable(TaskHolder.class);
+        Refactor.createTable(TaskRecord.class);
+        Refactor.createTable(Account.class);
+        Refactor.createTable(AndroidDevice.class);
+
+        if(createRaw) {
+            Refactor.createTables("one.rewind.data.raw.model");
+        }
 	}
 }

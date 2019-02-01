@@ -9,8 +9,8 @@ import one.rewind.db.model.ModelL;
 /**
  * @author maxuefeng [m17793873123@163.com]
  */
-@DBName("raw")
-@DatabaseTable(tableName = "sys_log")
+@DBName("android_automator")
+@DatabaseTable(tableName = "sys_logs")
 public class SysLog extends ModelL {
 
     public SysLog(){}

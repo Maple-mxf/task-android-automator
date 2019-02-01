@@ -77,8 +77,8 @@ import java.util.concurrent.*;
  * 第三部 通过AppiumDriverLocalService本地服务地址, 初始化AndroidDevice, 实现对设备的自动化操作
  * AndroidDriver --> AppiumDriverLocalService(HTTP) --> (ADB/HTTP Wired JSON) --> AppiumServer
  */
-@DBName("raw")
-@DatabaseTable(tableName = "androidDevices")
+@DBName("android_automator")
+@DatabaseTable(tableName = "android_devices")
 public class AndroidDevice extends ModelL {
 
     private static final Logger logger = LogManager.getLogger(AndroidDevice.class.getName());
@@ -1299,8 +1299,8 @@ public class AndroidDevice extends ModelL {
      */
     public void killAllBackgroundProcess() throws IOException {
 
-        // 查看第三方应用
-        String packageList = ShellUtil.exeCmd("adb command: adb shell pm list packages -3");
+        // 查看所有的第三方应用
+        String packageList = ShellUtil.exeCmd("adb shell pm list packages -3");
 
         String[] ps = packageList.split("package:");
 
@@ -1312,8 +1312,11 @@ public class AndroidDevice extends ModelL {
             }
         }
 
-        // 不能杀死appium的进程
-        // [io.appium.uiautomator2.server] [io.appium.uiautomator2.server.test] [io.appium.settings]
+        // 排除appium的进程
+        // [io.appium.uiautomator2.server]
+        // [io.appium.uiautomator2.server.test]
+        // [io.appium.settings]
+        // TODO
         packages.forEach(p -> {
             if (!p.equals("io.appium.uiautomator2.server") && !p.equals("io.appium.uiautomator2.server.test") && !p.equals("io.appium.settings")) {
                 shutdownProcess(p);

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * @author maxuefeng[m17793873123@163.com]
  */
-@DBName(value = "raw")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "wechat_account_media_subscribes")
 public class WechatAccountMediaSubscribe extends ModelL {
 

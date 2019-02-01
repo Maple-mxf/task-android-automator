@@ -65,16 +65,14 @@ public class TaskFactory {
 
             Constructor<?> cons = clazz.getConstructor(TaskHolder.class, String[].class);
 
-            int length = holder.params.size();
-            String[] media = new String[length];
-            for (int i = 0; i < length; i++) {
-                media[i] = holder.params.get(i);
-            }
+            String[] params = null;
+            if(holder.params != null)
+                params = holder.params.toArray(new String[holder.params.size()]);
 
-            task = (Task) cons.newInstance(holder, media);
+            task = (Task) cons.newInstance(holder, params);
 
         } catch (Exception e) {
-            logger.error("Error new instance of Task error. cause [{}] ", e);
+            logger.error("Error new instance of Task error, ", e);
         }
         return task;
     }

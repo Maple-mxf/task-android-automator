@@ -14,7 +14,7 @@ import java.util.List;
  * @author scisaga@gmail.com
  * @date 2019/1/24
  */
-@DBName(value = "raw")
+@DBName(value = "android_automator")
 @DatabaseTable(tableName = "tasks")
 public class TaskHolder extends ModelD {
 
@@ -39,7 +39,7 @@ public class TaskHolder extends ModelD {
     public List<String> params; // 全称
 
     @DatabaseField(dataType = DataType.DATE)
-    public Date create_time;
+    public Date create_time = new Date();
 
     @DatabaseField(dataType = DataType.DATE)
     public Date start_time;
@@ -53,14 +53,18 @@ public class TaskHolder extends ModelD {
     @DatabaseField(dataType = DataType.STRING, columnDefinition = "MEDIUMTEXT")
     public String error; // 保存出错的堆栈信息
 
+    public TaskHolder(String id, String adapter_class_name, String class_name) {
+        this(id, null, adapter_class_name, class_name, 0, null);
+    }
+
     /**
      * 不指定 设备 不指定账号
      * @param id
      * @param adapter_class_name
      * @param class_name
      */
-    public TaskHolder(String id, String adapter_class_name, String class_name,List<String> params) {
-        this(id, null, adapter_class_name, class_name, 0,params);
+    public TaskHolder(String id, String adapter_class_name, String class_name, List<String> params) {
+        this(id, null, adapter_class_name, class_name, 0, params);
     }
 
     /**
@@ -69,8 +73,8 @@ public class TaskHolder extends ModelD {
      * @param udid
      * @param class_name
      */
-    public TaskHolder(String id, String udid, String adapter_class_name, String class_name,List<String> params) {
-        this(id, udid, adapter_class_name, class_name, 0,params);
+    public TaskHolder(String id, String udid, String adapter_class_name, String class_name, List<String> params) {
+        this(id, udid, adapter_class_name, class_name, 0, params);
     }
 
     /**
@@ -79,7 +83,7 @@ public class TaskHolder extends ModelD {
      * @param class_name
      * @param account_id
      */
-    public TaskHolder(String id, String udid, String adapter_class_name, String class_name, int account_id,List<String> params) {
+    public TaskHolder(String id, String udid, String adapter_class_name, String class_name, int account_id, List<String> params) {
 
         this.id = id;
         this.udid = udid;

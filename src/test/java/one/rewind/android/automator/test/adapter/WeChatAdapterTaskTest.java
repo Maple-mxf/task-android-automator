@@ -1,0 +1,41 @@
+package one.rewind.android.automator.test.adapter;
+
+import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.task.GetSelfSubscribeMediaTask;
+import one.rewind.android.automator.exception.AccountException;
+import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.android.automator.exception.TaskException;
+import one.rewind.android.automator.task.Task;
+import one.rewind.android.automator.task.TaskFactory;
+import one.rewind.android.automator.task.TaskHolder;
+import one.rewind.txt.StringUtil;
+import org.junit.Before;
+import org.junit.Test;
+
+/**
+ * @author maxuefeng [m17793873123@163.com]
+ */
+public class WeChatAdapterTaskTest {
+
+    @Before
+    public void initAndroidDeviceManager() throws Exception {
+
+        AndroidDeviceManager.getInstance().detectDevices();
+
+    }
+
+    @Test
+    public void testGetSelfSubscribePublicAccountTest() throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+
+        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetSelfSubscribeMediaTask.class.getName());
+
+        Task task = TaskFactory.getInstance().generateTask(holder);
+
+        AndroidDeviceManager.getInstance().submit(task);
+
+        Thread.sleep(10000000);
+
+    }
+
+}

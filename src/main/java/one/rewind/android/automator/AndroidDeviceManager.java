@@ -101,6 +101,10 @@ public class AndroidDeviceManager {
 
                 AndroidDevice device = AndroidDevice.getAndroidDeviceByUdid(udid);
 
+                device.status = AndroidDevice.Status.New;
+
+
+
                 devices.add(device);
             }
         }
@@ -138,20 +142,24 @@ public class AndroidDeviceManager {
                     }
                     // 找不到账号，对应设备无法启动
                     else {
+                        logger.error("Device:[{}] Add Failed, No available account for Adapter:[{}].", ad.name, className);
                         SysLog.log("Device [" + ad.udid + "] Add Failed, No available account for " + className);
                         ad.status = AndroidDevice.Status.Failed;
                         ad.update();
                     }
-                } else {
+                }
+                else {
 
                     cons = clazz.getConstructor(AndroidDevice.class);
                     cons.newInstance(ad);
                 }
             }
 
+
+
             // 添加到容器中 并添加队列
             deviceTaskMap.put(ad, new LinkedBlockingQueue<>());
-            logger.info("Add device [{}] in device container", ad.udid);
+            logger.info("Add device:[{}] in device container", ad.udid);
 
             // 设备INIT
             executor.submit(() -> {
@@ -258,7 +266,8 @@ public class AndroidDeviceManager {
 
         List<AndroidDevice> devices = deviceTaskMap.keySet().stream()
                 .filter(d ->
-                        (d.status == AndroidDevice.Status.Init ||
+                        (d.status == AndroidDevice.Status.New ||
+                                d.status == AndroidDevice.Status.Init ||
                                 d.status == AndroidDevice.Status.Idle ||
                                 d.status == AndroidDevice.Status.Busy) &&
                                 d.adapters.get(AdapterClassName) != null)
@@ -343,7 +352,7 @@ public class AndroidDeviceManager {
             }
             System.out.println(sb.toString());
 
-            logger.info("Console Output info is :[{}]", sb.toString());
+            logger.info(sb.toString());
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
