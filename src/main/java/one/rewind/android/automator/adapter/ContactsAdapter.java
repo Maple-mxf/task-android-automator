@@ -18,16 +18,17 @@ import java.util.List;
 
 public class ContactsAdapter extends Adapter {
 
-	@Override
-	public void switchAccount() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount, DBInitException, SQLException {
-
-	}
 
 	public ContactsAdapter(AndroidDevice androidDevice) throws AndroidException.IllegalStatusException {
 		super(androidDevice);
 		this.appInfo = new AppInfo(
 				"com.google.android.contacts",
 				"com.android.contacts.activities.PeopleActivity");
+	}
+
+	@Override
+	public void switchAccount(Account.Status... statuses) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, DBInitException, SQLException {
+
 	}
 
 	public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
@@ -145,10 +146,5 @@ public class ContactsAdapter extends Adapter {
 
 			Thread.sleep(300);
 		}
-	}
-
-	@Override
-	public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken {
-
 	}
 }

@@ -24,6 +24,7 @@ import org.openqa.selenium.*;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -152,7 +153,7 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws Exception
      */
-    public void start() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
+    public void start() throws InterruptedException, AccountException.Broken, AdapterException.LoginScriptError {
 
         super.start();
 
@@ -164,17 +165,30 @@ public class WeChatAdapter extends Adapter {
         // 验证到首页 或者 首页登陆界面 并更改状态
         if (!atHome()) {
             login();
-        } else {
+        }
+        else {
 
             status = Status.Home;
 
             // B11 验证当前微信用户 与 account 相对应
-            UserInfo userInfo = getLocalUserInfo();
+            UserInfo userInfo = null;
+            try {
+
+                userInfo = getLocalUserInfo();
+            } catch (Exception e) {
+                logger.error("Adapter:[{}] Account:[{}] login process unfinished, ", this.getClass().getSimpleName(), account.id, e);
+                throw new AdapterException.LoginScriptError(this, account);
+            }
+
+            if(userInfo == null) throw new AdapterException.LoginScriptError(this, account);
+
             // 微信昵称 与 微信号 有一个不对应
             if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
                 loginOut();
                 login();
             }
+
+
         }
     }
 
@@ -203,7 +217,7 @@ public class WeChatAdapter extends Adapter {
     /**
      * 重启微信
      */
-    public void restart() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
+    public void restart() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken {
 
         super.restart();
 
@@ -603,53 +617,67 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws InterruptedException
      */
-    public void loginOut() throws AdapterException.OperationException, InterruptedException {
+    public void loginOut() throws AdapterException.LoginScriptError, InterruptedException {
 
-		// A 点击我
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
-		Thread.sleep(500);
+        try {
+            // A 点击我
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
+            Thread.sleep(500);
 
-		// B 点击设置
-		device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
-		Thread.sleep(500);
+            // B 点击设置
+            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
+            Thread.sleep(500);
 
-		// C 向下滑
-		device.slideToPoint(500, 1800, 600, 1000, 500);
+            // C 向下滑
+            device.slideToPoint(500, 1800, 600, 1000, 500);
 
-		// D 点击退出
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出')]")).click();
-		Thread.sleep(1000);
+            // D 点击退出
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出')]")).click();
+            Thread.sleep(1000);
 
-		// D 点击退出
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出登录')]")).click();
-		Thread.sleep(5000);
+            // D 点击退出
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出登录')]")).click();
+            Thread.sleep(5000);
+
 		// 不能正常执行上述操作
+        } catch (Exception e) {
+            logger.error("Adapter:[{}] Account:[{}] logout process unfinished, ", this.getClass().getSimpleName(), account.id, e);
+            throw new AdapterException.LoginScriptError(this, account);
+        } finally {
+            account = null;
+        }
     }
 
     /**
      * 登录
      */
-    public void login() throws AdapterException.OperationException, AccountException.Broken, InterruptedException {
+    public void login() throws AccountException.Broken, InterruptedException, AdapterException.LoginScriptError {
 
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多')]")).click();
-		Thread.sleep(2000);
+        try {
 
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录其他帐号')]")).click();
-		Thread.sleep(2000);
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多')]")).click();
+            Thread.sleep(2000);
 
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
-		Thread.sleep(2000);
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录其他帐号')]")).click();
+            Thread.sleep(2000);
 
-		// A 输入账号密码  appAccount
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).sendKeys(account.src_id);
-		Thread.sleep(1000);
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
+            Thread.sleep(2000);
 
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'请填写密码')]")).sendKeys(account.password);
-		Thread.sleep(1000);
+            // A 输入账号密码  appAccount
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).sendKeys(account.src_id);
+            Thread.sleep(1000);
 
-		// B 点击登录
-		device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录')]")).click();
-		Thread.sleep(5000);
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'请填写密码')]")).sendKeys(account.password);
+            Thread.sleep(1000);
+
+            // B 点击登录
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录')]")).click();
+            Thread.sleep(5000);
+        } catch (Exception e) {
+            logger.error("Adapter:[{}] Account:[{}] login process unfinished, ", this.getClass().getSimpleName(), account.id, e);
+            throw new AdapterException.LoginScriptError(this, account);
+        }
 
 
         // C 验证是否存在拖拽操作等安全验证操作  TODO
@@ -662,9 +690,8 @@ public class WeChatAdapter extends Adapter {
         }
         // 无法进入首页，应该是账号问题
         else {
-
+            account = null;
             account.status = Account.Status.Broken;
-
             throw new AccountException.Broken(account);
         }
     }
@@ -676,8 +703,6 @@ public class WeChatAdapter extends Adapter {
      * @throws InterruptedException 中断异常
      */
     public UserInfo getLocalUserInfo() throws InterruptedException {
-
-        // TODO 状态验证
 
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
         Thread.sleep(500);
@@ -1390,30 +1415,40 @@ public class WeChatAdapter extends Adapter {
         }
     }
 
-
     /**
-     * 切换微信账号
-     * TODO 之前账号的状态需要妥善处理
+     *
+     * @throws InterruptedException
+     * @throws AccountException.NoAvailableAccount
+     * @throws AdapterException.OperationException
+     * @throws DBInitException
+     * @throws SQLException
      */
-    public void switchAccount(Account account) throws InterruptedException, AccountException.Broken, AdapterException.OperationException {
+	public void switchAccount(Account.Status... statuses) throws InterruptedException, AccountException.NoAvailableAccount, AdapterException.LoginScriptError, DBInitException, SQLException {
 
-        this.account = account;
+        Account account = null;
 
-        // A 退出登录
-        loginOut();
-
-        // B 登录账号  TODO 登录账号需要改变当前类的Account
-        login();
-    }
-
-	public void switchAccount() throws InterruptedException, AccountException.NoAvailableAccount, AdapterException.OperationException, DBInitException, SQLException {
-
-		Account account = Account.getAccount(device.udid, WeChatAdapter.class.getName());
+	    if(statuses.length == 0) {
+            account = Account.getAccount(device.udid, WeChatAdapter.class.getName());
+        } else {
+            account = Account.getAccount(device.udid, getClass().getName(), Arrays.asList(statuses));
+        }
 
 		if(account != null) {
-			try {
-				switchAccount(account);
-			} catch (AccountException.Broken broken) {
+
+		    try {
+
+                this.account = account;
+
+                // A 退出登录
+                loginOut();
+
+                // B 登录账号  TODO 登录账号需要改变当前类的Account
+                login();
+
+			}
+		    catch (AccountException.Broken broken) {
+
+		        logger.warn("Device:[{}] Adapter:[{}] Account:[{}] Account broken, ", device.name, getClass().getSimpleName(), account.id, broken);
 				account.status = Account.Status.Broken;
 				account.update();
 				switchAccount();

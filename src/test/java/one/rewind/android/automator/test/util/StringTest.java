@@ -49,4 +49,21 @@ public class StringTest {
 
         System.out.println(String.valueOf(map.get("account_id")));
     }
+
+
+    @Test
+    public void testSplit() {
+        String result = "package:io.appium.settings\n" +
+                "package:com.mgyapp.android\n" +
+                "package:io.appium.uiautomator2.server\n" +
+                "package:com.tencent.mm\n" +
+                "package:io.appium.uiautomator2.server.test\n" +
+                "package:com.mgyun.shua.protector\n" +
+                "package:io.appium.unlock";
+        String[] split = result.split("package:");
+        for (String var : split) {
+
+            System.out.println(var);
+        }
+    }
 }

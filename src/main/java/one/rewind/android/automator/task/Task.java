@@ -6,11 +6,13 @@ import one.rewind.android.automator.callback.TaskCallback;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.db.RedissonAdapter;
+import one.rewind.db.exception.DBInitException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RTopic;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -90,9 +92,11 @@ public abstract class Task implements Callable<Boolean> {
             IOException, //
             AccountException.NoAvailableAccount, // 没有可用账号
             AccountException.Broken, // 账号不可用
-            AdapterException.OperationException, // Adapter 逻辑出错
+            AdapterException.LoginScriptError, // Adapter 逻辑出错
             AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
-            AdapterException.NoResponseException // App 没有响应
+            AdapterException.NoResponseException, // App 没有响应
+            DBInitException,
+            SQLException
     ;
 
     public Task addDoneCallback(TaskCallback tc) {
@@ -114,43 +118,11 @@ public abstract class Task implements Callable<Boolean> {
      * @throws AdapterException.OperationException
      * @throws AccountException.NoAvailableAccount
      */
-    public void checkAccountStatus() throws AccountException.NoAvailableAccount, AdapterException.OperationException {
+    public void checkAccountStatus() throws AccountException.NoAvailableAccount, AdapterException.LoginScriptError, InterruptedException, SQLException, DBInitException {
 
         // TODO 判断 adapter 不能为null
         if (!accountPermitStatuses.contains(adapter.account.status)) {
-
-            boolean switchAccount = false;
-            int retryCount = 0;
-
-            while (retryCount < 2 && !switchAccount) {
-
-                Account account = Account.getAccount(adapter.device.udid, adapter.getClass().getName(), accountPermitStatuses);
-
-                if (account != null) {
-
-                    try {
-                        adapter.switchAccount(account);
-                        switchAccount = true;
-                    } catch (AccountException.Broken broken) {
-                        logger.warn("Account[{}] broken, ", account.id, broken);
-                        try {
-                            broken.account.update();
-                        } catch (Exception e1) {
-                            logger.error("Account[{}] update failure, ", account.id, e1);
-                        }
-                    }
-                    // TODO  InterruptedException
-                    catch (InterruptedException e) {
-
-                    }
-
-                } else {
-                    // 找不到可用账号
-                    throw new AccountException.NoAvailableAccount();
-                }
-
-                retryCount++;
-            }
+            adapter.switchAccount(accountPermitStatuses.toArray(new Account.Status[accountPermitStatuses.size()]));
         }
     }
 

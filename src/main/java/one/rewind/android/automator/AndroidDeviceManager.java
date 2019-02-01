@@ -60,17 +60,26 @@ public class AndroidDeviceManager {
     // 所有设备的任务
     public ConcurrentHashMap<AndroidDevice, BlockingQueue<Task>> deviceTaskMap = new ConcurrentHashMap<>();
 
+    // 控制Device执行命令的线程池
     public ThreadPoolExecutor executor;
 
     /**
      *
      */
     private AndroidDeviceManager() {
+
         executor = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>());
         executor.setThreadFactory(new ThreadFactoryBuilder()
                 .setNameFormat("AndroidDeviceManager-%d").build());
+
+        // TODO 需要先执行 adb
     }
 
+    /**
+     * 应该每隔10s 执行一次
+     *
+     * @throws Exception
+     */
     public void detectDevices() throws Exception {
 
         // A 先找设备
@@ -86,7 +95,9 @@ public class AndroidDeviceManager {
                 // 此时假设对应Device已经序列化
                 logger.info("Device {} already initialized.", udid);
 
-            } else {
+            }
+            // A2 找到没有识别的设备
+            else {
 
                 AndroidDevice device = AndroidDevice.getAndroidDeviceByUdid(udid);
 
@@ -139,8 +150,8 @@ public class AndroidDeviceManager {
             }
 
             // 添加到容器中 并添加队列
-            deviceTaskMap.put(ad, new LinkedBlockingDeque<>());
-            logger.info("add device [{}] in device container", ad.udid);
+            deviceTaskMap.put(ad, new LinkedBlockingQueue<>());
+            logger.info("Add device [{}] in device container", ad.udid);
 
             // 设备INIT
             executor.submit(() -> {
@@ -152,12 +163,11 @@ public class AndroidDeviceManager {
             });
 
             // 添加 idle 回掉方法 获取执行任务
-            ad.initCallbacks.add((d) -> {
+            ad.addIdleCallback((d) -> {
                 assign(d);
             });
         }
     }
-
 
     /**
      * 从队列中拿任务
@@ -171,8 +181,13 @@ public class AndroidDeviceManager {
         AndroidDevice device = deviceTaskMap.keySet().stream().filter(d -> d.udid.equals(ad.udid)).findFirst().orElse(null);
 
         if (device != null) {
+
+            logger.info("Device[{}] take queue task from queue, ", device.udid);
+
             Task task = deviceTaskMap.get(device).take();
 
+            logger.info("Device[{}] has take task from queue, status[{}], ", device.udid, device.status);
+            
             // 提交任务
             ad.submit(task);
         }
@@ -182,7 +197,7 @@ public class AndroidDeviceManager {
     /**
      * @param task
      */
-    public SubmitInfo submit(Task task) throws AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+    public SubmitInfo submit(Task task) throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
         if (task == null) return new SubmitInfo(false);
 
@@ -225,26 +240,32 @@ public class AndroidDeviceManager {
             device = getDevice(adapterClassName);
         }
 
-        deviceTaskMap.get(device).offer(task);
+        logger.info("Device[{}] accept task, ", device.udid);
+
+        // 将当前任务放在队列的头部
+        deviceTaskMap.get(device).put(task);
 
         return new SubmitInfo(task, device);
     }
 
     /**
-     * 选择任务最少的Device 保证公平性
+     * 选择任务最少的Device 保证公平性 TODO  Device处于Init状态是否可以接受任务？
      *
      * @param AdapterClassName
      * @return
      */
     public AndroidDevice getDevice(String AdapterClassName) throws AndroidException.NoAvailableDeviceException {
 
-
         List<AndroidDevice> devices = deviceTaskMap.keySet().stream()
-                .filter(d -> d.status == AndroidDevice.Status.Idle || d.status == AndroidDevice.Status.Busy && d.adapters.get(AdapterClassName) != null)
+                .filter(d ->
+                        (d.status == AndroidDevice.Status.Init ||
+                                d.status == AndroidDevice.Status.Idle ||
+                                d.status == AndroidDevice.Status.Busy) &&
+                                d.adapters.get(AdapterClassName) != null)
                 .map(d -> new AbstractMap.SimpleEntry<>(d, deviceTaskMap.get(d).size()))
                 .sorted(Map.Entry.comparingByValue())
                 .limit(1)
-                .map(entry -> entry.getKey())
+                .map(AbstractMap.SimpleEntry::getKey)
                 .collect(Collectors.toList());
 
         if (devices.size() == 1) {

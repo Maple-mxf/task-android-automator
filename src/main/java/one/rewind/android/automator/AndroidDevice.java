@@ -2,9 +2,13 @@ package one.rewind.android.automator;
 
 import com.dw.ocr.util.ImageUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.field.FieldType;
+import com.j256.ormlite.field.SqlType;
+import com.j256.ormlite.field.types.StringType;
 import com.j256.ormlite.table.DatabaseTable;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
@@ -36,6 +40,7 @@ import one.rewind.db.Daos;
 import one.rewind.db.annotation.DBName;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.ModelL;
+import one.rewind.json.JSON;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
@@ -52,6 +57,7 @@ import se.vidstige.jadb.managers.PackageManager;
 
 import javax.imageio.ImageIO;
 import java.io.*;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
@@ -80,24 +86,34 @@ public class AndroidDevice extends ModelL {
     public static final String PIN_PASSWORD = "1234";
 
     // 启动超时时间
-    private static int INIT_TIMEOUT = 200000;
+    private static int INIT_TIMEOUT = 2000000;
 
     // 关闭超时时间
-    private static int CLOSE_TIMEOUT = 200000;
+    private static int CLOSE_TIMEOUT = 20000000;
 
     public enum Status {
         New,  // 新创建
         Init, // 初始化中
         Idle, // 初始化完成，可执行任务
         Busy, // 任务执行中
-        Failed, // 出错
+        Failed, // 出错 --> stop/start? reboot?
+        DeviceFailed, // --> reboot?
         Terminating, // 终止过程中
         Terminated,  // 已终止
-        Broken // 不可用
+        DeviceBooting, // 重启过程中
+        DeviceReady, // 重启过程中
+        DeviceBroken // 不可用
+    }
+
+    public enum Flag {
+        Cleaned, NewReboot
     }
 
     @DatabaseField(dataType = DataType.ENUM_STRING, width = 32)
     public volatile Status status = Status.New;
+
+    @DatabaseField(persisterClass = JSONableFlagListPersister.class, width = 32)
+    public List<Flag> flags = new ArrayList<>();
 
     @DatabaseField(dataType = DataType.STRING, width = 32)
     private String local_ip; // 本地IP
@@ -244,10 +260,9 @@ public class AndroidDevice extends ModelL {
 
                 d.startAdapter(adapter);
 
-            } catch (AdapterException.OperationException e) {
+            } catch (AdapterException.LoginScriptError e) {
 
                 logger.error("Adapter operation exception, ", e);
-
                 this.adapters.remove(adapter.getClass().getName());
 
             } catch (AccountException.NoAvailableAccount noAvailableAccount) {
@@ -264,13 +279,13 @@ public class AndroidDevice extends ModelL {
      * @param adapter
      * @return
      */
-    public AndroidDevice startAdapter(Adapter adapter) throws DBInitException, SQLException, InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
+    public AndroidDevice startAdapter(Adapter adapter) throws DBInitException, SQLException, InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount {
 
         try {
             adapter.start();
         } catch (AccountException.Broken broken) {
 
-            logger.error("{} Account[{}] broken, ", adapter.getClass().getSimpleName(), broken.account.id, broken);
+            logger.error("Adapter[{}] Account[{}] broken, ", adapter.getClass().getSimpleName(), broken.account.id, broken);
             broken.account.status = Account.Status.Broken;
             broken.account.update();
 
@@ -306,6 +321,7 @@ public class AndroidDevice extends ModelL {
             // 启动相关服务
             initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI"));
 
+            //
             runCallbacks(initCallbacks).get();
 
             init_time = new Date();
@@ -356,13 +372,17 @@ public class AndroidDevice extends ModelL {
             clearCacheLog();
             clearAllLog();
 
+            flags.add(Flag.Cleaned);
+
             logger.info("Device:[{}] cleaned.", name);
 
             return true;
         }
     }
 
-
+    /**
+     *
+     */
     public class Reboot implements Callable<Boolean> {
 
         public Boolean call() throws Exception {
@@ -372,6 +392,8 @@ public class AndroidDevice extends ModelL {
             enterADBShell(udid);
 
             ShellUtil.exeCmd("reboot");
+
+            status = Status.DeviceBooting;
 
             Thread.sleep(120000);
 
@@ -392,6 +414,8 @@ public class AndroidDevice extends ModelL {
             touch(1114, 2114, 3000);
 
             logger.info("Device:[{}] booted.", name);
+
+            flags.add(Flag.NewReboot);
 
             return true;
         }
@@ -448,6 +472,10 @@ public class AndroidDevice extends ModelL {
             status = Status.Failed;
             logger.error("[{}] INIT failed. ", name, e);
             stop();
+
+        } finally {
+
+            this.update();
         }
 
         return this;
@@ -471,7 +499,7 @@ public class AndroidDevice extends ModelL {
             // TODO New
             // Terminating, // 终止过程中
             // Terminated,  // 已终止
-            // Broken // 不可用
+            // DeviceBroken // 不可用
             throw new AndroidException.IllegalStatusException();
         }
 
@@ -504,6 +532,7 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] Stop failed. ", name, e);
 
         } finally {
+
             this.update();
         }
 
@@ -545,6 +574,43 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
+     * @throws DBInitException
+     * @throws SQLException
+     */
+    public void reboot() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
+
+        Future<Boolean> feature = executor.submit(new Reboot());
+
+        try {
+
+            feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+            logger.info("Device:[{}] clear done.", name);
+
+            stop();
+            start();
+
+        } catch (InterruptedException e) {
+
+            status = Status.DeviceBroken;
+            logger.error("Device:[{}] reboot interrupted. ", name, e);
+
+        } catch (ExecutionException e) {
+
+            status = Status.DeviceBroken;
+            logger.error("Device:[{}] reboot failed. ", name, e.getCause());
+
+        } catch (TimeoutException e) {
+
+            feature.cancel(true);
+            status = Status.DeviceBroken;
+            logger.error("Device:[{}] reboot failed. ", name, e);
+
+        } finally {
+            this.update();
+        }
+    }
+
+    /**
      * 重启
      * TODO 是否可以通过添加Terminated回调来实现？
      * 场景: 设备运行时间过程, 没有响应
@@ -567,6 +633,8 @@ public class AndroidDevice extends ModelL {
 
         this.status = Status.Busy;
 
+        boolean restart = false;
+
         task.adapter = adapters.get(task.h.adapter_class_name);
 
         boolean retry = false;
@@ -578,6 +646,9 @@ public class AndroidDevice extends ModelL {
             // 如果任务不需要重试  则直接退出循环
             retry = taskFuture.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
 
+            task.adapter.exceptions.clear();
+            flags.clear();
+
             // 执行成功回调
             for (TaskCallback callback : task.successCallbacks) {
                 callback.call(task);
@@ -587,16 +658,16 @@ public class AndroidDevice extends ModelL {
 
             runCallbacks(idleCallbacks);
         }
-        // E1 线程中断异常 TODO 捕获不到 原因未知
+        // E1 线程中断异常 TODO 基本上是 executor 被异常终止才会报该异常
         catch (InterruptedException e) {
 
             logger.error("Device:[{}] Adapter:[{}] Task:[{}] interrupted, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
             status = Status.Failed;
         }
-        // E2 任务被外部终止 什么都不用做 状态设为Idle
+        // E2 任务被外部终止 taskFuture.cancel() 产生 状态设为Idle
         catch (CancellationException e) {
 
-            logger.error("Device:[{}] Adapter:[{}] Task:[{}] cancelled, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
+            logger.warn("Device:[{}] Adapter:[{}] Task:[{}] cancelled, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
             status = Status.Idle;
         }
         // E3 基本不会捕获
@@ -605,11 +676,7 @@ public class AndroidDevice extends ModelL {
             logger.error("Device:[{}] Adapter:[{}] Task:[{}] timeout, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
 
             taskFuture.cancel(true);
-
-            logger.info("Device:[{}] remove Adapter:[{}]", name, task.adapter.getClass().getSimpleName());
-
-            this.adapters.remove(task.adapter.getClass().getName());
-
+            adapters.remove(task.adapter.getClass().getName());
             status = Status.Idle;
         }
         // E4 执行异常
@@ -617,122 +684,149 @@ public class AndroidDevice extends ModelL {
 
             logger.error("Device:[{}] Adapter:[{}] Task:[{}] failed, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e.getCause());
 
+            // TODO
             status = Status.Failed;
 
             try {
 
-				/* TODO 可能需要处理的异常列表，需要讨论处理级别
-				ElementClickInterceptedException
-				ElementNotInteractableException
-				ElementNotSelectableException
-				ElementNotVisibleException
-				InvalidElementStateException
-				InvalidSelectorException
-				NoSuchElementException
-				NoSuchWindowException
+                // E5 账号异常
+                if (e.getCause() instanceof AccountException.Broken) {
+                    task.adapter.switchAccount();
+                    status = Status.Idle;
+                }
+                // E6 Adapter 操作定义异常
+                else if (e.getCause() instanceof AdapterException.OperationException || e.getCause() instanceof AdapterException.IllegalStateException) {
 
-				NoSuchSessionException
-				NotFoundException
-				SessionNotCreatedException
-				StaleElementReferenceException
-				UnsupportedCommandException
-				WebDriverException
-				 */
+                    logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), e.getCause());
 
-                throw e.getCause();
+                    // 上一次执行 也遇到了相同异常
+                    if (task.adapter.exceptions.contains(e.getCause().getClass().getName())) {
+                        adapters.remove(task.adapter.getClass().getName());
+                    }
+                    else {
+                        task.adapter.exceptions.add(e.getCause().getClass().getName());
+                        // 重置Adapter状态
+                        task.adapter.restart();
+                    }
+
+                    status = Status.Idle;
+                }
+                // E7 App没有响应异常
+                // 一次 adapter.restart()
+                // 连续两次 device.Clean + adapter.restart()
+                // 连续三次 (device.Reboot + device.Restart) + adapter.restart() 异常清空 设备记录已经重启过
+                // 设备如果重启过 同时又出现该异常 设备移除
+                else if (e.getCause() instanceof AdapterException.NoResponseException) {
+
+                    logger.error("Device:[{}] Adapter[{}] TaskClass[{}] no response, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), e.getCause());
+
+                    // 上一次执行 也遇到了相同异常
+                    if (task.adapter.exceptions.contains(e.getCause().getClass().getName())) {
+
+                        if(flags.contains(Flag.NewReboot)) {
+                            status = Status.DeviceBroken;
+                        }
+                        else if(flags.contains(Flag.Cleaned)) {
+
+                            this.reboot();
+                            task.adapter.restart();
+                            status = Status.Idle;
+
+                        }
+                        else {
+                            this.clear();
+                            task.adapter.restart();
+                            status = Status.Idle;
+                        }
+
+                    }
+                    else {
+                        task.adapter.exceptions.add(e.getCause().getClass().getName());
+                        // 重置Adapter状态
+                        task.adapter.restart();
+
+                        status = Status.Idle;
+                    }
+                }
+                else {
+                    throw e.getCause();
+                }
             }
-            // 代理问题
+            // 代理问题 TODO 出现场景需确认
             catch (SocketException ex) {
-                logger.error("{}, Proxy may error, ", name, ex);
+                logger.error("Device:[{}] proxy may error, ", name, ex);
+                status = Status.Failed;
             }
-            // 脚本异常
+            // 脚本异常 / 操作异常
             // 异常参考 http://www.softwaretestingstudio.com/common-exceptions-selenium-webdriver/
             catch (ElementNotVisibleException |
                     NoAlertPresentException |
                     ElementNotSelectableException |
                     NoSuchFrameException |
-                    org.openqa.selenium.NoSuchElementException ex) {
-                logger.error("{}, Task script error, ", name, ex);
-            }
-            // WebDriver 命令超时问题 网络连接问题
-            catch (org.openqa.selenium.TimeoutException ex) {
-                logger.error("{}, WebDriver command timeout, ", name, ex);
-            } catch (NoSuchWindowException ex) {
-                logger.error("{}, Window unreachable, ", name, ex);
-            }
-            // chromedriver连接问题 --> 关闭
-            catch (UnreachableBrowserException ex) {
-                logger.error("{}, Browser unreachable, ", name, ex);
-            }
-            //
-            catch (SessionNotCreatedException ex) {
+                    org.openqa.selenium.NoSuchElementException |
+                    ElementClickInterceptedException ex) {
+
+                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), ex);
+
+                // 当前任务失败 连续出现三次
+                // 上一次执行 也遇到了相同异常
+                if (task.adapter.exceptions.contains(ex.getClass().getName())) {
+                    adapters.remove(task.adapter.getClass().getName());
+                } else {
+                    task.adapter.exceptions.add(ex.getClass().getName());
+                }
+
+                status = Status.Idle;
 
             }
-            // 非正常 WebDriver.quit() 调用
-            catch (NoSuchSessionException ex) {
-                logger.error("{}, Session broken, ", name, ex);
+            // WebDriver 命令超时问题 网络连接问题
+            catch (org.openqa.selenium.TimeoutException | // 操作超时异常
+                    NoSuchWindowException |               // 找不到特定页面异常
+                    UnreachableBrowserException |         //
+                    SessionNotCreatedException |          // 无法创建Session异常
+                    NoSuchSessionException |              // 无法识别的Session
+                    ErrorHandler.UnknownServerException ex) {  // 未知服务端异常
+                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), ex);
+
+                status = Status.Failed;
             }
-            // 服务端问题 --> 关闭
-            catch (ErrorHandler.UnknownServerException ex) {
-                logger.error("{}, Server failed, ", name, ex);
-            }
+
             // 无法正常调用WebDriver --> 关闭
             catch (WebDriverException ex) {
 
-                logger.error("{}, WebDriver exception, ", name, ex);
+                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), ex);
 
+                status = Status.Failed;
+            }
+            // 无可用账号异常 --> 对应的Adapter不可用
+            catch (AccountException.NoAvailableAccount ex) {
+                // 任务执行失败
+                logger.error("Error execute task failure NoAvailableAccount, ", ex);
+
+                status = Status.Idle;
+            }
+            // 当前使用的Adapter对应的Account失效 --> 对应的Adapter需要切换账号
+            catch (AdapterException.LoginScriptError ex) {
+
+                // 任务执行失败
+                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] login script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), e.getCause());
+                adapters.remove(task.adapter.getClass().getName());
             }
             //
-            catch (Throwable ex) {
+            catch (Throwable throwable) {
 
-                // 无可用账号异常
-                if (ex instanceof AccountException.NoAvailableAccount) {
-
-                    // 任务执行失败
-                    logger.error("Error execute task failure NoAvailableAccount, ", ex);
-                }
-
-                // 所有账号被限流
-                if (ex instanceof AccountException.Broken) {
-
-                    // 任务执行失败
-                    logger.error("Error execute task failure Account Broken, ", ex);
-                }
-
-                // 操作异常
-                if (ex instanceof AdapterException.OperationException) {
-
-                    logger.error("Error OperationException, ", ex);
-
-                    // 重置Adapter状态
-                    restart();
-                }
-
-                // Adapter状态异常
-                if (ex instanceof AdapterException.IllegalStateException) {
-
-                    logger.error("Error IllegalStateException, ", ex);
-
-                    // 重置Adapter状态
-                    restart();
-                }
-
-                // Adapter操作无响应异常
-                // 第一次 adapter重启 + clear 第二次 重启手机 第三次 设置不可用
-                if (ex instanceof AdapterException.NoResponseException) {
-
-                    // 手机处于崩溃状态
-                    logger.error("Error Adapter operate not response, ", ex);
-
-                    // 重启手机
-                    executor.submit(new Reboot());
-                    // 重置状态
-                    this.status = Status.New;
-
-                }
             }
 
+        } finally {
+
+            this.update();
+
+            // 手机重启
+            if (restart) {
+
+            }
         }
+
         taskFuture = null;
     }
 
@@ -1195,12 +1289,27 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     * TODO 返回桌面 清理所有后台app进程
+     * 查看所有的第三方应用进程  adb command: adb shell pm list packages -3
+     * package:io.appium.settings
+     * package:com.mgyapp.android
+     * package:io.appium.uiautomator2.server
+     * package:com.tencent.mm
+     * package:io.appium.uiautomator2.server.test
+     * package:com.mgyun.shua.protector
+     * package:io.appium.unlock
+     * <p>
      * 返回桌面 am start -a android.intent.action.MAIN -c android.intent.category.HOME
      * 清理app进程 am kill <package_name>
      */
     public void killAllBackgroundProcess() throws IOException {
 
+        // 查看第三方应用
+        String packageList = ShellUtil.exeCmd("adb command: adb shell pm list packages -3");
+
+
+
+
+//        shutdownProcess();
     }
 
     /**
@@ -1352,5 +1461,29 @@ public class AndroidDevice extends ModelL {
                 logger.error("Error execute callback, ", e);
             }
         });
+    }
+
+    public static class JSONableFlagListPersister extends StringType {
+        private static final JSONableFlagListPersister INSTANCE = new JSONableFlagListPersister();
+
+        private JSONableFlagListPersister() {
+            super(SqlType.STRING, new Class[]{List.class});
+        }
+
+        public static JSONableFlagListPersister getSingleton() {
+            return INSTANCE;
+        }
+
+        public Object javaToSqlArg(FieldType fieldType, Object javaObject) {
+            List list = (List) javaObject;
+            return list != null ? JSON.toJson(list) : null;
+        }
+
+        public Object sqlArgToJava(FieldType fieldType, Object sqlArg, int columnPos) {
+            Type type = (new TypeToken<List<Flag>>() {
+            }).getType();
+            List<Flag> list = (List) JSON.fromJson((String) sqlArg, type);
+            return sqlArg != null ? list : null;
+        }
     }
 }

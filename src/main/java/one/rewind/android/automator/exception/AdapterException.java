@@ -1,5 +1,6 @@
 package one.rewind.android.automator.exception;
 
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 
 /**
@@ -24,6 +25,17 @@ public class AdapterException extends Exception {
 
 		public OperationException(Adapter adapter) {
 			this.adapter = adapter;
+		}
+	}
+
+	public static class LoginScriptError extends Exception {
+
+		Adapter adapter;
+		Account account;
+
+		public LoginScriptError(Adapter adapter, Account account) {
+			this.adapter = adapter;
+			this.account = account;
 		}
 	}
 

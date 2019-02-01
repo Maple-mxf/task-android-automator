@@ -16,6 +16,7 @@ import one.rewind.data.raw.model.Essay;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Source;
 import one.rewind.db.Daos;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
@@ -23,6 +24,7 @@ import one.rewind.txt.NumberFormatUtil;
 import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -97,7 +99,7 @@ public class GetMediaEssaysTask extends Task {
     }
 
     @Override
-    public Boolean call() throws  IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.NoResponseException, AdapterException.OperationException {
+    public Boolean call() throws IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.NoResponseException, AdapterException.LoginScriptError, DBInitException, SQLException {
 
         boolean retry = false;
 
@@ -312,7 +314,10 @@ public class GetMediaEssaysTask extends Task {
                     String content_src = content_stack.pop();
 
                     String url_permanent = null;
+
                     // TODO 此处模拟共享，复制链接，保存文章持久连接
+                    // adapter.device.driver.getClipboardText();
+                    logger.info(content_src);
 
                     // 获取转发的Essay Id
                     String f_id = parseForwardId(content_src);

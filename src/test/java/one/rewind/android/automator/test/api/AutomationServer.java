@@ -27,13 +27,13 @@ public class AutomationServer {
 
     public static void main(String[] args) throws Exception {
 
-        port(30006);
+        port(30002);
 
         // 启动device
         deviceManager.detectDevices();
 
         // 程序feed
-        post("/", feed, JSON::toJson);
+        post("/feed", feed, JSON::toJson);
     }
 
 
@@ -49,7 +49,7 @@ public class AutomationServer {
         // 2 解析为TaskHolder
 
         // udid
-        String udid = String.valueOf(httpParams.get("udid"));
+        String udid = httpParams.get("udid") == null ? null : String.valueOf(httpParams.get("udid"));
 
         // adapter_class_name    Adapter类的全路径名称
         String adapter_class_name = String.valueOf(httpParams.get("adapter_class_name"));
@@ -58,9 +58,9 @@ public class AutomationServer {
         String class_name = String.valueOf(httpParams.get("class_name"));
 
         // account_id  账号ID   如果为空 则为默认值0
-        int account_id = NumberUtils.toInt(httpParams.get("account_id").toString(), 0);
+        int account_id = NumberUtils.toInt(String.valueOf(httpParams.get("account_id")), 0);
 
-        // topic_name redis的topic名称
+        // topic_name redis的topic名称    TODO Holder构函数加入params
         String topic_name = String.valueOf(httpParams.get("topic_name"));
 
         // List<String>   params可以是多个媒体的名称

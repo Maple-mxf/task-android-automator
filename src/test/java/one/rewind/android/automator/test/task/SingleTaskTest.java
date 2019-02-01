@@ -1,7 +1,6 @@
 package one.rewind.android.automator.test.task;
 
 import com.google.common.collect.Lists;
-import okhttp3.OkHttpClient;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AndroidException;
@@ -75,9 +74,7 @@ public class SingleTaskTest {
     }
 
     @Test
-    public void submitSubscribeTask() throws AccountException.AccountNotLoad, TaskException.IllegalParamException, AndroidException.NoAvailableDeviceException {
-
-        AndroidDeviceManager deviceManager = AndroidDeviceManager.getInstance();
+    public void submitSubscribeTask() throws AccountException.AccountNotLoad, TaskException.IllegalParamException, AndroidException.NoAvailableDeviceException, InterruptedException {
 
         List<String> media = Lists.newArrayList();
         media.add("阿里巴巴");
@@ -93,14 +90,6 @@ public class SingleTaskTest {
         Task task = TaskFactory.getInstance().generateTask(holder);
 
         // 任务完成之后执行Idle回调函数继续在deviceTaskMap中取任务
-        deviceManager.submit(task);
+        AndroidDeviceManager.getInstance().submit(task);
     }
-
-    @Test
-    public void requestAutomationServer(){
-        OkHttpClient client = new OkHttpClient();
-//        RequestBody body = RequestBody.create(MediaType.parse("application/json"), json);
-    }
-
-
 }

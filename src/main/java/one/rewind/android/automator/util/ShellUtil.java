@@ -25,14 +25,14 @@ public class ShellUtil {
     /**
      * @param commandStr
      */
-    public static void exeCmd(String commandStr) {
+    public static String exeCmd(String commandStr) {
 
         BufferedReader br = null;
+        StringBuilder sb = new StringBuilder();
         try {
             Process p = Runtime.getRuntime().exec(commandStr);
             br = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String line;
-            StringBuilder sb = new StringBuilder();
             while ((line = br.readLine()) != null) {
                 sb.append(line).append("\n");
             }
@@ -48,6 +48,8 @@ public class ShellUtil {
                     e.printStackTrace();
                 }
             }
+            return sb.toString();
         }
+
     }
 }

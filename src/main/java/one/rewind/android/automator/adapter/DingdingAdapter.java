@@ -19,10 +19,6 @@ import java.util.List;
  */
 public class DingdingAdapter extends Adapter {
 
-	@Override
-	public void switchAccount() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount, DBInitException, SQLException {
-
-	}
 
 	/**
 	 * @param androidDevice
@@ -33,14 +29,11 @@ public class DingdingAdapter extends Adapter {
 				"com.alibaba.android.rimet.biz.SplashActivity");
 	}
 
-	public void init() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount {
-
-	}
-
 	@Override
-	public void switchAccount(Account account) throws AdapterException.OperationException, AccountException.Broken {
+	public void switchAccount(Account.Status... statuses) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, DBInitException, SQLException {
 
 	}
+
 
 	/**
 	 * 导出所有钉钉的联系人，半自动

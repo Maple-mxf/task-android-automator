@@ -48,7 +48,7 @@ public class GetSelfSubscribeMediaTask extends Task {
             IOException, //
             AccountException.NoAvailableAccount, // 没有可用账号
             AccountException.Broken, // 账号不可用
-            AdapterException.OperationException, // Adapter 逻辑出错
+            AdapterException.LoginScriptError, // Adapter 逻辑出错
             AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
             AdapterException.NoResponseException // App 没有响应
     {
@@ -166,4 +166,5 @@ public class GetSelfSubscribeMediaTask extends Task {
     public static String genId(String media_nick, String title, String src_id) {
         return StringUtil.MD5(SubscribeMediaTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
     }
+
 }

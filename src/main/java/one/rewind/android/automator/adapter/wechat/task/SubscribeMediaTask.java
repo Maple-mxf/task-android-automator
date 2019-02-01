@@ -47,7 +47,15 @@ public class SubscribeMediaTask extends Task {
     }
 
     @Override
-    public Boolean call() throws InterruptedException, AdapterException.OperationException {
+    public Boolean call() throws
+            InterruptedException, // 任务中断
+            IOException, //
+            AccountException.NoAvailableAccount, // 没有可用账号
+            AccountException.Broken, // 账号不可用
+            AdapterException.LoginScriptError, // Adapter 逻辑出错
+            AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
+            AdapterException.NoResponseException // App 没有响应
+    {
 
         boolean retry = false;
 

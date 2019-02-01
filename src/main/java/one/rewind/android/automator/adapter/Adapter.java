@@ -32,7 +32,7 @@ public abstract class Adapter {
     public Account account;
 
     // 保存异常信息
-    public List<Exception> exceptions = new ArrayList<>();
+    public List<String> exceptions = new ArrayList<>();
 
     public Adapter(AndroidDevice device) throws AndroidException.IllegalStatusException {
         this.device = device;
@@ -56,21 +56,19 @@ public abstract class Adapter {
     /**
      * 启动应用
      */
-    public void start() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
+    public void start() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken {
         device.startApp(appInfo);
     }
 
     /**
      *
      */
-    public void restart() throws InterruptedException, AdapterException.OperationException, AccountException.Broken {
+    public void restart() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken {
         device.stopApp(appInfo);
         device.startApp(appInfo);
     }
 
-    public abstract void switchAccount(Account account) throws InterruptedException, AdapterException.OperationException, AccountException.Broken;
-
-	public abstract void switchAccount() throws InterruptedException, AdapterException.OperationException, AccountException.NoAvailableAccount, DBInitException, SQLException;
+	public abstract void switchAccount(Account.Status... statuses) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, DBInitException, SQLException;
 
     /**
      *
