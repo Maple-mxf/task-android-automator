@@ -3,8 +3,11 @@ package one.rewind.android.automator.test.util;
 import com.google.common.collect.Maps;
 import one.rewind.android.automator.AndroidDeviceManager;
 import one.rewind.android.automator.util.Tab;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -61,9 +64,14 @@ public class StringTest {
                 "package:com.mgyun.shua.protector\n" +
                 "package:io.appium.unlock";
         String[] split = result.split("package:");
+        List<String> packages = new ArrayList<>();
         for (String var : split) {
-
-            System.out.println(var);
+            String var0 = var.replaceAll("\n", "");
+            if (StringUtils.isNotBlank(var0)) {
+                packages.add(var0);
+            }
         }
+
+        packages.forEach(System.out::println);
     }
 }

@@ -43,6 +43,7 @@ import one.rewind.db.model.ModelL;
 import one.rewind.json.JSON;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
@@ -702,8 +703,7 @@ public class AndroidDevice extends ModelL {
                     // 上一次执行 也遇到了相同异常
                     if (task.adapter.exceptions.contains(e.getCause().getClass().getName())) {
                         adapters.remove(task.adapter.getClass().getName());
-                    }
-                    else {
+                    } else {
                         task.adapter.exceptions.add(e.getCause().getClass().getName());
                         // 重置Adapter状态
                         task.adapter.restart();
@@ -723,32 +723,28 @@ public class AndroidDevice extends ModelL {
                     // 上一次执行 也遇到了相同异常
                     if (task.adapter.exceptions.contains(e.getCause().getClass().getName())) {
 
-                        if(flags.contains(Flag.NewReboot)) {
+                        if (flags.contains(Flag.NewReboot)) {
                             status = Status.DeviceBroken;
-                        }
-                        else if(flags.contains(Flag.Cleaned)) {
+                        } else if (flags.contains(Flag.Cleaned)) {
 
                             this.reboot();
                             task.adapter.restart();
                             status = Status.Idle;
 
-                        }
-                        else {
+                        } else {
                             this.clear();
                             task.adapter.restart();
                             status = Status.Idle;
                         }
 
-                    }
-                    else {
+                    } else {
                         task.adapter.exceptions.add(e.getCause().getClass().getName());
                         // 重置Adapter状态
                         task.adapter.restart();
 
                         status = Status.Idle;
                     }
-                }
-                else {
+                } else {
                     throw e.getCause();
                 }
             }
@@ -1306,10 +1302,23 @@ public class AndroidDevice extends ModelL {
         // 查看第三方应用
         String packageList = ShellUtil.exeCmd("adb command: adb shell pm list packages -3");
 
+        String[] ps = packageList.split("package:");
 
+        List<String> packages = new ArrayList<>();
+        for (String var : ps) {
+            String var0 = var.replaceAll("\n", "");
+            if (StringUtils.isNotBlank(var0)) {
+                packages.add(var0);
+            }
+        }
 
-
-//        shutdownProcess();
+        // 不能杀死appium的进程
+        // [io.appium.uiautomator2.server] [io.appium.uiautomator2.server.test] [io.appium.settings]
+        packages.forEach(p -> {
+            if (!p.equals("io.appium.uiautomator2.server") && !p.equals("io.appium.uiautomator2.server.test") && !p.equals("io.appium.settings")) {
+                shutdownProcess(p);
+            }
+        });
     }
 
     /**
