@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.task;
 
 import com.google.common.collect.Lists;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.TaskException;

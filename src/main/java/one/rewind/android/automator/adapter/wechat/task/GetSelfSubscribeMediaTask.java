@@ -91,7 +91,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 			for (OCRParser.TouchableTextArea area : publicAccountTitles) {
 
 				RC("3A 当前文字坐标 --> " + area.toJSON());
-				if (area.content.matches("\\d[个公众号]")) {
+				if (area.content.matches("\\d+个公众号")) {
 					RC("3B 已经到公众号列表底部");
 					atBottom = true;
 					break;
@@ -106,7 +106,10 @@ public class GetSelfSubscribeMediaTask extends Task {
 				}*/
 
 				// 当前任务去重 + 已经保存记录去重 + 不完整文本区域 过滤
-				if (h.findings.contains(area.content) || accountSubscribedMediaNicks.contains(area.content) || area.top + area.height > 2392) continue;
+				if (h.findings.contains(area.content)
+						|| accountSubscribedMediaNicks.contains(area.content)
+						|| area.top + area.height > 2392
+						|| area.height < 40) continue;
 
 				RC("3C 进入公众号Home页");
 				adapter.goToSubscribedPublicAccountHome(area.left + 10, area.top + 10);
@@ -160,6 +163,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 			this.adapter.device.slideToPoint(1000, 1600, 1000, 400, 2000);
 		}
 
+		RC("5 任务圆满完成");
 
         return retry;
     }

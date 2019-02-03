@@ -1,4 +1,4 @@
-package one.rewind.android.automator;
+package one.rewind.android.automator.deivce;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -249,7 +249,7 @@ public class AndroidDeviceManager {
             device = getDevice(adapterClassName);
         }
 
-        logger.info("Assign Task:[{}][{}] to Device:[{}]", task.getClass().getSimpleName(), task.h.id, device.name);
+        logger.info("Assign [{}] --> [{}]", task.getInfo(), device.name);
 
         // 将当前任务放在队列的头部
         deviceTaskMap.get(device).put(task);

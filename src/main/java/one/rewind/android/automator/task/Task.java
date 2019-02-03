@@ -131,7 +131,7 @@ public abstract class Task implements Callable<Boolean> {
     }
 
     public String getInfo() {
-    	return this.getClass().getSimpleName() + "-" + h.id;
+    	return this.getClass().getSimpleName() + "-" + h.id.substring(0,8);
 	}
 
 	/**

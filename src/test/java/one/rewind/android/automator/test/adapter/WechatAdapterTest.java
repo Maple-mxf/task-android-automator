@@ -2,11 +2,12 @@ package one.rewind.android.automator.test.adapter;
 
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
-import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.deivce.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.deivce.AndroidUtil;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class WechatAdapterTest {
 
         //device.removeRemoteWifiProxy();
         device.startProxy();
-        device.setupRemoteWifiProxy();
+        AndroidUtil.setupRemoteWifiProxy(device.udid, device.local_ip, device.proxyPort);
 
         RequestFilter requestFilter = (request, contents, messageInfo) -> null;
         Stack<String> content_stack = new Stack<>();

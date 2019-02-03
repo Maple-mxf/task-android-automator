@@ -1,7 +1,7 @@
 package one.rewind.android.automator.task;
 
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.db.Daos;
 import org.apache.commons.lang3.StringUtils;

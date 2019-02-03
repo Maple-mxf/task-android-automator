@@ -1,4 +1,4 @@
-package one.rewind.android.automator;
+package one.rewind.android.automator.deivce;
 
 import com.dw.ocr.util.ImageUtil;
 import com.google.common.util.concurrent.FutureCallback;
@@ -34,13 +34,15 @@ import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.callback.AndroidDeviceCallBack;
 import one.rewind.android.automator.callback.TaskCallback;
+import one.rewind.android.automator.deivce.action.Clear;
+import one.rewind.android.automator.deivce.action.Init;
+import one.rewind.android.automator.deivce.action.Reboot;
+import one.rewind.android.automator.deivce.action.Stop;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.TaskException;
 import one.rewind.android.automator.task.Task;
-import one.rewind.android.automator.util.ShellUtil;
-import one.rewind.android.automator.util.Tab;
 import one.rewind.db.Daos;
 import one.rewind.db.annotation.DBName;
 import one.rewind.db.exception.DBInitException;
@@ -48,21 +50,18 @@ import one.rewind.db.model.ModelL;
 import one.rewind.json.JSON;
 import one.rewind.util.EnvUtil;
 import one.rewind.util.NetworkUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.ErrorHandler;
 import org.openqa.selenium.remote.UnreachableBrowserException;
-import se.vidstige.jadb.JadbConnection;
-import se.vidstige.jadb.JadbDevice;
-import se.vidstige.jadb.JadbException;
-import se.vidstige.jadb.RemoteFile;
-import se.vidstige.jadb.managers.PackageManager;
 
 import javax.imageio.ImageIO;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.SocketException;
 import java.net.URL;
@@ -121,7 +120,7 @@ public class AndroidDevice extends ModelL {
     public List<Flag> flags = new ArrayList<>();
 
     @DatabaseField(dataType = DataType.STRING, width = 32)
-    private String local_ip; // 本地IP
+    public String local_ip; // 本地IP
 
     @DatabaseField(dataType = DataType.STRING, width = 32, canBeNull = false, unique = true)
     public String udid; // 设备 udid
@@ -136,25 +135,25 @@ public class AndroidDevice extends ModelL {
     public boolean ca = false; // 是否已经安装CA证书
 
     // 本地代理服务器
-    private transient BrowserMobProxyServer bmProxy;
+	public transient BrowserMobProxyServer bmProxy;
 
     // Appium相关服务对象
-    private transient AppiumDriverLocalService service;
+	public transient AppiumDriverLocalService service;
 
     // 本地Driver
     public transient AndroidDriver<AndroidElement> driver;
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
-    private int proxyPort; // TODO 移动端代理端口
+	public int proxyPort; // TODO 移动端代理端口
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
-    private int appiumPort; // 本地 appium 服务端口
+    public int appiumPort; // 本地 appium 服务端口
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
     public int localProxyPort; // TODO 代码运行端代理端口 区别？
 
     // Appium 服务URL 本地
-    private transient URL serviceUrl;
+	public transient URL serviceUrl;
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
     public int height; // 设备屏幕高度
@@ -209,7 +208,7 @@ public class AndroidDevice extends ModelL {
 		setupExecutor();
     }
 
-    public void setupExecutor() {
+    private void setupExecutor() {
 		this.local_ip = NetworkUtil.getLocalIp();
 		logger.info("Local IP: {}", local_ip);
 
@@ -269,13 +268,11 @@ public class AndroidDevice extends ModelL {
             } catch (AdapterException.LoginScriptError e) {
 
 				logger.error("[{}] [{}] login script error, ", udid, adapter.getClass().getSimpleName(), e);
-
 				removeAdapter(adapter);
 
             } catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
 				logger.error("[{}] [{}] no available account, ", udid, adapter.getClass().getSimpleName(), noAvailableAccount);
-
 				removeAdapter(adapter);
             }
 
@@ -316,136 +313,6 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     *
-     */
-    public class Init implements Callable<Boolean> {
-
-        public Boolean call() throws Exception {
-
-            logger.info("Device:[{}] Init...", name);
-
-            AndroidDevice.this.appiumPort = Tab.appiumPort.getAndIncrement();
-            AndroidDevice.this.proxyPort = Tab.proxyPort.getAndIncrement();
-            AndroidDevice.this.localProxyPort = Tab.localProxyPort.getAndIncrement();
-
-            // 安装CA
-            // installCA();
-
-            // 启动代理
-			logger.info("Device:[{}] start proxy...", name);
-            startProxy();
-
-            // 设置设备Wifi代理
-			logger.info("Device:[{}] setup wifi proxy...", name);
-            setupRemoteWifiProxy();
-
-            // 启动相关服务
-			logger.info("Device:[{}] start appium local service / driver ...", name);
-            initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI"));
-
-            //
-			for(AndroidDeviceCallBack.InitCallBack callBack : initCallbacks) {
-				callBack.call(AndroidDevice.this);
-			}
-
-            init_time = new Date();
-
-            logger.info("Device:[{}] init success", name);
-
-            return true;
-        }
-    }
-
-    /**
-     *
-     */
-    public class Stop implements Callable<Boolean> {
-
-        public Boolean call() throws IOException {
-
-            logger.info("Stopping [{}] ...", name);
-
-            // 停止 driver
-            if(driver != null) driver.close();
-
-            // 停止 Appium service运行
-            if (service != null && service.isRunning()) service.stop();
-
-            // 停止设备端的 appium
-            stopRemoteAppiumServer();
-
-            // 停止代理服务器
-            stopProxy();
-
-            logger.info("[{}] stopped.", name);
-
-            return true;
-        }
-    }
-
-    /**
-     *
-     */
-    public class Clear implements Callable<Boolean> {
-
-        public Boolean call() throws IOException {
-
-            logger.info("Before clean Device:[{}] ...", name);
-
-            killAllBackgroundProcess();
-            clearCacheLog();
-            clearAllLog();
-
-            flags.add(Flag.Cleaned);
-
-            logger.info("Device:[{}] cleaned.", name);
-
-            return true;
-        }
-    }
-
-    /**
-     *
-     */
-    public class Reboot implements Callable<Boolean> {
-
-        public Boolean call() throws Exception {
-
-            logger.info("Before reboot Device:[{}] ...", name);
-
-            enterADBShell(udid);
-
-            ShellUtil.exeCmd("reboot");
-
-            status = Status.DeviceBooting;
-
-            Thread.sleep(120000);
-
-            // enterADBShell(udid);
-
-            // 尝试重新连接  重新连接 TODO  adb usb命令会影响其他USB连接？或者导致其他正在运行的手机出现丢失session的情况
-            ShellUtil.exeCmd("adb usb");
-
-            // 摁电源键 adb shell input keyevent 26
-
-            // 滑动解锁 TODO 如果不设定密码 就可以不用解锁了 默认到Home界面
-            ShellUtil.exeCmd("adb shell input swipe 300 1000 300 500");
-
-            // 输入pin密码 adb shell input text 1234
-            ShellUtil.exeCmd("adb shell input text " + PIN_PASSWORD);
-
-            // 点击OK键
-            touch(1114, 2114, 3000);
-
-            logger.info("Device:[{}] booted.", name);
-
-            flags.add(Flag.NewReboot);
-
-            return true;
-        }
-    }
-
-    /**
      * 同步方法
      *
      * @return
@@ -460,7 +327,7 @@ public class AndroidDevice extends ModelL {
         status = Status.Init;
 
         //
-        Future<Boolean> initFuture = executor.submit(new Init());
+        Future<Boolean> initFuture = executor.submit(new Init(this));
 
         try {
 
@@ -470,7 +337,7 @@ public class AndroidDevice extends ModelL {
 
             if (initSuccess) {
 				update();
-                logger.info("[{}] INIT done.", name);
+                logger.info("[{}] INIT done.", udid);
             }
 
             // 执行状态回调函数
@@ -481,13 +348,13 @@ public class AndroidDevice extends ModelL {
         catch (InterruptedException e) {
 
             status = Status.Failed;
-            logger.error("[{}] INIT interrupted. ", name, e);
+            logger.error("[{}] INIT interrupted. ", udid, e);
             stop();
 
         } catch (ExecutionException e) {
 
             status = Status.Failed;
-            logger.error("[{}] INIT failed. ", name, e.getCause());
+            logger.error("[{}] INIT failed. ", udid, e.getCause());
             stop();
 
         } catch (TimeoutException e) {
@@ -495,10 +362,11 @@ public class AndroidDevice extends ModelL {
             initFuture.cancel(true);
 
             status = Status.Failed;
-            logger.error("[{}] INIT failed. ", name, e);
+            logger.error("[{}] INIT failed. ", udid, e);
             stop();
-
         }
+
+
 
         return this;
     }
@@ -527,7 +395,7 @@ public class AndroidDevice extends ModelL {
 
         this.status = Status.Terminating;
 
-        Future<Boolean> closeFuture = executor.submit(new Stop());
+        Future<Boolean> closeFuture = executor.submit(new Stop(this));
 
         try {
 
@@ -567,7 +435,7 @@ public class AndroidDevice extends ModelL {
      */
     public void clear() throws DBInitException, SQLException {
 
-        Future<Boolean> feature = executor.submit(new Clear());
+        Future<Boolean> feature = executor.submit(new Clear(this));
 
         try {
 
@@ -601,7 +469,7 @@ public class AndroidDevice extends ModelL {
      */
     public void reboot() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
 
-        Future<Boolean> feature = executor.submit(new Reboot());
+        Future<Boolean> feature = executor.submit(new Reboot(this));
 
         try {
 
@@ -937,7 +805,7 @@ public class AndroidDevice extends ModelL {
      */
     public void setProxyRequestFilter(RequestFilter filter) {
         if (bmProxy == null) return;
-        //bmProxy.addFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));
+        /*bmProxy.addFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));*/
         bmProxy.replaceFirstHttpFilterFactory(new RequestFilterAdapter.FilterSource(filter, 16777216));
     }
 
@@ -948,7 +816,7 @@ public class AndroidDevice extends ModelL {
      */
     public void setProxyResponseFilter(ResponseFilter filter) {
         if (bmProxy == null) return;
-        // bmProxy.addResponseFilter(filter);
+        /*bmProxy.addResponseFilter(filter);*/
         bmProxy.replaceLastHttpFilter(filter);
     }
 
@@ -957,83 +825,6 @@ public class AndroidDevice extends ModelL {
      */
     public void stopProxy() {
         Optional.ofNullable(bmProxy).ifPresent(BrowserMobProxy::stop);
-    }
-
-    /**
-     * 安装CA证书，否则无法解析https数据
-     *
-     * @throws IOException
-     * @throws JadbException
-     * @throws InterruptedException
-     */
-    public void installCA() throws IOException, JadbException, InterruptedException {
-
-        JadbConnection jadb = new JadbConnection();
-
-        // TODO
-        // 需要调用process 启动adb daemon, 否则第一次执行会出错
-
-        List<JadbDevice> devices = jadb.getDevices();
-
-        for (JadbDevice d : devices) {
-
-            if (d.getSerial().equals(udid)) {
-
-                // TODO 使用 adb 判断远端文件是否存在
-                // ls /path/to/your/files* 1> /dev/null 2>&1;
-                d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
-                Thread.sleep(2000);
-            }
-        }
-    }
-
-    /**
-     * 设置设备Wifi代理
-     * <p>
-     * 设备需要连接WIFI，设备与本机器在同一网段
-     */
-    public void setupRemoteWifiProxy() throws IOException, JadbException, InterruptedException {
-
-        JadbConnection jadb = new JadbConnection();
-
-        // TODO
-        // 需要调用process 启动adb daemon, 否则第一次执行会出错
-
-        List<JadbDevice> devices = jadb.getDevices();
-
-        for (JadbDevice d : devices) {
-
-            if (d.getSerial().equals(udid)) {
-
-                execShell(d, "settings", "put", "global", "http_proxy", local_ip + ":" + proxyPort);
-                execShell(d, "settings", "put", "global", "https_proxy", local_ip + ":" + proxyPort);
-                // d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
-                Thread.sleep(2000);
-            }
-        }
-    }
-
-    /**
-     * 移除Wifi Proxy
-     */
-    public void removeRemoteWifiProxy() throws IOException, JadbException, InterruptedException {
-
-        JadbConnection jadb = new JadbConnection();
-
-        List<JadbDevice> devices = jadb.getDevices();
-
-        for (JadbDevice d : devices) {
-
-            if (d.getSerial().equals(udid)) {
-
-                execShell(d, "settings", "delete", "global", "http_proxy");
-                execShell(d, "settings", "delete", "global", "https_proxy");
-                execShell(d, "settings", "delete", "global", "global_http_proxy_host");
-                execShell(d, "settings", "delete", "global", "global_http_proxy_port");
-
-                Thread.sleep(2000);
-            }
-        }
     }
 
     /**
@@ -1113,293 +904,51 @@ public class AndroidDevice extends ModelL {
     }
 
     /**
-     * 安装APK包
-     *
-     * @param apkPath 本地apk路径
-     */
-    public void installApk(String apkPath) {
-
-        try {
-
-            JadbConnection jadb = new JadbConnection();
-
-            List<JadbDevice> devices = jadb.getDevices();
-
-            for (JadbDevice d : devices) {
-
-                if (d.getSerial().equals(udid)) {
-
-                    new PackageManager(d).install(new File(apkPath));
-                    Thread.sleep(2000);
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 远程安装APK包
-     *
-     * @param apkPath 设备apk路径
-     */
-    public void installApkRemote(String apkPath) {
-        String commandStr = "adb -s " + udid + " install " + apkPath;
-        ShellUtil.exeCmd(commandStr);
-    }
-
-    /**
-     * @param command
-     * @param args
-     * @throws IOException
-     * @throws JadbException
-     */
-    public void execShell(String command, String... args) throws IOException, JadbException {
-
-        JadbConnection jadb = new JadbConnection();
-
-        List<JadbDevice> devices = jadb.getDevices();
-
-        for (JadbDevice d : devices) {
-
-            if (d.getSerial().equals(udid)) {
-
-                execShell(d, command, args);
-
-                return;
-            }
-        }
-    }
-
-    /**
-     * 执行远程设备shell命令
-     *
-     * @param d
-     * @param command
-     * @param args
-     * @throws IOException
-     * @throws JadbException
-     */
-    public static void execShell(JadbDevice d, String command, String... args) throws IOException, JadbException {
-
-        InputStream is = d.executeShell(command, args);
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        StringBuilder builder = new StringBuilder();
-
-        String line;
-        try {
-
-            while ((line = reader.readLine()) != null) {
-                builder.append(line);
-                builder.append("\n"); //appende a new line
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                is.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        logger.info(builder.toString());
-    }
-
-    /**
-     * 返回已经安装的应用程序
-     * TODO 应该返回列表
-     */
-    public void listApps() {
-
-        String commandStr = "adb -s " + udid + " shell pm accounts packages -3";
-        //-3为第三方应用 [-f] [-d] [-e] [-s] [-3] [-i] [-u]
-        ShellUtil.exeCmd(commandStr);
-    }
-
-    /**
-     * 进入相应设备的shell
-     *
-     * @param udid
-     * @throws IOException
-     */
-    private static void enterADBShell(String udid) throws IOException {
-        String command = "adb -s " + udid + " shell";
-        ShellUtil.exeCmd(command);
-    }
-
-    /**
-     * 摁电源键
-     *
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public void clickPower() throws IOException, InterruptedException {
-        String powerCommand = "adb -s " + udid + " shell input keyevent 26";
-        Runtime runtime = Runtime.getRuntime();
-        runtime.exec(powerCommand);
-        Thread.sleep(2000);
-    }
-
-    /**
-     * 唤醒设备
-     *
-     * @param driver
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public void awake(AndroidDriver driver) throws IOException, InterruptedException {
-        Runtime runtime = Runtime.getRuntime();
-
-        clickPower();
-        Thread.sleep(2000);
-
-        // 滑动解锁  728 2356  728 228  adb shell -s  input swipe  300 1500 300 200
-        String unlockCommand = "adb -s " + udid + " shell input swipe  300 1500 300 200";
-        runtime.exec(unlockCommand);
-        Thread.sleep(2000);
-
-        // 输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
-        String loginCommand = "adb -s " + udid + " shell input text " + PIN_PASSWORD;
-        runtime.exec(loginCommand);
-        Thread.sleep(4000);
-
-        // 点击确认
-        touch(1350, 2250, 6000); //TODO 时间适当调整
-        Thread.sleep(2000);
-    }
-
-    /**
-     * 杀死进程
-     *
-     * @param packageName
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public void shutdownProcess(String packageName) {
-        String command = "adb -s " + udid + " shell am force-stop " + packageName;
-        ShellUtil.exeCmd(command);
-    }
-
-    /**
-     * 以app的包名为参数，卸载选择的应用程序
-     *
-     * @param appPackage 卸载选择的app com.ss.android.ugc.aweme
-     */
-    public void uninstallApp(String appPackage) {
-        String commandStr = "adb -s " + udid + " uninstall " + appPackage;
-        ShellUtil.exeCmd(commandStr);
-    }
-
-    /**
-     * 打开应用
-     *
-     * @param appPackage  包名
-     * @param appActivity 主窗体名
-     */
-    public void startApp(String appPackage, String appActivity) {
-        String commandStr = "adb -s " + udid + " shell am start " + appPackage + "/" + appActivity;
-        ShellUtil.exeCmd(commandStr);
-    }
-
-    /**
-     * 打开应用
-     *
-     * @param appInfo 应用信息
-     */
-    public void startApp(Adapter.AppInfo appInfo) {
-        String commandStr = "adb -s " + udid + " shell am start " + appInfo.appPackage + "/" + appInfo.appActivity;
-        ShellUtil.exeCmd(commandStr);
-    }
-
-    /**
-     * @param appInfo
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public void stopApp(Adapter.AppInfo appInfo) {
-        shutdownProcess(appInfo.appPackage);
-    }
-
-    /**
-     * 清空缓存日志
-     */
-    public void clearCacheLog() throws IOException {
-        String command = "adb -s " + this.udid + " logcat -c -b events";
-        Runtime.getRuntime().exec(command);
-        logger.info("Clear Device:[{}] cache log events", name);
-    }
-
-    /**
-     * 清空所有日志
-     */
-    public void clearAllLog() {
-        try {
-            String command = "adb -s " + this.udid + " logcat -c -b main -b events -b radio -b system";
-            Runtime.getRuntime().exec(command);
-            logger.info("清空设备 {} 的全部系统级别日志");
-        } catch (Exception e) {
-            logger.error(e);
-        }
-    }
-
-    /**
-     * 查看所有的第三方应用进程  adb command: adb shell pm list packages -3
-     * package:io.appium.settings
-     * package:com.mgyapp.android
-     * package:io.appium.uiautomator2.server
-     * package:com.tencent.mm
-     * package:io.appium.uiautomator2.server.test
-     * package:com.mgyun.shua.protector
-     * package:io.appium.unlock
-     * <p>
-     * 返回桌面 am start -a android.intent.action.MAIN -c android.intent.category.HOME
-     * 清理app进程 am kill <package_name>
-     */
-    public void killAllBackgroundProcess() throws IOException {
-
-        // 查看所有的第三方应用
-        String packageList = ShellUtil.exeCmd("adb shell pm list packages -3");
-
-        String[] ps = packageList.split("package:");
-
-        List<String> packages = new ArrayList<>();
-        for (String var : ps) {
-            String var0 = var.replaceAll("\n", "");
-            if (StringUtils.isNotBlank(var0)) {
-                packages.add(var0);
-            }
-        }
-
-        // 排除appium的进程
-        // [io.appium.uiautomator2.server]
-        // [io.appium.uiautomator2.server.test]
-        // [io.appium.settings]
-        // TODO
-        packages.forEach(p -> {
-            if (!p.equals("io.appium.uiautomator2.server") && !p.equals("io.appium.uiautomator2.server.test") && !p.equals("io.appium.settings")) {
-                shutdownProcess(p);
-            }
-        });
-    }
-
-    /**
      * 重启移动端appium
      *
      * @throws IOException
      */
     public void stopRemoteAppiumServer() throws IOException {
+
+		logger.info("[{}] stop appium Server", udid);
+
         String command1 = "adb -s " + this.udid + " shell am force-stop io.appium.settings";
         Runtime.getRuntime().exec(command1);
 
         String command2 = "adb -s " + this.udid + " shell am force-stop io.appium.uiautomator2.server";
         Runtime.getRuntime().exec(command2);
-        logger.info("Restart {} Appium Server", udid);
     }
 
-    /**
+	/**
+	 * 唤醒设备
+	 *
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void awake() throws IOException, InterruptedException {
+
+		Runtime runtime = Runtime.getRuntime();
+
+		AndroidUtil.clickPower(udid);
+		Thread.sleep(2000);
+
+		// 滑动解锁  728 2356  728 228  adb shell -s  input swipe  300 1500 300 200
+		String unlockCommand = "adb -s " + udid + " shell input swipe  300 1500 300 200";
+		runtime.exec(unlockCommand);
+		Thread.sleep(2000);
+
+		// 输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
+		String loginCommand = "adb -s " + udid + " shell input text " + PIN_PASSWORD;
+		runtime.exec(loginCommand);
+		Thread.sleep(4000);
+
+		// 点击确认
+		touch(1350, 2250, 6000);  //TODO 时间适当调整
+		Thread.sleep(2000);
+	}
+
+
+	/**
      * @return
      * @throws IOException
      */
@@ -1567,8 +1116,7 @@ public class AndroidDevice extends ModelL {
         }
 
         public Object sqlArgToJava(FieldType fieldType, Object sqlArg, int columnPos) {
-            Type type = (new TypeToken<List<Flag>>() {
-            }).getType();
+            Type type = (new TypeToken<List<Flag>>() {}).getType();
             List<Flag> list = (List) JSON.fromJson((String) sqlArg, type);
             return sqlArg != null ? list : null;
         }

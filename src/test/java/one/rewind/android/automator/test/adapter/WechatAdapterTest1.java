@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.adapter;
 
-import one.rewind.android.automator.AndroidDevice;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.deivce.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;

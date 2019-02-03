@@ -1,6 +1,6 @@
 package one.rewind.android.automator.callback;
 
-import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.android.automator.exception.TaskException;

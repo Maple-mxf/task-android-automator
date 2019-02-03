@@ -1,8 +1,12 @@
 package one.rewind.android.automator.test.mobile;
 
-import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidUtil;
 import org.junit.Before;
 import org.junit.Test;
+import se.vidstige.jadb.JadbException;
+
+import java.io.IOException;
 
 public class AndroidDeviceTest {
 
@@ -20,7 +24,7 @@ public class AndroidDeviceTest {
 	public void setup() throws Exception {
 
 		device = new AndroidDevice(udid);
-		device.removeRemoteWifiProxy();
+		AndroidUtil.removeRemoteWifiProxy(udid);
 
 		// 从AppInfo中选择需要启动的程序
 		/*AppInfo appInfo = AppInfo.get(AppInfo.Defaults.Contacts);
@@ -39,15 +43,15 @@ public class AndroidDeviceTest {
 	 * 测试安装APK
 	 */
 	@Test
-	public void testInstallApk() {
+	public void testInstallApk() throws IOException, JadbException {
 		System.out.println(device);
 
 		System.out.println(device.getHeight());
 		System.out.println(device.getWidth());
 
 		String apkPath = "com.facebook.katana_180.0.0.35.82_free-www.apkhere.com.apk";
-		device.installApk(apkPath);
-		device.listApps();
+		AndroidUtil.installApk(device.udid, apkPath);
+		AndroidUtil.listApps(device.udid);
 
 		// TODO 测试删除APK
 	}

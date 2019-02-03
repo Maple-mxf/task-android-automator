@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.util;
 
 import com.google.common.collect.Maps;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.util.Tab;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;

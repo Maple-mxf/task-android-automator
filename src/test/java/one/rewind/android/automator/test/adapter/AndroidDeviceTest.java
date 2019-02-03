@@ -1,6 +1,6 @@
 package one.rewind.android.automator.test.adapter;
 
-import one.rewind.android.automator.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.json.JSON;
 import org.junit.Test;

@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.api;
 
 import com.google.gson.reflect.TypeToken;
-import one.rewind.android.automator.AndroidDeviceManager;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskFactory;
 import one.rewind.android.automator.task.TaskHolder;
