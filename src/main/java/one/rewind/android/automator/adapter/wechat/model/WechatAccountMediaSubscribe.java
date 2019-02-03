@@ -6,8 +6,10 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import one.rewind.db.Daos;
 import one.rewind.db.annotation.DBName;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.ModelL;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,7 +26,7 @@ public class WechatAccountMediaSubscribe extends ModelL {
     @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false, uniqueCombo = true)
     public String media_id; // 系统自定义 id
 
-    @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
+    @DatabaseField(dataType = DataType.STRING, width = 32, index = true)
     public String media_name; // 微信号
 
     @DatabaseField(dataType = DataType.STRING, width = 32, index = true, canBeNull = false)
@@ -53,8 +55,8 @@ public class WechatAccountMediaSubscribe extends ModelL {
      * @return
      * @throws Exception
      */
-    public static List<String> getSubscribeMediaIds(int account_id) throws Exception {
+    public static List<String> getSubscribeMediaIds(int account_id) throws DBInitException, SQLException {
         Dao<WechatAccountMediaSubscribe, String> dao = Daos.get(WechatAccountMediaSubscribe.class);
-        return dao.queryBuilder().where().eq("account_id", account_id).query().stream().map(ams -> ams.media_id).collect(Collectors.toList());
+        return dao.queryBuilder().where().eq("account_id", account_id).query().stream().map(ams -> ams.media_nick).collect(Collectors.toList());
     }
 }

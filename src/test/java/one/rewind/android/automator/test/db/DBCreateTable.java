@@ -1,6 +1,5 @@
 package one.rewind.android.automator.test.db;
 
-import one.rewind.android.automator.log.SysLog;
 import one.rewind.db.util.Refactor;
 import org.junit.Test;
 
@@ -15,8 +14,8 @@ public class DBCreateTable {
 
         //DBUtil.initDB(false);
 
-        //Refactor.createTables("one.rewind.data.raw.model");
-        Refactor.createTable(SysLog.class);
+        Refactor.createTables("one.rewind.data.raw.model");
+        //Refactor.createTable(SysLog.class);
     }
 
 }

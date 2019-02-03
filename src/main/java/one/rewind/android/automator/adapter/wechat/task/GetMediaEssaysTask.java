@@ -4,6 +4,7 @@ import com.dw.ocr.parser.OCRParser;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
@@ -17,6 +18,7 @@ import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Source;
 import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
+import one.rewind.db.model.Model;
 import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
@@ -99,6 +101,17 @@ public class GetMediaEssaysTask extends Task {
     }
 
     @Override
+    public Task setAdapter(Adapter adapter) {
+        this.adapter = (WeChatAdapter) adapter;
+        return this;
+    }
+
+    @Override
+    public Adapter getAdapter() {
+        return this.adapter;
+    }
+
+    @Override
     public Boolean call() throws IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.NoResponseException, AdapterException.LoginScriptError, DBInitException, SQLException {
 
         boolean retry = false;
@@ -112,15 +125,15 @@ public class GetMediaEssaysTask extends Task {
             setupFilters();
 
             // B1 重置微信进入首页
-            h.r("B1 重置微信进入首页");
+            RC("B1 重置微信进入首页");
             adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
 
             // B2 进入已订阅公众号的列表页面params
-            h.r("B2 进入已订阅公众号的列表页面");
+			RC("B2 进入已订阅公众号的列表页面");
             adapter.goToSubscribePublicAccountList();
 
             // B3 根据 media_nick 搜索到相关的公众号（已订阅的公众号）
-            h.r("B3 搜索到相关的公众号（已订阅的公众号）");
+			RC("B3 搜索到相关的公众号（已订阅的公众号）");
             adapter.goToSubscribedPublicAccountHome(media_nick);
 
             // B4 基于media_nick 查询Media
@@ -131,7 +144,7 @@ public class GetMediaEssaysTask extends Task {
                 // 如果对应的media不存在
                 if (media == null) {
 
-                    media = parseMedia(adapter.getPublicAccountInfo(media_nick, false));
+                    media = parseMedia(adapter.getPublicAccountInfo(false));
                     media.insert();
 
                 }
@@ -151,7 +164,7 @@ public class GetMediaEssaysTask extends Task {
             }
 
             // C1 进入历史文章数据列表页
-            h.r("C1 进入历史文章数据列表页");
+			RC("C1 进入历史文章数据列表页");
             adapter.gotoPublicAccountEssayList();
 
             boolean atBottom = false;
@@ -178,14 +191,14 @@ public class GetMediaEssaysTask extends Task {
                     // D3 进入文章
                     countDown = new CountDownLatch(1);
 
-                    h.r("D3 进入文章");
+					RC("D3 进入文章");
                     adapter.goToEssayDetail(area);
 
                     // D4 判断是否进入了文章页
-                    h.r("D4 判断是否进入了文章页");
+					RC("D4 判断是否进入了文章页");
                     if (adapter.device.reliableTouch(area.left, area.top)) {
 
-                        h.r("D41 向下滑动两次");
+						RC("D41 向下滑动两次");
                         for (int i = 0; i < 2; i++) {
                             this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                         }
@@ -201,17 +214,17 @@ public class GetMediaEssaysTask extends Task {
                             countDown = new CountDownLatch(1);
 
                             // 点进去被转发的文章
-                            h.r("D43 点进去被转发的文章");
+							RC("D43 点进去被转发的文章");
                             adapter.device.touch(582, 557, 6000);
 
-                            h.r("D44 向下滑动两次");
+							RC("D44 向下滑动两次");
                             for (int i = 0; i < 2; i++) {
                                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                             }
                         }
 
                         // D44 关闭文章
-                        h.r("D45 关闭文章");
+						RC("D45 关闭文章");
                         adapter.touchUpperLeftButton();
                         // adapter.device.touch(67, 165, 1000);
 
@@ -224,7 +237,7 @@ public class GetMediaEssaysTask extends Task {
                     throw new AdapterException.IllegalStateException(adapter);
 
                 // D51 向下滑动
-                h.r("D46 向下滑动一页");
+				RC("D46 向下滑动一页");
                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
 
             }
@@ -671,9 +684,15 @@ public class GetMediaEssaysTask extends Task {
      * @param pai
      * @return
      */
-    public static Media parseMedia(WeChatAdapter.PublicAccountInfo pai) {
+    public static Media parseMedia(WeChatAdapter.PublicAccountInfo pai) throws DBInitException, SQLException {
 
-        Media media = new Media();
+    	Media media = Model.getById(Media.class, SubscribeMediaTask.genId(pai.nick));
+    	if(media == null) {
+			media = new Media();
+			media.id = SubscribeMediaTask.genId(pai.nick);
+			media.insert();
+		}
+
         media.name = pai.name;
         media.nick = pai.nick;
         media.content = pai.content;
@@ -681,8 +700,6 @@ public class GetMediaEssaysTask extends Task {
         media.subject = pai.subject;
         media.trademark = pai.trademark;
         media.phone = pai.phone;
-
-        media.id = SubscribeMediaTask.genId(media.nick);
 
         return media;
     }

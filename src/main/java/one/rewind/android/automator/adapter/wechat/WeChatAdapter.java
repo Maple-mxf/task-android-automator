@@ -4,6 +4,7 @@ import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.OCRParser;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
+import io.appium.java_client.android.AndroidElement;
 import io.appium.java_client.touch.offset.PointOption;
 import one.rewind.android.automator.AndroidDevice;
 import one.rewind.android.automator.account.Account;
@@ -58,6 +59,8 @@ public class WeChatAdapter extends Adapter {
 
     // 状态信息
     public Status status = Status.Init;
+
+    public WeChatAdapter() {}
 
     /**
      * 构造方法
@@ -183,8 +186,9 @@ public class WeChatAdapter extends Adapter {
             if(userInfo == null) throw new AdapterException.LoginScriptError(this, account);
 
             // 微信昵称 与 微信号 有一个不对应
+
             if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
-                loginOut();
+                logout();
                 login();
             }
 
@@ -365,16 +369,16 @@ public class WeChatAdapter extends Adapter {
 
         Thread.sleep(1000);
 
-        List<WebElement> els = device.driver.findElementsByClassName("android.widget.TextView");
+        List<AndroidElement> els = device.driver.findElementsByClassName("android.widget.TextView");
 
         if (els.size() == 0) {
             logger.info("Not into public account page.");
             throw new AdapterException.IllegalStateException(this);
         }
 
-        for (WebElement we : els) {
+        /*for (WebElement we : els) {
             System.err.println(els.indexOf(we) + " --> " + we.getText());
-        }
+        }*/
 
         this.status = Status.PublicAccount_Home;
 
@@ -390,7 +394,8 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.IllegalStateException
      */
     public void goToSubscribedPublicAccountHome(int x, int y) throws InterruptedException, AdapterException.IllegalStateException {
-        if (this.status != Status.Subscribe_PublicAccount_List)
+
+    	if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
 
         this.device.touch(x, y, 1000);
@@ -435,17 +440,17 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
-     * 添加公众号
+     * 获取公众号信息
      *
-     * @param media_nick
+     * @param subscribe
      * @throws Exception
      */
-    public PublicAccountInfo getPublicAccountInfo(String media_nick, boolean subscribe) throws AdapterException.IllegalStateException, InterruptedException, MediaException.NotEqual {
+    public PublicAccountInfo getPublicAccountInfo(boolean subscribe) throws AdapterException.IllegalStateException, InterruptedException, MediaException.Illegal {
 
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
         // 对公众号首页信息进行处理
-        List<WebElement> els = device.driver.findElementsByClassName("android.widget.TextView");
+        List<AndroidElement> els = device.driver.findElementsByClassName("android.widget.TextView");
 
         if (els.size() == 0) {
             logger.info("Not into public account page.");
@@ -454,13 +459,25 @@ public class WeChatAdapter extends Adapter {
 
         PublicAccountInfo wpa = new PublicAccountInfo();
 
-        for (WebElement we : els) {
-            System.err.println(els.indexOf(we) + " --> " + we.getText());
-        }
-
         wpa.nick = els.get(0).getText();
 
-        if (!media_nick.equals(wpa.nick)) throw new MediaException.NotEqual(account, media_nick);
+        // 公众号首页异常信息
+		for (WebElement we : els) {
+			if(
+				we.getText().contains("该公众号已迁移至新帐号") ||
+					we.getText().contains("帐号已被系统回收") ||
+					we.getText().contains("该帐号已系统注销") ||
+					we.getText().contains("该帐号已自主注销")
+
+			) {
+				throw new MediaException.Illegal(account, wpa.nick);
+			}
+		}
+
+        // 该公众号已迁移至新账号，帐号已被系统回收
+        if(wpa.nick.matches("transfer_.+?") || wpa.nick.matches("该帐号已注销|该帐号已冻结")) {
+			throw new MediaException.Illegal(account, wpa.nick);
+		}
 
         wpa.content = els.get(1).getText();
         wpa.essay_count = NumberFormatUtil.parseInt(
@@ -483,7 +500,7 @@ public class WeChatAdapter extends Adapter {
 
         for (String info_item : info) {
             if (info_item.contains("微信号")) {
-                wpa.name = info_item.replaceAll("微信号", "");
+                wpa.name = info_item.replaceAll("微信号:? ?", "");
             }
             if (info_item.contains("帐号主体")) {
                 wpa.subject = info_item.replaceAll("帐号主体", "");
@@ -536,9 +553,21 @@ public class WeChatAdapter extends Adapter {
 
         Thread.sleep(1000);
 
-        this.status = Status.Init;
+		WebElement ae = device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'不再关注')]"));
+		if(ae != null) {
+			ae.click();
+			Thread.sleep(1000);
+		}
 
-        this.status = Status.PublicAccount_Home;
+		for(AndroidElement el : device.driver.findElementsByClassName("android.widget.TextView")) {
+			if (el.getText().matches("微信(\\(\\d+\\))?")) {
+				this.status = Status.Home;
+			}
+			else if(el.getText().equals("公众号")) {
+				this.status = Status.Subscribe_PublicAccount_List;
+			}
+			break;
+		}
     }
 
     /**
@@ -617,7 +646,7 @@ public class WeChatAdapter extends Adapter {
      *
      * @throws InterruptedException
      */
-    public void loginOut() throws AdapterException.LoginScriptError, InterruptedException {
+    public void logout() throws AdapterException.LoginScriptError, InterruptedException {
 
         try {
             // A 点击我
@@ -625,7 +654,7 @@ public class WeChatAdapter extends Adapter {
             Thread.sleep(500);
 
             // B 点击设置
-            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'设置')]"));
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'设置')]"));
             Thread.sleep(500);
 
             // C 向下滑
@@ -714,13 +743,13 @@ public class WeChatAdapter extends Adapter {
 
         Thread.sleep(1000);
 
-        List<WebElement> lis = device.driver.findElementsById("android:id/summary");
+        List<AndroidElement> lis = device.driver.findElementsById("android:id/summary");
 
         UserInfo ui = new UserInfo(lis.get(1).getText(), lis.get(0).getText());
 
         device.goBack();
 
-        logger.info("Current user_id:{} user_name:{}", ui.id, ui.name);
+        logger.info("user_id:{} user_name:{}", ui.id, ui.name);
 
         Thread.sleep(5000);
 
@@ -740,7 +769,7 @@ public class WeChatAdapter extends Adapter {
         Thread.sleep(1700);
 
         //点击朋友圈，朋友圈按钮为对应list中的第一个元素
-        List<WebElement> lis = device.driver.findElementsByClassName("android.widget.LinearLayout");
+        List<AndroidElement> lis = device.driver.findElementsByClassName("android.widget.LinearLayout");
         WebElement targetEle = lis.get(1);
 
         targetEle.click();
@@ -814,7 +843,7 @@ public class WeChatAdapter extends Adapter {
         device.driver.findElementByAccessibilityId("聊天信息").click();
         Thread.sleep(1000);
 
-        List<WebElement> ifHaveTitle = device.driver.findElementsById("android:id/title");
+        List<AndroidElement> ifHaveTitle = device.driver.findElementsById("android:id/title");
         while (ifHaveTitle.size() == 0) {
             new TouchAction(device.driver).press(PointOption.point(850, 1460)).moveTo(PointOption.point(840, 500)).release().perform();
         }
@@ -825,7 +854,7 @@ public class WeChatAdapter extends Adapter {
         //根据群内的人数调整j的控制
         for (int j = 0; j < 10; j++) {
 
-            List<WebElement> listOfFriends = device.driver.findElementsById("com.tencent.mm:id/ajj");
+            List<AndroidElement> listOfFriends = device.driver.findElementsById("com.tencent.mm:id/ajj");
 
             for (int i = 0; i < listOfFriends.size(); i++) {
 
@@ -1122,7 +1151,7 @@ public class WeChatAdapter extends Adapter {
             Thread.sleep(2000);
 
             //如果用户不存在
-            List<WebElement> lis2 = (List<WebElement>) device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,'该用户不存在')]"));
+            List<AndroidElement> lis2 = device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,'该用户不存在')]"));
 
             if (lis2.size() != 0) {
 
@@ -1136,7 +1165,7 @@ public class WeChatAdapter extends Adapter {
             }
 
             //操作过于频繁，直接结束
-            List<WebElement> lis3 = (List<WebElement>) device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,'操作过于频繁，请稍后再试')]"));
+            List<AndroidElement> lis3 = device.driver.findElements(By.xpath("//android.widget.TextView[contains(@text,'操作过于频繁，请稍后再试')]"));
 
             if (lis3.size() != 0) {
 
@@ -1150,7 +1179,7 @@ public class WeChatAdapter extends Adapter {
             device.driver.findElementByClassName("android.widget.Button").click(); //添加到通讯录
             Thread.sleep(2000);
 
-            List<WebElement> temp = (List<WebElement>) device.driver.findElementsByClassName("android.widget.EditText");
+            List<AndroidElement> temp = device.driver.findElementsByClassName("android.widget.EditText");
             temp.get(0).clear();
             temp.get(0).sendKeys(verification); //重填验证信息
             Thread.sleep(1000);
@@ -1189,10 +1218,10 @@ public class WeChatAdapter extends Adapter {
         for (int k = 0; k < 10; k++) {
 
             //将页面中的文字，时间，图片等所有元素放在allObjects组中
-            List<WebElement> textlist = device.driver.findElementsById("com.tencent.mm:id/ki");//该界面中所有的文字
-            List<WebElement> aevList = device.driver.findElementsById("com.tencent.mm:id/aev");//该界面中的aev为id的内容
-            List<WebElement> timeList = device.driver.findElementsById("com.tencent.mm:id/a4");//该界面中所有的时间
-            List<WebElement> allObjects = timeList;
+            List<AndroidElement> textlist = device.driver.findElementsById("com.tencent.mm:id/ki");//该界面中所有的文字
+            List<AndroidElement> aevList = device.driver.findElementsById("com.tencent.mm:id/aev");//该界面中的aev为id的内容
+            List<AndroidElement> timeList = device.driver.findElementsById("com.tencent.mm:id/a4");//该界面中所有的时间
+            List<AndroidElement> allObjects = timeList;
             allObjects.addAll(aevList);
             allObjects.addAll(textlist);
 
@@ -1269,7 +1298,8 @@ public class WeChatAdapter extends Adapter {
                     if (aevList.contains(nowObject)) {
                         new TouchAction(device.driver).longPress(PointOption.point(nowObject.getLocation().getX(), nowObject.getLocation().getY())).perform();
                         Thread.sleep(1000);
-                        List<WebElement> optionList = device.driver.findElementsByClassName("android.widget.TextView");
+
+                        List<AndroidElement> optionList = device.driver.findElementsByClassName("android.widget.TextView");
                         //如果有4个选项，就是文件，对文件进行处理(过期文件3个选项)
                         if (optionList.size() == 4) {
                             String filename = device.driver.findElementById("com.tencent.mm:id/afc").getText();
@@ -1440,7 +1470,7 @@ public class WeChatAdapter extends Adapter {
                 this.account = account;
 
                 // A 退出登录
-                loginOut();
+                logout();
 
                 // B 登录账号  TODO 登录账号需要改变当前类的Account
                 login();

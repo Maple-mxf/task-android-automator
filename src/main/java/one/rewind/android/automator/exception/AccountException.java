@@ -11,9 +11,20 @@ public class AccountException extends Exception {
 	/**
 	 * 无可用账户异常
 	 */
-	public static class NoAvailableAccount extends Exception {}
+	public static class NoAvailableAccount extends Exception {
 
-	public static class AccountNotLoad extends Exception {}
+
+	}
+
+	public static class AccountNotLoad extends Exception {
+
+		int accountId;
+
+		public AccountNotLoad(int accountId) {
+			this.accountId = accountId;
+		}
+
+	}
 
 	public static class Broken extends Exception {
 

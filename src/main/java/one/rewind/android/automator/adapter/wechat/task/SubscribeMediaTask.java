@@ -2,6 +2,7 @@ package one.rewind.android.automator.adapter.wechat.task;
 
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
 import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
@@ -47,6 +48,17 @@ public class SubscribeMediaTask extends Task {
     }
 
     @Override
+    public Task setAdapter(Adapter adapter) {
+		this.adapter = (WeChatAdapter) adapter;
+        return this;
+    }
+
+    @Override
+    public Adapter getAdapter() {
+        return this.adapter;
+    }
+
+    @Override
     public Boolean call() throws
             InterruptedException, // 任务中断
             IOException, //
@@ -62,28 +74,28 @@ public class SubscribeMediaTask extends Task {
         try {
 
             // A 启动微信
-            h.r("A 启动微信");
+			RC("A 启动微信");
             adapter.restart();
 
             // B 进入搜索页
-            h.r("B 进入搜索页");
+			RC("B 进入搜索页");
             adapter.goToSearchPage();
 
             // C 点击公众号
-            h.r("C 点击公众号");
+			RC("C 点击公众号");
             adapter.goToSearchPublicAccountPage();
 
             // D 输入公众号进行搜索
-            h.r("D 输入公众号进行搜索");
+			RC("D 输入公众号进行搜索");
             adapter.searchPublicAccount(media_nick);
 
             // E 截图识别是否被限流了
-            h.r("E 截图识别是否被限流了");
+			RC("E 截图识别是否被限流了");
             adapter.getPublicAccountList();
 
             // E 点击订阅  订阅完成之后返回到上一个页面
-            h.r("E 点击订阅，订阅完成之后返回到上一个页面");
-            WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(media_nick, true);
+			RC("E 点击订阅，订阅完成之后返回到上一个页面");
+            WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(true);
 
             try {
 
@@ -151,18 +163,16 @@ public class SubscribeMediaTask extends Task {
             // 不需要进行重试  任务失败即可
             logger.error("AndroidDevice state error, ", broken);
         }
-        // 订阅的媒体账号和指定的账号不相同
-        catch (MediaException.NotEqual notEqual) {
-
-            logger.error("Error account not equals, ", notEqual);
-
-        } catch (IOException e) {
+        // TODO 订阅的媒体账号和指定的账号不相同
+        catch (IOException e) {
 
             logger.error("Error screen shot failure, ", e);
-        }
+        } catch (MediaException.Illegal illegal) {
+			adapter.unsubscribePublicAccount();
+		}
 
 
-        return retry;
+		return retry;
     }
 
     public static String genId(String nick) {

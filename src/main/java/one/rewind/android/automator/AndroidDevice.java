@@ -1,6 +1,9 @@
 package one.rewind.android.automator;
 
 import com.dw.ocr.util.ImageUtil;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.j256.ormlite.dao.Dao;
@@ -12,6 +15,7 @@ import com.j256.ormlite.field.types.StringType;
 import com.j256.ormlite.table.DatabaseTable;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.AndroidElement;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.service.local.AppiumDriverLocalService;
@@ -33,6 +37,7 @@ import one.rewind.android.automator.callback.TaskCallback;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.exception.AndroidException;
+import one.rewind.android.automator.exception.TaskException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.util.ShellUtil;
 import one.rewind.android.automator.util.Tab;
@@ -59,13 +64,12 @@ import se.vidstige.jadb.managers.PackageManager;
 import javax.imageio.ImageIO;
 import java.io.*;
 import java.lang.reflect.Type;
-import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.*;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Android 设备管理
@@ -138,7 +142,7 @@ public class AndroidDevice extends ModelL {
     private transient AppiumDriverLocalService service;
 
     // 本地Driver
-    public transient AndroidDriver driver;
+    public transient AndroidDriver<AndroidElement> driver;
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
     private int proxyPort; // TODO 移动端代理端口
@@ -159,7 +163,7 @@ public class AndroidDevice extends ModelL {
     public int width; // 设备屏幕宽度
 
     // 上次启动时间
-    @DatabaseField(dataType = DataType.DATE_TIME)
+    @DatabaseField(dataType = DataType.DATE)
     public Date init_time;
 
     // Executor Queue
@@ -178,7 +182,7 @@ public class AndroidDevice extends ModelL {
     public transient Map<String, Adapter> adapters = new HashMap<>();
 
     //
-    public transient List<AndroidDeviceCallBack> initCallbacks = new ArrayList<>();
+    public transient List<AndroidDeviceCallBack.InitCallBack> initCallbacks = new ArrayList<>();
 
     //
     public transient List<AndroidDeviceCallBack> idleCallbacks = new ArrayList<>();
@@ -192,6 +196,8 @@ public class AndroidDevice extends ModelL {
     // 当前正在执行的任务
     public transient Future<Boolean> taskFuture;
 
+	public AndroidDevice() {}
+
     /**
      * 构造方法
      *
@@ -199,23 +205,21 @@ public class AndroidDevice extends ModelL {
      * @throws Exception
      */
     public AndroidDevice(String udid) {
-
         this.udid = udid;
-
-        this.local_ip = NetworkUtil.getLocalIp();
-        logger.info("Local IP: {}", local_ip);
-
-        name = "AD-" + udid + "";
-
-        // 初始化单线程执行器
-        executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
-        executor.setThreadFactory(new ThreadFactoryBuilder()
-                .setNameFormat(name + "-%d").build());
+		setupExecutor();
     }
 
-    public AndroidDevice() {
+    public void setupExecutor() {
+		this.local_ip = NetworkUtil.getLocalIp();
+		logger.info("Local IP: {}", local_ip);
 
-    }
+		name = "" + udid + "";
+
+		// 初始化单线程执行器
+		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
+		executor.setThreadFactory(new ThreadFactoryBuilder()
+				.setNameFormat(name + "-%d").build());
+	}
 
     /**
      * @param udid
@@ -233,6 +237,7 @@ public class AndroidDevice extends ModelL {
             ad = new AndroidDevice(udid);
             ad.insert();
         } else {
+        	ad.setupExecutor();
             ad.update();
         }
 
@@ -263,18 +268,30 @@ public class AndroidDevice extends ModelL {
 
             } catch (AdapterException.LoginScriptError e) {
 
-                logger.error("Adapter operation exception, ", e);
-                this.adapters.remove(adapter.getClass().getName());
+				logger.error("[{}] [{}] login script error, ", udid, adapter.getClass().getSimpleName(), e);
+
+				removeAdapter(adapter);
 
             } catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
-                logger.error("Device:[{}] Adapter:[{}] no available account, ", name, adapter.getClass().getSimpleName(), noAvailableAccount);
-                this.adapters.remove(adapter.getClass().getName());
+				logger.error("[{}] [{}] no available account, ", udid, adapter.getClass().getSimpleName(), noAvailableAccount);
+
+				removeAdapter(adapter);
             }
 
         });
+
         return this;
     }
+
+	/**
+	 *
+	 * @param adapter
+	 */
+	public void removeAdapter(Adapter adapter){
+		this.adapters.remove(adapter.getClass().getName());
+		logger.info("[{}] removed, ", adapter.getInfo());
+	}
 
     /**
      * @param adapter
@@ -284,9 +301,11 @@ public class AndroidDevice extends ModelL {
 
         try {
             adapter.start();
+			logger.info("[{}] [{}] [{}] started", udid, adapter.getClass().getSimpleName(), adapter.account == null? 0 : adapter.account.id);
+
         } catch (AccountException.Broken broken) {
 
-            logger.error("Adapter[{}] Account[{}] broken, ", adapter.getClass().getSimpleName(), broken.account.id, broken);
+            logger.error("[{}] [{}] [{}] broken, ", udid, adapter.getClass().getSimpleName(), broken.account.id, broken);
             broken.account.status = Account.Status.Broken;
             broken.account.update();
 
@@ -296,7 +315,6 @@ public class AndroidDevice extends ModelL {
         return this;
     }
 
-
     /**
      *
      */
@@ -304,7 +322,7 @@ public class AndroidDevice extends ModelL {
 
         public Boolean call() throws Exception {
 
-            logger.info("Init...");
+            logger.info("Device:[{}] Init...", name);
 
             AndroidDevice.this.appiumPort = Tab.appiumPort.getAndIncrement();
             AndroidDevice.this.proxyPort = Tab.proxyPort.getAndIncrement();
@@ -314,20 +332,25 @@ public class AndroidDevice extends ModelL {
             // installCA();
 
             // 启动代理
+			logger.info("Device:[{}] start proxy...", name);
             startProxy();
 
             // 设置设备Wifi代理
+			logger.info("Device:[{}] setup wifi proxy...", name);
             setupRemoteWifiProxy();
 
             // 启动相关服务
+			logger.info("Device:[{}] start appium local service / driver ...", name);
             initAppiumServiceAndDriver(new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI"));
 
             //
-            runCallbacks(initCallbacks).get();
+			for(AndroidDeviceCallBack.InitCallBack callBack : initCallbacks) {
+				callBack.call(AndroidDevice.this);
+			}
 
             init_time = new Date();
 
-            logger.info("Android Device [{}] init device success", udid);
+            logger.info("Device:[{}] init success", name);
 
             return true;
         }
@@ -343,10 +366,10 @@ public class AndroidDevice extends ModelL {
             logger.info("Stopping [{}] ...", name);
 
             // 停止 driver
-            driver.close();
+            if(driver != null) driver.close();
 
             // 停止 Appium service运行
-            if (service.isRunning()) service.stop();
+            if (service != null && service.isRunning()) service.stop();
 
             // 停止设备端的 appium
             stopRemoteAppiumServer();
@@ -446,6 +469,7 @@ public class AndroidDevice extends ModelL {
             status = Status.Idle;
 
             if (initSuccess) {
+				update();
                 logger.info("[{}] INIT done.", name);
             }
 
@@ -474,9 +498,6 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] INIT failed. ", name, e);
             stop();
 
-        } finally {
-
-            this.update();
         }
 
         return this;
@@ -585,7 +606,7 @@ public class AndroidDevice extends ModelL {
         try {
 
             feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-            logger.info("Device:[{}] clear done.", name);
+            logger.info("[{}] reboot finished.", udid);
 
             stop();
             start();
@@ -593,18 +614,18 @@ public class AndroidDevice extends ModelL {
         } catch (InterruptedException e) {
 
             status = Status.DeviceBroken;
-            logger.error("Device:[{}] reboot interrupted. ", name, e);
+            logger.error("[{}] reboot interrupted. ", udid, e);
 
         } catch (ExecutionException e) {
 
             status = Status.DeviceBroken;
-            logger.error("Device:[{}] reboot failed. ", name, e.getCause());
+            logger.error("[{}] reboot failed. ", udid, e.getCause());
 
         } catch (TimeoutException e) {
 
             feature.cancel(true);
             status = Status.DeviceBroken;
-            logger.error("Device:[{}] reboot failed. ", name, e);
+            logger.error("[{}] reboot failed. ", udid, e);
 
         } finally {
             this.update();
@@ -626,7 +647,7 @@ public class AndroidDevice extends ModelL {
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException {
+    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
         if (!(status == Status.Idle || status == Status.Busy)) {
             throw new AndroidException.IllegalStatusException();
@@ -634,9 +655,13 @@ public class AndroidDevice extends ModelL {
 
         this.status = Status.Busy;
 
-        boolean restart = false;
+        Adapter adapter = adapters.get(task.h.adapter_class_name);
 
-        task.adapter = adapters.get(task.h.adapter_class_name);
+        if(adapter == null) {
+			throw new AndroidException.NoSuitableAdapter();
+		}
+
+        task.setAdapter(adapter); // 由于异常处理 task.adapter 有可能被 device 移除
 
         boolean retry = false;
 
@@ -647,7 +672,7 @@ public class AndroidDevice extends ModelL {
             // 如果任务不需要重试  则直接退出循环
             retry = taskFuture.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
 
-            task.adapter.exceptions.clear();
+            task.getAdapter().exceptions.clear();
             flags.clear();
 
             // 执行成功回调
@@ -662,114 +687,132 @@ public class AndroidDevice extends ModelL {
         // E1 线程中断异常 TODO 基本上是 executor 被异常终止才会报该异常
         catch (InterruptedException e) {
 
-            logger.error("Device:[{}] Adapter:[{}] Task:[{}] interrupted, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
+            logger.error("Device:[{}] Adapter:[{}] Task:[{}] interrupted, ", name, task.getAdapter().getClass().getSimpleName(), task.h.id, e);
             status = Status.Failed;
+            retry = false;
         }
         // E2 任务被外部终止 taskFuture.cancel() 产生 状态设为Idle
         catch (CancellationException e) {
 
-            logger.warn("Device:[{}] Adapter:[{}] Task:[{}] cancelled, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
+            logger.warn("[{}] [{}] cancelled, ", task.getAdapter().getInfo(), task.getInfo(), e);
             status = Status.Idle;
+			retry = false;
         }
         // E3 基本不会捕获
         catch (TimeoutException e) {
 
-            logger.error("Device:[{}] Adapter:[{}] Task:[{}] timeout, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e);
-
+            logger.error("[{}] [{}] timeout, ", task.getAdapter().getInfo(), task.getInfo(), e);
             taskFuture.cancel(true);
-            adapters.remove(task.adapter.getClass().getName());
             status = Status.Idle;
+			retry = false;
         }
         // E4 执行异常
         catch (ExecutionException e) {
 
-            logger.error("Device:[{}] Adapter:[{}] Task:[{}] failed, ", name, task.adapter.getClass().getSimpleName(), task.h.id, e.getCause());
-
-            // TODO
-            status = Status.Failed;
+			retry = true;
 
             try {
 
                 // E5 账号异常
                 if (e.getCause() instanceof AccountException.Broken) {
-                    task.adapter.switchAccount();
+
+					logger.error("[{}] [{}] account broken, ", task.getAdapter().getInfo(), task.getInfo(), e.getCause());
+
+                    task.getAdapter().switchAccount();
                     status = Status.Idle;
                 }
                 // E6 Adapter 操作定义异常
                 else if (e.getCause() instanceof AdapterException.OperationException || e.getCause() instanceof AdapterException.IllegalStateException) {
 
-                    logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), e.getCause());
+                    logger.error("[{}] [{}] illegal state, ", task.getAdapter().getInfo(), task.getInfo(), e.getCause());
 
                     // 上一次执行 也遇到了相同异常
-                    if (task.adapter.exceptions.contains(e.getCause().getClass().getName())) {
-                        adapters.remove(task.adapter.getClass().getName());
-                    } else {
-                        task.adapter.exceptions.add(e.getCause().getClass().getName());
+                    if (task.getAdapter().exceptions.containsKey(e.getCause().getClass().getName())) {
+						removeAdapter(task.getAdapter());
+                    }
+                    else {
+                        task.getAdapter().exceptions.put(e.getCause().getClass().getName(), 1);
                         // 重置Adapter状态
-                        task.adapter.restart();
+                        task.getAdapter().restart();
                     }
 
                     status = Status.Idle;
                 }
                 // E7 App没有响应异常
-                // 一次 adapter.restart()
-                // 连续两次 device.Clean + adapter.restart()
-                // 连续三次 (device.Reboot + device.Restart) + adapter.restart() 异常清空 设备记录已经重启过
-                // 设备如果重启过 同时又出现该异常 设备移除
                 else if (e.getCause() instanceof AdapterException.NoResponseException) {
 
-                    logger.error("Device:[{}] Adapter[{}] TaskClass[{}] no response, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), e.getCause());
+					logger.error("[{}] [{}] device no response, ", task.getAdapter().getInfo(), task.getInfo(), e.getCause());
 
                     // 上一次执行 也遇到了相同异常
-                    if (task.adapter.exceptions.contains(e.getCause().getClass().getName())) {
+                    if (task.getAdapter().exceptions.containsKey(e.getCause().getClass().getName())) {
 
+                    	// 第4次 设备不可用
                         if (flags.contains(Flag.NewReboot)) {
-                            status = Status.DeviceBroken;
-                        } else if (flags.contains(Flag.Cleaned)) {
+
+                        	status = Status.DeviceBroken;
+                        }
+                        // 第3次 重启设备
+                        else if (flags.contains(Flag.Cleaned)) {
 
                             this.reboot();
-                            task.adapter.restart();
+                            task.getAdapter().restart();
                             status = Status.Idle;
 
-                        } else {
-                            this.clear();
-                            task.adapter.restart();
+                        }
+                        // 第2次清空缓存 重启app
+                        else {
+
+                        	this.clear();
+                            task.getAdapter().restart();
                             status = Status.Idle;
                         }
 
-                    } else {
-                        task.adapter.exceptions.add(e.getCause().getClass().getName());
-                        // 重置Adapter状态
-                        task.adapter.restart();
+                    }
+                    // 第一次 app重启
+                    else {
 
+                        task.getAdapter().exceptions.put(e.getCause().getClass().getName(), 1);
+
+                        // 重置Adapter状态
+                        task.getAdapter().restart();
                         status = Status.Idle;
                     }
-                } else {
+
+                }
+                else {
                     throw e.getCause();
                 }
             }
             // 代理问题 TODO 出现场景需确认
             catch (SocketException ex) {
-                logger.error("Device:[{}] proxy may error, ", name, ex);
+                logger.error("[{}] proxy may error, ", udid, ex);
                 status = Status.Failed;
             }
             // 脚本异常 / 操作异常
             // 异常参考 http://www.softwaretestingstudio.com/common-exceptions-selenium-webdriver/
             catch (ElementNotVisibleException |
                     NoAlertPresentException |
+					StaleElementReferenceException |
                     ElementNotSelectableException |
                     NoSuchFrameException |
                     org.openqa.selenium.NoSuchElementException |
                     ElementClickInterceptedException ex) {
 
-                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), ex);
+				logger.error("[{}] [{}] operation error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
 
                 // 当前任务失败 连续出现三次
                 // 上一次执行 也遇到了相同异常
-                if (task.adapter.exceptions.contains(ex.getClass().getName())) {
-                    adapters.remove(task.adapter.getClass().getName());
-                } else {
-                    task.adapter.exceptions.add(ex.getClass().getName());
+                if (task.getAdapter().exceptions.containsKey(ex.getClass().getName())) {
+
+                	int count = task.getAdapter().exceptions.get(ex.getClass().getName());
+                	if(count < 3) {
+						task.getAdapter().exceptions.put(ex.getClass().getName(), count ++);
+					}
+
+					removeAdapter(task.getAdapter());
+                }
+                else {
+                    task.getAdapter().exceptions.put(ex.getClass().getName(), 1);
                 }
 
                 status = Status.Idle;
@@ -782,22 +825,25 @@ public class AndroidDevice extends ModelL {
                     SessionNotCreatedException |          // 无法创建Session异常
                     NoSuchSessionException |              // 无法识别的Session
                     ErrorHandler.UnknownServerException ex) {  // 未知服务端异常
-                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), ex);
+
+                logger.error("[{}] [{}] driver error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
 
                 status = Status.Failed;
             }
 
-            // 无法正常调用WebDriver --> 关闭
+            // 其他 WebDriver 异常 无法正常调用WebDriver --> 关闭
             catch (WebDriverException ex) {
 
-                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), ex);
+                logger.error("[{}] [{}] error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
 
                 status = Status.Failed;
             }
             // 无可用账号异常 --> 对应的Adapter不可用
             catch (AccountException.NoAvailableAccount ex) {
+
                 // 任务执行失败
-                logger.error("Error execute task failure NoAvailableAccount, ", ex);
+				logger.error("[{}] [{}] no available account, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				removeAdapter(task.getAdapter());
 
                 status = Status.Idle;
             }
@@ -805,25 +851,32 @@ public class AndroidDevice extends ModelL {
             catch (AdapterException.LoginScriptError ex) {
 
                 // 任务执行失败
-                logger.error("Device:[{}] Adapter[{}] TaskClass[{}] login script error, ", task.adapter.getClass().getSimpleName(), task.getClass().getSimpleName(), e.getCause());
-                adapters.remove(task.adapter.getClass().getName());
+				logger.error("[{}] [{}] login script error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				removeAdapter(task.getAdapter());
             }
-            //
+            // 其他未知异常
             catch (Throwable throwable) {
-
+				logger.error("[{}] [{}] unknown error, ", task.getAdapter().getInfo(), task.getInfo(), throwable);
+				removeAdapter(task.getAdapter());
             }
 
-        } finally {
+        }
+        finally {
 
             this.update();
+			if(retry) {
+				AndroidDeviceManager.getInstance().submit(task);
+			}
 
-            // 手机重启
-            if (restart) {
+			if(status == Status.Idle) {
+				runCallbacks(idleCallbacks);
+			}
+			if(status == Status.Failed) {
+				runCallbacks(failedCallbacks);
+			}
 
-            }
+			taskFuture = null;
         }
-
-        taskFuture = null;
     }
 
     /**
@@ -989,7 +1042,7 @@ public class AndroidDevice extends ModelL {
      *
      * @throws Exception
      */
-    public void initAppiumServiceAndDriver(Adapter.AppInfo appInfo) throws MalformedURLException, InterruptedException {
+    public void initAppiumServiceAndDriver(Adapter.AppInfo appInfo) throws IOException, InterruptedException {
 
         // A 定义Service Capabilities
         DesiredCapabilities serviceCapabilities = new DesiredCapabilities();
@@ -1003,7 +1056,7 @@ public class AndroidDevice extends ModelL {
             service = new AppiumServiceBuilder()
                     .withCapabilities(serviceCapabilities)
                     .usingPort(appiumPort)
-                    .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+                    .withArgument(GeneralServerFlag.LOG_LEVEL, "warn")
                     .withAppiumJS(new File("/usr/local/lib/node_modules/appium/build/lib/main.js")) // TODO Ubuntu系统下的固定文件路径，必须添加
                     /*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO  session覆盖问题解决
                     .build();
@@ -1011,12 +1064,17 @@ public class AndroidDevice extends ModelL {
             service = new AppiumServiceBuilder()
                     .withCapabilities(serviceCapabilities)
                     .usingPort(appiumPort)
-                    .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+                    .withArgument(GeneralServerFlag.LOG_LEVEL, "warn")
                     /*.withArgument(GeneralServerFlag.SESSION_OVERRIDE, "true")*/ // TODO  session覆盖问题解决
                     .build();
         }
 
         service.start();
+
+		File logFile = new File("log/appium.log");
+		logFile.createNewFile(); // if file already exists will do nothing
+		FileOutputStream oFile = new FileOutputStream(logFile, false);
+		service.sendOutputTo(oFile);
 
         Thread.sleep(5000);
 
@@ -1026,10 +1084,10 @@ public class AndroidDevice extends ModelL {
 
         // C 定义Driver Capabilities
         DesiredCapabilities capabilities = new DesiredCapabilities();
-        capabilities.setCapability("app", "");
-        capabilities.setCapability("appPackage", appInfo.appPackage);   // App包名
-        capabilities.setCapability("appActivity", appInfo.appActivity); // App启动Activity
-        capabilities.setCapability("fastReset", false);
+        capabilities.setCapability("app", ""); // 必须设定 否则无法启动Driver
+        capabilities.setCapability("appPackage", appInfo.appPackage);   // App包名 必须设定 否则无法启动Driver
+        capabilities.setCapability("appActivity", appInfo.appActivity); // App启动Activity 必须设定 否则无法启动Driver
+        // capabilities.setCapability("fastReset", false);
         capabilities.setCapability("fullReset", false);
         capabilities.setCapability("noReset", true);
 
@@ -1044,7 +1102,10 @@ public class AndroidDevice extends ModelL {
 
         // TODO 是否可以自动获取url?
         driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
+        // driver.setLogLevel(Level.WARNING);
         Thread.sleep(15000);
+
+		// driver.startRecordingScreen();
 
         // 设置宽高
         this.width = getWidth();
@@ -1435,7 +1496,7 @@ public class AndroidDevice extends ModelL {
     }
 
 
-    public AndroidDevice addInitCallback(AndroidDeviceCallBack callBack) {
+    public AndroidDevice addInitCallback(AndroidDeviceCallBack.InitCallBack callBack) {
         this.initCallbacks.add(callBack);
         return this;
     }
@@ -1459,23 +1520,37 @@ public class AndroidDevice extends ModelL {
      * @param callbacks
      * @return
      */
-    private Future runCallbacks(List<AndroidDeviceCallBack> callbacks) {
+    private void runCallbacks(List<AndroidDeviceCallBack> callbacks) {
 
-        if (callbacks == null) return null;
+        if (callbacks == null) return;
 
-        return AndroidDeviceManager.getInstance().executor.submit(() -> {
+		ListenableFuture<Boolean> future = AndroidDeviceManager.getInstance().executorService.submit((Callable<Boolean>) () -> {
 
-            try {
-                for (AndroidDeviceCallBack callback : callbacks) {
-                    callback.call(this);
-                }
-            } catch (Exception e) {
-                logger.error("Error execute callback, ", e);
-            }
-        });
+			for (AndroidDeviceCallBack callback : callbacks) {
+				callback.call(this);
+			}
+			return true;
+		});
+
+		Futures.addCallback(future, new FutureCallback<Boolean>() {
+
+			public void onSuccess(Boolean result) {
+				logger.info("Callbacks run success[{}]", result);
+			}
+
+			public void onFailure(Throwable thrown) {
+				logger.error("Callbacks run failed, ", thrown);
+			}
+
+		}, AndroidDeviceManager.getInstance().executorService);
+
     }
 
-    public static class JSONableFlagListPersister extends StringType {
+	/**
+	 *
+	 */
+	public static class JSONableFlagListPersister extends StringType {
+
         private static final JSONableFlagListPersister INSTANCE = new JSONableFlagListPersister();
 
         private JSONableFlagListPersister() {

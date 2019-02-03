@@ -13,9 +13,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 
 public abstract class Adapter {
@@ -32,7 +33,9 @@ public abstract class Adapter {
     public Account account;
 
     // 保存异常信息
-    public List<String> exceptions = new ArrayList<>();
+    public Map<String, Integer> exceptions = new HashMap<>();
+
+    public Adapter() {}
 
     public Adapter(AndroidDevice device) throws AndroidException.IllegalStatusException {
         this.device = device;
@@ -52,6 +55,10 @@ public abstract class Adapter {
     public void setDevice(AndroidDevice device) {
         this.device = device;
     }
+
+    public String getInfo() {
+    	return device.udid + "-" + getClass().getSimpleName() + account == null ? "" : "(" + account.id + ")";
+	}
 
     /**
      * 启动应用

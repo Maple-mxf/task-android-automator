@@ -5,25 +5,27 @@ package one.rewind.android.automator.exception;
  */
 public class AndroidException extends Exception {
 
-    public AndroidException(String message) {
-        super(message);
-    }
+	public AndroidException(String message) {
+		super(message);
+	}
 
-    public static class AndroidInitException extends AndroidException {
-        public AndroidInitException(String message) {
-            super(message);
-        }
-    }
+	public static class AndroidInitException extends AndroidException {
+		public AndroidInitException(String message) {
+			super(message);
+		}
+	}
 
-    public static class AndroidCollapseException extends AndroidException {
-        public AndroidCollapseException(String message) {
-            super(message);
-        }
-    }
+	public static class AndroidCollapseException extends AndroidException {
+		public AndroidCollapseException(String message) {
+			super(message);
+		}
+	}
 
-    public static class IllegalStatusException extends Exception {
+	public static class IllegalStatusException extends Exception {
 
-    }
+	}
 
-    public static class NoAvailableDeviceException extends Exception {}
+	public static class NoAvailableDeviceException extends Exception {}
+
+	public static class NoSuitableAdapter extends Exception {}
 }

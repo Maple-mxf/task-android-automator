@@ -1,5 +1,0 @@
-scp -r android-automator/ dw7@192.168.8.2:/usr/local/software/
-
-du -sh Android-SDK/ 统计文件夹大小
-
-no permissions (user in plugdev group; are your udev rules wrong?); see [http://developer.android.com/tools/device.html]

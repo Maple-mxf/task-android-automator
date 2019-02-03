@@ -1,5 +1,5 @@
 group 'one.rewind'
-version '1.0-SNAPSHOT'
+version '1.0.0-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'maven'
@@ -57,17 +57,11 @@ dependencies {
 
     compile 'com.github.vidstige:jadb:v1.0.1'
 
-    compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
-
-    compile 'one.rewind:raw-data:1.0.50-SNAPSHOT'
+    compile 'one.rewind:raw-data:1.0.52-SNAPSHOT'
 
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.12.0'
 
-    compile group: 'org.json', name: 'json', version: '20180130'
-
-    compile group: 'org.apache.spark', name: 'spark-core_2.11', version: '2.3.0'
-
-    compile group: 'com.dw', name: 'ocr-service', version: '0.1.7-SNAPSHOT'
+    compile group: 'com.dw', name: 'ocr-service', version: '0.1.9-SNAPSHOT'
 }
 
 task copyFiles() << {

@@ -13,23 +13,25 @@ import one.rewind.db.model.ModelL;
 @DatabaseTable(tableName = "task_records")
 public class TaskRecord extends ModelL {
 
-    @DatabaseField(dataType = DataType.STRING, width = 32)
-    public String task_id;
+	@DatabaseField(dataType = DataType.STRING, width = 32)
+	public String task_id;
 
-    @DatabaseField(dataType = DataType.STRING, width = 128)
-    public String udid;
+	@DatabaseField(dataType = DataType.STRING, width = 128)
+	public String udid;
 
-    @DatabaseField(dataType = DataType.INTEGER, width = 11)
-    public int account_id; // =0 时 不需要Account
+	@DatabaseField(dataType = DataType.INTEGER, width = 11)
+	public int account_id; // =0 时 不需要Account
 
-    @DatabaseField(dataType = DataType.STRING, columnDefinition = "MEDIUMTEXT")
-    public String content; // 保存出错的堆栈信息
+	@DatabaseField(dataType = DataType.STRING, columnDefinition = "MEDIUMTEXT")
+	public String content; // 保存出错的堆栈信息
 
-    public TaskRecord() {}
+	public TaskRecord() {}
 
-    public TaskRecord(TaskHolder holder) {
-        this.task_id = holder.id;
-        this.account_id = holder.account_id;
-        this.udid = holder.udid;
-    }
+	public TaskRecord(Task task) {
+		this.task_id = task.h.id;
+		if(task.getAdapter() != null) {
+			this.account_id = task.getAdapter().account.id;
+			this.udid = task.getAdapter().device.udid;
+		}
+	}
 }

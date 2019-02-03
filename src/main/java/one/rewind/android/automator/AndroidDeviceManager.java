@@ -1,5 +1,7 @@
 package one.rewind.android.automator;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
@@ -61,7 +63,9 @@ public class AndroidDeviceManager {
     public ConcurrentHashMap<AndroidDevice, BlockingQueue<Task>> deviceTaskMap = new ConcurrentHashMap<>();
 
     // 控制Device执行命令的线程池
-    public ThreadPoolExecutor executor;
+    private ThreadPoolExecutor executor;
+
+    public ListeningExecutorService executorService;
 
     /**
      *
@@ -70,7 +74,9 @@ public class AndroidDeviceManager {
 
         executor = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>());
         executor.setThreadFactory(new ThreadFactoryBuilder()
-                .setNameFormat("AndroidDeviceManager-%d").build());
+                .setNameFormat("ADM-%d").build());
+
+		executorService = MoreExecutors.listeningDecorator(executor);
 
         // TODO 需要先执行 adb
     }
@@ -102,8 +108,6 @@ public class AndroidDeviceManager {
                 AndroidDevice device = AndroidDevice.getAndroidDeviceByUdid(udid);
 
                 device.status = AndroidDevice.Status.New;
-
-
 
                 devices.add(device);
             }
@@ -155,15 +159,14 @@ public class AndroidDeviceManager {
                 }
             }
 
-
-
             // 添加到容器中 并添加队列
             deviceTaskMap.put(ad, new LinkedBlockingQueue<>());
-            logger.info("Add device:[{}] in device container", ad.udid);
+            logger.info("Add Device:[{}] to device container", ad.udid);
 
             // 设备INIT
             executor.submit(() -> {
                 try {
+                    logger.info("Try to start Device:[{}]", ad.udid);
                     ad.start();
                 } catch (AndroidException.IllegalStatusException | SQLException | DBInitException e) {
                     logger.error("Unable to start Device:[{}]", ad.udid, e);
@@ -172,8 +175,8 @@ public class AndroidDeviceManager {
 
             // 添加 idle 回掉方法 获取执行任务
             ad.addIdleCallback((d) -> {
-                assign(d);
-            });
+            	assign(d);
+			});
         }
     }
 
@@ -184,17 +187,15 @@ public class AndroidDeviceManager {
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
      */
-    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException {
+    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, AccountException.AccountNotLoad, TaskException.IllegalParamException, AndroidException.NoAvailableDeviceException {
 
         AndroidDevice device = deviceTaskMap.keySet().stream().filter(d -> d.udid.equals(ad.udid)).findFirst().orElse(null);
 
         if (device != null) {
 
-            logger.info("Device[{}] take queue task from queue, ", device.udid);
-
             Task task = deviceTaskMap.get(device).take();
 
-            logger.info("Device[{}] has take task from queue, status[{}], ", device.udid, device.status);
+            logger.info("[{}] take Task[{}] from queue", device.udid, task.getInfo());
             
             // 提交任务
             ad.submit(task);
@@ -229,7 +230,7 @@ public class AndroidDeviceManager {
                     .collect(Collectors.toList())
                     .get(0);
 
-            if (device == null) throw new AccountException.AccountNotLoad();
+            if (device == null) throw new AccountException.AccountNotLoad(task.h.account_id);
         }
         // B 指定udid
         else if (task.h.udid != null) {
@@ -248,7 +249,7 @@ public class AndroidDeviceManager {
             device = getDevice(adapterClassName);
         }
 
-        logger.info("Device[{}] accept task, ", device.udid);
+        logger.info("Assign Task:[{}][{}] to Device:[{}]", task.getClass().getSimpleName(), task.h.id, device.name);
 
         // 将当前任务放在队列的头部
         deviceTaskMap.get(device).put(task);

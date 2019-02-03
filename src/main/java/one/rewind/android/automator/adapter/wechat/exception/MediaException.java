@@ -18,6 +18,16 @@ public class MediaException extends Exception {
     }
 
     /**
+     * 公众号失效
+     */
+    public static class Illegal extends MediaException {
+
+        public Illegal(Account account, String media_nick) {
+            super(account, media_nick);
+        }
+    }
+
+    /**
      * 未订阅
      */
     public static class NotSubscribe extends MediaException {

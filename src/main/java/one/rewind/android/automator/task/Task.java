@@ -30,7 +30,7 @@ public abstract class Task implements Callable<Boolean> {
 
     public static final Logger logger = LogManager.getLogger(Task.class.getName());
 
-    public Adapter adapter;
+    private Adapter adapter;
 
     public TaskHolder h;
 
@@ -86,6 +86,10 @@ public abstract class Task implements Callable<Boolean> {
         });
     }
 
+    public abstract Task setAdapter(Adapter adapter);
+
+    public abstract Adapter getAdapter();
+
     // 任务的生命周期
     public abstract Boolean call()
             throws InterruptedException, // 任务中断
@@ -95,8 +99,8 @@ public abstract class Task implements Callable<Boolean> {
             AdapterException.LoginScriptError, // Adapter 逻辑出错
             AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
             AdapterException.NoResponseException, // App 没有响应
-            DBInitException,
-            SQLException
+            DBInitException, // 数据库初始化问题
+			SQLException
     ;
 
     public Task addDoneCallback(TaskCallback tc) {
@@ -125,6 +129,24 @@ public abstract class Task implements Callable<Boolean> {
             adapter.switchAccount(accountPermitStatuses.toArray(new Account.Status[accountPermitStatuses.size()]));
         }
     }
+
+    public String getInfo() {
+    	return this.getClass().getSimpleName() + "-" + h.id;
+	}
+
+	/**
+	 * @param content
+	 */
+	public void RC(String content) {
+		try {
+			TaskRecord record = new TaskRecord(this);
+			logger.info("[{}] [{}] {}", getAdapter().getInfo(), getInfo(), content);
+			record.content = content;
+			record.insert();
+		} catch (Exception e) {
+			logger.error("Error insert record, ", e);
+		}
+	}
 
     /**
      * 参数异常

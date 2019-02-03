@@ -1,11 +1,14 @@
 package one.rewind.android.automator.test.call;
 
 import com.google.common.util.concurrent.*;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -77,7 +80,7 @@ public class ExecutorsPoolTest {
         });
         Futures.addCallback(explosion, new FutureCallback<String>() {
             @Override
-            public void onSuccess(@NullableDecl String result) {
+            public void onSuccess(@Nullable String result) {
                 System.out.println("executed success");
             }
 
