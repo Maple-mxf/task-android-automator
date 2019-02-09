@@ -37,7 +37,7 @@ public class TaskHolder extends ModelD {
 	public String topic_name; // 如果需要发布到redisson topic 需要提供该值
 
 	@DatabaseField(persisterClass = JSONableListPersister.class, width = 512)
-	public List<String> params; // 全称
+	public List<String> params; // 参数
 
 	@DatabaseField(persisterClass = JSONableListPersister.class, width = 512)
 	public List<String> findings = new ArrayList<>(); // 用于保存任务的中间状态

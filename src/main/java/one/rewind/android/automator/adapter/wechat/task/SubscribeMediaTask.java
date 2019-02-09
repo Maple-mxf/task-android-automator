@@ -7,6 +7,7 @@ import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
 import one.rewind.android.automator.adapter.wechat.exception.SearchPublicAccountFrozenException;
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.util.PublicAccountInfo;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
@@ -14,9 +15,13 @@ import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Media;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.db.Daos;
+import one.rewind.db.exception.DBInitException;
 import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * 订阅公众号
@@ -30,6 +35,8 @@ public class SubscribeMediaTask extends Task {
     public WeChatAdapter adapter;
 
     public String media_nick;
+
+    public boolean subscribe = true;
 
     static {
         try {
@@ -45,6 +52,16 @@ public class SubscribeMediaTask extends Task {
     public SubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
 
         super(holder, params);
+
+		// A 参数判断 获取需要采集的公众号昵称
+		if(params.length == 1) {
+			media_nick = params[0];
+		} else if(params.length == 2) {
+			media_nick = params[0];
+			subscribe = false;
+		} else throw new IllegalParamsException(Arrays.stream(params).collect(Collectors.joining(", ")));
+
+		accountPermitStatuses.add(Account.Status.Get_Public_Account_Essay_List_Frozen);
     }
 
     @Override
@@ -60,119 +77,105 @@ public class SubscribeMediaTask extends Task {
 
     @Override
     public Boolean call() throws
-            InterruptedException, // 任务中断
-            IOException, //
-            AccountException.NoAvailableAccount, // 没有可用账号
-            AccountException.Broken, // 账号不可用
-            AdapterException.LoginScriptError, // Adapter 逻辑出错
-            AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
-            AdapterException.NoResponseException // App 没有响应
+			InterruptedException, // 任务中断
+			IOException, //
+			AccountException.NoAvailableAccount, // 没有可用账号
+			AccountException.Broken, // 账号不可用
+			AdapterException.LoginScriptError, // Adapter 逻辑出错
+			AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
+			AdapterException.NoResponseException, // App 没有响应
+			SQLException,
+			DBInitException
     {
-
-        boolean retry = false;
-
         try {
 
-            // A 启动微信
-			RC("A 启动微信");
-            adapter.restart();
+			RC("0A 确认帐号状态");
+			checkAccountStatus(adapter);
 
-            // B 进入搜索页
-			RC("B 进入搜索页");
+			RC("0B 启动微信");
+			adapter.restart();
+
+			RC("1 进入搜索页");
             adapter.goToSearchPage();
 
             // C 点击公众号
-			RC("C 点击公众号");
+			RC("2 点击公众号选项");
             adapter.goToSearchPublicAccountPage();
 
             // D 输入公众号进行搜索
-			RC("D 输入公众号进行搜索");
+			RC("3 搜索 " + media_nick);
             adapter.searchPublicAccount(media_nick);
 
-            // E 截图识别是否被限流了
-			RC("E 截图识别是否被限流了");
-            adapter.getPublicAccountList();
-
             // E 点击订阅  订阅完成之后返回到上一个页面
-			RC("E 点击订阅，订阅完成之后返回到上一个页面");
-            WeChatAdapter.PublicAccountInfo pai = adapter.getPublicAccountInfo(true);
+			RC("4 " + (subscribe ? "点击订阅" : "取消订阅"));
+
+			PublicAccountInfo pai = adapter.getPublicAccountInfo(subscribe);
+			if (!pai.nick.equals(media_nick)) throw new MediaException.NotEqual(media_nick, pai.nick);
+
+			if(!subscribe) {
+				adapter.unsubscribePublicAccount();
+			}
 
             try {
 
-                Media media = Daos.get(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
+				Media media = GetMediaEssaysTask.parseMedia(pai);
+				media.update();
 
-                // 如果对应的media不存在
-                if (media == null) {
+            	if(subscribe) {
 
-                    media = GetMediaEssaysTask.parseMedia(pai);
-                    media.insert();
+					WechatAccountMediaSubscribe subscribeRecord = new WechatAccountMediaSubscribe();
+					subscribeRecord.account_id = adapter.account.id;
+					subscribeRecord.media_id = media.id;
+					subscribeRecord.media_nick = media.nick;
+					subscribeRecord.media_name = media.name;
+					subscribeRecord.insert();
+				} else {
 
-                }
-                // 加载media已经采集过的文章数据
-                else {
+					WechatAccountMediaSubscribe.deleteByAccountIdMediaId(adapter.account.id, media.id);
+				}
 
-                    media = GetMediaEssaysTask.parseMedia(pai);
-                    media.update();
-                }
-
-                WechatAccountMediaSubscribe var = new WechatAccountMediaSubscribe();
-
-                var.account_id = adapter.account.id;
-                var.media_id = genId(media.nick);
-                var.media_nick = media.nick;
-                var.media_name = media.name;
-
-                try {
-                    var.insert();
-                } catch (Exception exx) {
-                }
-
-            } catch (Exception ex) {
+            } catch (SQLException ex) {
                 logger.error("Error handling DB, ", ex);
             }
+
+			RC("5 任务圆满完成");
+
+			success();
+
+			return false;
         }
-
-
         // 搜索公众号接口限流
         catch (SearchPublicAccountFrozenException e) {
 
-            logger.error("Error enter Media[{}] history essay list page, Account:[{}], ", media_nick, adapter.account.id, e);
+        	logger.warn("[{}] [{}] search public account frozen, ", getAdapter().getInfo(), getInfo(), e);
 
-            try {
-                // 更新账号状态
-                this.adapter.account.status = Account.Status.Get_Public_Account_Essay_List_Frozen;
-                this.adapter.account.update();
+			// 更新账号状态
+			this.adapter.account.status = Account.Status.Get_Public_Account_Essay_List_Frozen;
+			this.adapter.account.update();
 
-            } catch (Exception e1) {
-                logger.error("Error update account status failure, ", e);
-            }
+			failure(e);
 
-            // 将当前任务提交 下一次在执行任务的时候
-            retry = true;
+			// 需要重试
+			return true;
 
         }
-        // Adapter 状态异常
-        catch (AdapterException.IllegalStateException e) {
+        // 搜索到的第一个公众号名称 与 搜索词不一致
+        catch (MediaException.NotEqual e) {
+			logger.warn("[{}] [{}] expect:{} actual:{} , ", getAdapter().getInfo(), getInfo(), e.media_nick_expected, e.media_nick, e);
 
-            logger.error("AndroidDevice state error, ", e);
-            retry = true;
+			failure(e);
 
-            // 当前账号不可用(切换也出现问题)
-        } catch (AccountException.Broken broken) {
-
-            // 不需要进行重试  任务失败即可
-            logger.error("AndroidDevice state error, ", broken);
-        }
-        // TODO 订阅的媒体账号和指定的账号不相同
-        catch (IOException e) {
-
-            logger.error("Error screen shot failure, ", e);
-        } catch (MediaException.Illegal illegal) {
-			adapter.unsubscribePublicAccount();
+			return false;
 		}
+        // 搜索到的第一个公众号状态异常
+        catch (MediaException.Illegal e) {
 
+			logger.warn("[{}] [{}] public account:{} status illegal, ", getAdapter().getInfo(), getInfo(), e.media_nick, e);
 
-		return retry;
+			failure(e);
+
+			return false;
+		}
     }
 
     public static String genId(String nick) {

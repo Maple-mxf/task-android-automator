@@ -1,8 +1,8 @@
 package one.rewind.android.automator.adapter;
 
 import com.dw.ocr.parser.OCRParser;
-import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.deivce.AndroidUtil;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
@@ -69,6 +69,11 @@ public abstract class Adapter {
 	}
 
 	/**
+	 * 启动应用
+	 */
+	public abstract void checkAccount() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken;
+
+	/**
 	 *
 	 */
 	public void restart() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken {
@@ -76,7 +81,12 @@ public abstract class Adapter {
 		AndroidUtil.startApp(device.udid, appInfo);
 	}
 
-	public abstract void switchAccount(Account.Status... statuses) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, DBInitException, SQLException;
+	public abstract void switchAccount(Account.Status... statuses) throws
+			InterruptedException,
+			AdapterException.LoginScriptError,
+			AccountException.NoAvailableAccount,
+			SQLException,
+			DBInitException;
 
 	/**
 	 *

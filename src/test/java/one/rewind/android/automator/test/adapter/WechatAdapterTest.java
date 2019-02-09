@@ -2,11 +2,12 @@ package one.rewind.android.automator.test.adapter;
 
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
-import one.rewind.android.automator.deivce.AndroidDevice;
-import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.adapter.wechat.util.UserInfo;
+import one.rewind.android.automator.deivce.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.deivce.AndroidUtil;
 import org.junit.Test;
 
@@ -134,7 +135,7 @@ public class WechatAdapterTest {
      */
     @Test
     public void testAppium() throws InterruptedException {
-        WeChatAdapter.UserInfo localUserInfo = adapter.getLocalUserInfo();
+        UserInfo localUserInfo = adapter.getLocalUserInfo();
 
         System.out.println(localUserInfo.id);
         System.out.println(localUserInfo.name);

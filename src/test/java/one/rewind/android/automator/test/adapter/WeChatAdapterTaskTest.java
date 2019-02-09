@@ -1,5 +1,6 @@
 package one.rewind.android.automator.test.adapter;
 
+import one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask;
 import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
@@ -17,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -39,16 +41,42 @@ public class WeChatAdapterTaskTest {
     }
 
     @Test
-    public void testGetSelfSubscribePublicAccountTest() throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+	public void testGetSelfSubscribePublicAccountTest() throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
-        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetSelfSubscribeMediaTask.class.getName());
+		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetSelfSubscribeMediaTask.class.getName());
 
-        Task task = TaskFactory.getInstance().generateTask(holder);
+		Task task = TaskFactory.getInstance().generateTask(holder);
 
 		AndroidDeviceManager.getInstance().submit(task);
 
-        Thread.sleep(10000000);
+		Thread.sleep(10000000);
 
-    }
+	}
+
+	@Test
+	public void testSubscribe() throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+
+		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+
+		Task task = TaskFactory.getInstance().generateTask(holder);
+
+		AndroidDeviceManager.getInstance().submit(task);
+
+		Thread.sleep(10000000);
+
+	}
+
+	@Test
+	public void testUnsubscribe() throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+
+		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷", "False"));
+
+		Task task = TaskFactory.getInstance().generateTask(holder);
+
+		AndroidDeviceManager.getInstance().submit(task);
+
+		Thread.sleep(10000000);
+
+	}
 
 }

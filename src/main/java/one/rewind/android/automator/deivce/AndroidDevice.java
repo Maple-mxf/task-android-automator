@@ -33,7 +33,6 @@ import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.callback.AndroidDeviceCallBack;
-import one.rewind.android.automator.callback.TaskCallback;
 import one.rewind.android.automator.deivce.action.Clear;
 import one.rewind.android.automator.deivce.action.Init;
 import one.rewind.android.automator.deivce.action.Reboot;
@@ -90,27 +89,27 @@ public class AndroidDevice extends ModelL {
     public static final String PIN_PASSWORD = "1234";
 
     // 启动超时时间
-    private static int INIT_TIMEOUT = 2000000;
+    private static int INIT_TIMEOUT = 20000000;
 
     // 关闭超时时间
     private static int CLOSE_TIMEOUT = 20000000;
+
+    // 任务重试次数
+    private static int TASK_RETRY_LIMIT = 3;
 
     public enum Status {
         New,  // 新创建
         Init, // 初始化中
         Idle, // 初始化完成，可执行任务
         Busy, // 任务执行中
-        Failed, // 出错 --> stop/start? reboot?
-        DeviceFailed, // --> reboot?
+        Failed, // 出错 不可用
         Terminating, // 终止过程中
         Terminated,  // 已终止
-        DeviceBooting, // 重启过程中
-        DeviceReady, // 重启过程中
-        DeviceBroken // 不可用
+        DeviceBooting // 重启过程中
     }
 
     public enum Flag {
-        Cleaned, NewReboot
+        Cleaned, NewReboot, NewRestart
     }
 
     @DatabaseField(dataType = DataType.ENUM_STRING, width = 32)
@@ -187,9 +186,6 @@ public class AndroidDevice extends ModelL {
     public transient List<AndroidDeviceCallBack> idleCallbacks = new ArrayList<>();
 
     //
-    public transient List<AndroidDeviceCallBack> failedCallbacks = new ArrayList<>();
-
-    //
     public transient List<AndroidDeviceCallBack> terminatedCallbacks = new ArrayList<>();
 
     // 当前正在执行的任务
@@ -257,6 +253,7 @@ public class AndroidDevice extends ModelL {
         }
 
         this.adapters.put(adapter.getClass().getName(), adapter);
+		logger.info("[{}] added ", adapter.getInfo());
 
         // 初始化回调函数
         this.initCallbacks.add((d) -> {
@@ -267,12 +264,12 @@ public class AndroidDevice extends ModelL {
 
             } catch (AdapterException.LoginScriptError e) {
 
-				logger.error("[{}] [{}] login script error, ", udid, adapter.getClass().getSimpleName(), e);
+				logger.error("[{}] login script error, ", adapter.getInfo(), e);
 				removeAdapter(adapter);
 
             } catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
-				logger.error("[{}] [{}] no available account, ", udid, adapter.getClass().getSimpleName(), noAvailableAccount);
+				logger.error("[{}] no available account, ", adapter.getInfo(), noAvailableAccount);
 				removeAdapter(adapter);
             }
 
@@ -298,11 +295,12 @@ public class AndroidDevice extends ModelL {
 
         try {
             adapter.start();
-			logger.info("[{}] [{}] [{}] started", udid, adapter.getClass().getSimpleName(), adapter.account == null? 0 : adapter.account.id);
+            adapter.checkAccount();
+			logger.info("[{}] started", adapter.getInfo());
 
         } catch (AccountException.Broken broken) {
 
-            logger.error("[{}] [{}] [{}] broken, ", udid, adapter.getClass().getSimpleName(), broken.account.id, broken);
+            logger.error("[{}] broken, ", adapter.getInfo(), broken);
             broken.account.status = Account.Status.Broken;
             broken.account.update();
 
@@ -318,7 +316,7 @@ public class AndroidDevice extends ModelL {
      * @return
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized AndroidDevice start() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
+    public boolean start() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
 
         if (!(status == Status.New || status == Status.Terminated)) {
             throw new AndroidException.IllegalStatusException();
@@ -333,49 +331,55 @@ public class AndroidDevice extends ModelL {
 
             boolean initSuccess = initFuture.get(INIT_TIMEOUT, TimeUnit.MILLISECONDS);
 
-            status = Status.Idle;
-
             if (initSuccess) {
-				update();
-                logger.info("[{}] INIT done.", udid);
+				status = Status.Idle;
+                logger.info("[{}] INIT done", udid);
+				// 执行状态回调函数
+				runCallbacks(idleCallbacks);
+				return initSuccess;
             }
-
-            // 执行状态回调函数
-            runCallbacks(idleCallbacks);
+            else {
+				status = Status.Failed;
+				logger.info("[{}] INIT failed", udid);
+				stop();
+			}
 
         }
         // 当前进程被终止
         catch (InterruptedException e) {
 
             status = Status.Failed;
-            logger.error("[{}] INIT interrupted. ", udid, e);
+            logger.error("[{}] INIT interrupted, ", udid, e);
             stop();
 
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e) {
 
             status = Status.Failed;
-            logger.error("[{}] INIT failed. ", udid, e.getCause());
+            logger.error("[{}] INIT failed, ", udid, e.getCause());
             stop();
 
-        } catch (TimeoutException e) {
+        }
+        catch (TimeoutException e) {
 
             initFuture.cancel(true);
 
             status = Status.Failed;
-            logger.error("[{}] INIT failed. ", udid, e);
+            logger.error("[{}] INIT timeout, ", udid, e);
             stop();
         }
+        finally {
+			update();
+		}
 
-
-
-        return this;
+        return false;
     }
 
     /**
      * @return
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized AndroidDevice stop() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
+    public boolean stop() throws AndroidException.IllegalStatusException, DBInitException, SQLException {
         return stop(true);
     }
 
@@ -383,7 +387,7 @@ public class AndroidDevice extends ModelL {
      * @return
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized AndroidDevice stop(boolean runCallbacks) throws AndroidException.IllegalStatusException, DBInitException, SQLException {
+    public boolean stop(boolean runCallbacks) throws AndroidException.IllegalStatusException, DBInitException, SQLException {
 
         if (!(status == Status.Init || status == Status.Idle || status == Status.Busy || status == Status.Failed)) {
             // TODO New
@@ -395,109 +399,158 @@ public class AndroidDevice extends ModelL {
 
         this.status = Status.Terminating;
 
+        boolean stopSuccess = false;
+
         Future<Boolean> closeFuture = executor.submit(new Stop(this));
 
         try {
 
-            closeFuture.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-            status = Status.Terminated;
-            logger.info("[{}] Stop done.", name);
+			stopSuccess = closeFuture.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
 
-            if (runCallbacks) runCallbacks(terminatedCallbacks);
+			if(stopSuccess) {
+				status = Status.Terminated;
+				logger.info("[{}] stop done", udid);
 
-        } catch (InterruptedException e) {
+				if (runCallbacks) runCallbacks(terminatedCallbacks);
+			}
+			else {
+				logger.info("[{}] stop failed", udid);
+				status = Status.Failed;
+			}
+        }
+        catch (InterruptedException e) {
 
             status = Status.Failed;
-            logger.error("[{}] Stop interrupted. ", name, e);
+            logger.error("[{}] stop interrupted, ", udid, e);
 
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e) {
 
             status = Status.Failed;
-            logger.error("[{}] Stop failed. ", name, e.getCause());
+            logger.error("[{}] stop failed, ", udid, e.getCause());
 
-        } catch (TimeoutException e) {
+        }
+        catch (TimeoutException e) {
 
             closeFuture.cancel(true);
             status = Status.Failed;
-            logger.error("[{}] Stop failed. ", name, e);
+            logger.error("[{}] stop timeout, ", udid, e);
 
-        } finally {
+        }
+        finally {
 
             this.update();
         }
 
-        return this;
+        return stopSuccess;
     }
 
     /**
      * @throws DBInitException
      * @throws SQLException
      */
-    public void clear() throws DBInitException, SQLException {
+    public boolean clear() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
+
+    	boolean clearSuccess = false;
 
         Future<Boolean> feature = executor.submit(new Clear(this));
 
         try {
 
-            feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-            logger.info("Device:[{}] clear done.", name);
+			clearSuccess = feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+			if(clearSuccess) {
+				logger.info("[{}] clear done", udid);
+			}
+			else {
+				logger.info("[{}] clear failed", udid);
+			}
 
-        } catch (InterruptedException e) {
+
+        }
+        catch (InterruptedException e) {
 
             status = Status.Failed;
-            logger.error("[{}] clear interrupted. ", name, e);
+            logger.error("[{}] clear interrupted, ", udid, e);
+			stop();
 
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e) {
 
             status = Status.Failed;
-            logger.error("[{}] clear failed. ", name, e.getCause());
+            logger.error("[{}] clear failed, ", udid, e.getCause());
+			stop();
 
-        } catch (TimeoutException e) {
+        }
+        catch (TimeoutException e) {
 
             feature.cancel(true);
             status = Status.Failed;
-            logger.error("[{}] clear failed. ", name, e);
+            logger.error("[{}] clear timeout, ", udid, e);
+			stop();
 
-        } finally {
+        }
+        finally {
             this.update();
         }
+
+        return clearSuccess;
     }
 
-    /**
-     * @throws DBInitException
-     * @throws SQLException
-     */
-    public void reboot() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
+	/**
+	 * 设备重启
+	 * @throws DBInitException
+	 * @throws SQLException
+	 * @throws AndroidException.IllegalStatusException
+	 */
+    public boolean reboot() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
+
+    	// 停止本地服务
+		if(!stop(false)) return false;
+
+		boolean rebootSuccess = false;
 
         Future<Boolean> feature = executor.submit(new Reboot(this));
 
         try {
 
-            feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-            logger.info("[{}] reboot finished.", udid);
+			rebootSuccess = feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+			if(rebootSuccess) {
+				logger.info("[{}] reboot done", udid);
+				status = Status.New;
+			}
+			else {
+				logger.info("[{}] reboot failed", udid);
+				status = Status.Failed;
+			}
 
-            stop();
-            start();
+        }
+        catch (InterruptedException e) {
 
-        } catch (InterruptedException e) {
+            status = Status.Failed;
+            logger.error("[{}] reboot interrupted, ", udid, e);
 
-            status = Status.DeviceBroken;
-            logger.error("[{}] reboot interrupted. ", udid, e);
+        }
+        catch (ExecutionException e) {
 
-        } catch (ExecutionException e) {
+            status = Status.Failed;
+            logger.error("[{}] reboot failed, ", udid, e.getCause());
 
-            status = Status.DeviceBroken;
-            logger.error("[{}] reboot failed. ", udid, e.getCause());
-
-        } catch (TimeoutException e) {
+        }
+        catch (TimeoutException e) {
 
             feature.cancel(true);
-            status = Status.DeviceBroken;
-            logger.error("[{}] reboot failed. ", udid, e);
+            status = Status.Failed;
+            logger.error("[{}] reboot failed, ", udid, e);
 
-        } finally {
+        }
+        finally {
             this.update();
         }
+
+		// 重启本地服务
+        if(rebootSuccess) return start();
+
+		return rebootSuccess;
     }
 
     /**
@@ -509,6 +562,7 @@ public class AndroidDevice extends ModelL {
         stop();
         clear();
         start();
+        this.flags.add(Flag.NewRestart);
     }
 
     /**
@@ -517,7 +571,7 @@ public class AndroidDevice extends ModelL {
      */
     public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
 
-        if (!(status == Status.Idle || status == Status.Busy)) {
+        if (!(status == Status.Idle)) {
             throw new AndroidException.IllegalStatusException();
         }
 
@@ -537,39 +591,34 @@ public class AndroidDevice extends ModelL {
             //  任务提交线程池
             taskFuture = executor.submit(task);
 
-            // 如果任务不需要重试  则直接退出循环
             retry = taskFuture.get(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
 
+            // 正常执行任务后，任务对应的Adapter的异常记录重置
             task.getAdapter().exceptions.clear();
+
+			// 正常执行任务后，设备的异常标签重置
             flags.clear();
 
-            // 执行成功回调
-            for (TaskCallback callback : task.successCallbacks) {
-                callback.call(task);
-            }
-
             status = Status.Idle;
-
-            runCallbacks(idleCallbacks);
         }
         // E1 线程中断异常 TODO 基本上是 executor 被异常终止才会报该异常
         catch (InterruptedException e) {
 
-            logger.error("Device:[{}] Adapter:[{}] Task:[{}] interrupted, ", name, task.getAdapter().getClass().getSimpleName(), task.h.id, e);
+			task.failure(e.getCause());
             status = Status.Failed;
             retry = false;
         }
         // E2 任务被外部终止 taskFuture.cancel() 产生 状态设为Idle
         catch (CancellationException e) {
 
-            logger.warn("[{}] [{}] cancelled, ", task.getAdapter().getInfo(), task.getInfo(), e);
+			task.failure(e.getCause());
             status = Status.Idle;
 			retry = false;
         }
         // E3 基本不会捕获
         catch (TimeoutException e) {
 
-            logger.error("[{}] [{}] timeout, ", task.getAdapter().getInfo(), task.getInfo(), e);
+			task.failure(e.getCause());
             taskFuture.cancel(true);
             status = Status.Idle;
 			retry = false;
@@ -577,24 +626,26 @@ public class AndroidDevice extends ModelL {
         // E4 执行异常
         catch (ExecutionException e) {
 
+        	// 统一预设置重试
 			retry = true;
 
             try {
 
-                // E5 账号异常
+                // E5 账号Broken 尝试切换帐号
                 if (e.getCause() instanceof AccountException.Broken) {
 
-					logger.error("[{}] [{}] account broken, ", task.getAdapter().getInfo(), task.getInfo(), e.getCause());
+                	task.failure(e.getCause());
 
                     task.getAdapter().switchAccount();
+
                     status = Status.Idle;
                 }
                 // E6 Adapter 操作定义异常
                 else if (e.getCause() instanceof AdapterException.OperationException || e.getCause() instanceof AdapterException.IllegalStateException) {
 
-                    logger.error("[{}] [{}] illegal state, ", task.getAdapter().getInfo(), task.getInfo(), e.getCause());
+					task.failure(e.getCause());
 
-                    // 上一次执行 也遇到了相同异常
+                    // 上一次执行 也抛出相同异常
                     if (task.getAdapter().exceptions.containsKey(e.getCause().getClass().getName())) {
 						removeAdapter(task.getAdapter());
                     }
@@ -609,7 +660,7 @@ public class AndroidDevice extends ModelL {
                 // E7 App没有响应异常
                 else if (e.getCause() instanceof AdapterException.NoResponseException) {
 
-					logger.error("[{}] [{}] device no response, ", task.getAdapter().getInfo(), task.getInfo(), e.getCause());
+					task.failure(e.getCause());
 
                     // 上一次执行 也遇到了相同异常
                     if (task.getAdapter().exceptions.containsKey(e.getCause().getClass().getName())) {
@@ -617,15 +668,12 @@ public class AndroidDevice extends ModelL {
                     	// 第4次 设备不可用
                         if (flags.contains(Flag.NewReboot)) {
 
-                        	status = Status.DeviceBroken;
+                        	status = Status.Failed;
                         }
                         // 第3次 重启设备
                         else if (flags.contains(Flag.Cleaned)) {
 
                             this.reboot();
-                            task.getAdapter().restart();
-                            status = Status.Idle;
-
                         }
                         // 第2次清空缓存 重启app
                         else {
@@ -653,7 +701,7 @@ public class AndroidDevice extends ModelL {
             }
             // 代理问题 TODO 出现场景需确认
             catch (SocketException ex) {
-                logger.error("[{}] proxy may error, ", udid, ex);
+				task.failure(ex);
                 status = Status.Failed;
             }
             // 脚本异常 / 操作异常
@@ -666,7 +714,7 @@ public class AndroidDevice extends ModelL {
                     org.openqa.selenium.NoSuchElementException |
                     ElementClickInterceptedException ex) {
 
-				logger.error("[{}] [{}] operation error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				task.failure(ex);
 
                 // 当前任务失败 连续出现三次
                 // 上一次执行 也遇到了相同异常
@@ -674,7 +722,7 @@ public class AndroidDevice extends ModelL {
 
                 	int count = task.getAdapter().exceptions.get(ex.getClass().getName());
                 	if(count < 3) {
-						task.getAdapter().exceptions.put(ex.getClass().getName(), count ++);
+						task.getAdapter().exceptions.put(ex.getClass().getName(), count + 1);
 					}
 
 					removeAdapter(task.getAdapter());
@@ -694,53 +742,82 @@ public class AndroidDevice extends ModelL {
                     NoSuchSessionException |              // 无法识别的Session
                     ErrorHandler.UnknownServerException ex) {  // 未知服务端异常
 
-                logger.error("[{}] [{}] driver error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				task.failure(ex);
 
-                status = Status.Failed;
+				if(flags.contains(Flag.NewRestart)) {
+					status = Status.Failed;
+				}
+				else {
+					restart();
+				}
             }
 
             // 其他 WebDriver 异常 无法正常调用WebDriver --> 关闭
             catch (WebDriverException ex) {
 
-                logger.error("[{}] [{}] error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				task.failure(ex);
 
-                status = Status.Failed;
+				if(flags.contains(Flag.NewRestart)) {
+					status = Status.Failed;
+				}
+				else {
+					restart();
+				}
             }
             // 无可用账号异常 --> 对应的Adapter不可用
             catch (AccountException.NoAvailableAccount ex) {
 
-                // 任务执行失败
-				logger.error("[{}] [{}] no available account, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				task.failure(ex);
 				removeAdapter(task.getAdapter());
-
                 status = Status.Idle;
             }
             // 当前使用的Adapter对应的Account失效 --> 对应的Adapter需要切换账号
             catch (AdapterException.LoginScriptError ex) {
 
-                // 任务执行失败
-				logger.error("[{}] [{}] login script error, ", task.getAdapter().getInfo(), task.getInfo(), ex);
+				task.failure(ex);
+				retry = false;
 				removeAdapter(task.getAdapter());
+				status = Status.Idle;
+
             }
             // 其他未知异常
             catch (Throwable throwable) {
-				logger.error("[{}] [{}] unknown error, ", task.getAdapter().getInfo(), task.getInfo(), throwable);
+				task.failure(throwable);
 				removeAdapter(task.getAdapter());
+				status = Status.Failed;
             }
 
         }
         finally {
 
             this.update();
-			if(retry) {
-				AndroidDeviceManager.getInstance().submit(task);
+
+			// 任务执行成功回调
+            if(task.h.success) {
+				task.successCallbacks.forEach(c -> c.call(task));
+				task.doneCallbacks.forEach(c -> c.call(task));
+			}
+			// 任务执行失败
+			else {
+
+				// 需要重试 且重试次数小于重试上线
+				if(retry && task.getRetryCount() < TASK_RETRY_LIMIT) {
+					task.addRetryCount();
+					AndroidDeviceManager.getInstance().submit(task);
+				}
+				// 任务执行失败回调
+				else {
+					task.failureCallbacks.forEach(c -> c.call(task));
+					task.doneCallbacks.forEach(c -> c.call(task));
+				}
 			}
 
 			if(status == Status.Idle) {
 				runCallbacks(idleCallbacks);
 			}
+
 			if(status == Status.Failed) {
-				runCallbacks(failedCallbacks);
+				stop();
 			}
 
 			taskFuture = null;
@@ -1055,11 +1132,6 @@ public class AndroidDevice extends ModelL {
         return this;
     }
 
-    public AndroidDevice addFailedCallback(AndroidDeviceCallBack callBack) {
-        this.failedCallbacks.add(callBack);
-        return this;
-    }
-
     public AndroidDevice addTerminatedCallback(AndroidDeviceCallBack callBack) {
         this.terminatedCallbacks.add(callBack);
         return this;
@@ -1078,6 +1150,7 @@ public class AndroidDevice extends ModelL {
 			for (AndroidDeviceCallBack callback : callbacks) {
 				callback.call(this);
 			}
+
 			return true;
 		});
 

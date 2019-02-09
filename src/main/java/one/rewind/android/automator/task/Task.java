@@ -7,6 +7,7 @@ import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
+import one.rewind.db.exception.ModelException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RTopic;
@@ -14,9 +15,11 @@ import org.redisson.api.RTopic;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /**
  * 任务重试
@@ -37,6 +40,7 @@ public abstract class Task implements Callable<Boolean> {
     // Flag 在call()和调用方法中，显式调用，判断任务是否继续执行
     public volatile boolean stop = false;
 
+    //
     public List<Account.Status> accountPermitStatuses = new ArrayList<>();
 
     // 任务完成回调
@@ -48,9 +52,12 @@ public abstract class Task implements Callable<Boolean> {
     // 任务失败回调
     public List<TaskCallback> failureCallbacks = new ArrayList<>();
 
-    /**
-     * @param h
-     */
+	/**
+	 * 构造方法
+	 * @param h
+	 * @param params
+	 * @throws IllegalParamsException
+	 */
     public Task(TaskHolder h, String... params) throws IllegalParamsException {
 
         this.h = h;
@@ -86,11 +93,33 @@ public abstract class Task implements Callable<Boolean> {
         });
     }
 
-    public abstract Task setAdapter(Adapter adapter);
+	/**
+	 *
+	 * @param adapter
+	 * @return
+	 */
+	public abstract Task setAdapter(Adapter adapter);
 
-    public abstract Adapter getAdapter();
+	/**
+	 *
+	 * @return
+	 */
+	public abstract Adapter getAdapter();
 
-    // 任务的生命周期
+	/**
+	 * 任务的生命周期
+	 *
+	 * @return
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws AccountException.NoAvailableAccount
+	 * @throws AccountException.Broken
+	 * @throws AdapterException.LoginScriptError
+	 * @throws AdapterException.IllegalStateException
+	 * @throws AdapterException.NoResponseException
+	 * @throws DBInitException
+	 * @throws SQLException
+	 */
     public abstract Boolean call()
             throws InterruptedException, // 任务中断
             IOException, //
@@ -100,20 +129,34 @@ public abstract class Task implements Callable<Boolean> {
             AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
             AdapterException.NoResponseException, // App 没有响应
             DBInitException, // 数据库初始化问题
-			SQLException
-    ;
+			SQLException;
 
-    public Task addDoneCallback(TaskCallback tc) {
+	/**
+	 *
+	 * @param tc
+	 * @return
+	 */
+	public Task addDoneCallback(TaskCallback tc) {
         this.doneCallbacks.add(tc);
         return this;
     }
 
-    public Task addSuccessCallback(TaskCallback tc) {
+	/**
+	 *
+	 * @param tc
+	 * @return
+	 */
+	public Task addSuccessCallback(TaskCallback tc) {
         this.successCallbacks.add(tc);
         return this;
     }
 
-    public Task addFailureCallback(TaskCallback tc) {
+	/**
+	 *
+	 * @param tc
+	 * @return
+	 */
+	public Task addFailureCallback(TaskCallback tc) {
         this.failureCallbacks.add(tc);
         return this;
     }
@@ -122,28 +165,93 @@ public abstract class Task implements Callable<Boolean> {
      * @throws AdapterException.OperationException
      * @throws AccountException.NoAvailableAccount
      */
-    public void checkAccountStatus() throws AccountException.NoAvailableAccount, AdapterException.LoginScriptError, InterruptedException, SQLException, DBInitException {
+    public void checkAccountStatus(Adapter adapter) throws
+			AccountException.NoAvailableAccount,
+			AdapterException.LoginScriptError,
+			InterruptedException,
+			SQLException,
+			DBInitException {
 
-        // TODO 判断 adapter 不能为null
+        // TODO 判断 adapter != null
         if (!accountPermitStatuses.contains(adapter.account.status)) {
             adapter.switchAccount(accountPermitStatuses.toArray(new Account.Status[accountPermitStatuses.size()]));
         }
     }
 
-    public String getInfo() {
+	/**
+	 *
+	 * @return
+	 */
+	public String getInfo() {
     	return this.getClass().getSimpleName() + "-" + h.id.substring(0,8);
 	}
 
 	/**
-	 * @param content
+	 *
+	 * @return
 	 */
-	public void RC(String content) {
+	public int getRetryCount() {
+		return h.retry_count;
+	}
+
+	/**
+	 *
+	 */
+	public void addRetryCount() {
+		h.retry_count ++;
+	}
+
+	/**
+	 *
+	 */
+	public void success() {
+		h.success = true;
+		try {
+			h.upsert();
+		} catch (DBInitException | SQLException | ModelException.ClassNotEqual | IllegalAccessException ex) {
+			logger.error("Error insert task holder, ", ex);
+		}
+	}
+
+	/**
+	 *
+	 * @param e
+	 */
+	public void failure(Throwable e) {
+
+		failure(e, null);
+	}
+
+	public void failure(Throwable e, String msg) {
+
+		logger.error("[{}] [{}]" + (msg != null? " " + msg : "") + ",", getAdapter().getInfo(), getInfo(), msg, e);
+
+		try {
+
+			h.success = false;
+			h.error = Arrays.stream(e.getStackTrace()).map(ste -> ste.toString()).collect(Collectors.joining("\n"));
+			h.upsert();
+
+			TaskRecord record = new TaskRecord(this);
+			record.content = e.getClass().getName();
+			record.insert();
+
+		} catch (DBInitException | SQLException | ModelException.ClassNotEqual | IllegalAccessException ex) {
+			logger.error("Error insert record, ", ex);
+		}
+	}
+
+
+	/**
+	 * @param c
+	 */
+	public void RC(String c) {
 		try {
 			TaskRecord record = new TaskRecord(this);
-			logger.info("[{}] [{}] {}", getAdapter().getInfo(), getInfo(), content);
-			record.content = content;
+			logger.info("[{}] [{}] {}", getAdapter().getInfo(), getInfo(), c);
+			record.content = c;
 			record.insert();
-		} catch (Exception e) {
+		} catch (DBInitException | SQLException e) {
 			logger.error("Error insert record, ", e);
 		}
 	}
@@ -157,7 +265,9 @@ public abstract class Task implements Callable<Boolean> {
         }
     }
 
+    // TODO 此处应该在线程池中执行
     public void runCallbacks(List<Runnable> callbacks) {
         callbacks.forEach(c -> new Thread(c).start());
     }
+
 }

@@ -30,6 +30,11 @@ public class DingdingAdapter extends Adapter {
 	}
 
 	@Override
+	public void checkAccount() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken {
+
+	}
+
+	@Override
 	public void switchAccount(Account.Status... statuses) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, DBInitException, SQLException {
 
 	}

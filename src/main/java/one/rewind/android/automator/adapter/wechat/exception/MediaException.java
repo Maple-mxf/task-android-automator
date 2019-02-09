@@ -9,12 +9,10 @@ import one.rewind.android.automator.account.Account;
  */
 public class MediaException extends Exception {
 
-    public Account account;
     public String media_nick;
 
-    public MediaException(Account account, String media_nick) {
-        this.account = account;
-
+    public MediaException(String media_nick) {
+        this.media_nick = media_nick;
     }
 
     /**
@@ -22,8 +20,8 @@ public class MediaException extends Exception {
      */
     public static class Illegal extends MediaException {
 
-        public Illegal(Account account, String media_nick) {
-            super(account, media_nick);
+        public Illegal(String media_nick) {
+            super(media_nick);
         }
     }
 
@@ -32,8 +30,11 @@ public class MediaException extends Exception {
      */
     public static class NotSubscribe extends MediaException {
 
+    	public Account account;
+
         public NotSubscribe(Account account, String media_nick) {
-            super(account, media_nick);
+            super(media_nick);
+            this.account = account;
         }
     }
 
@@ -42,8 +43,8 @@ public class MediaException extends Exception {
      */
     public static class NotFound extends MediaException {
 
-        public NotFound(Account account, String media_nick) {
-            super(account, media_nick);
+        public NotFound(String media_nick) {
+            super(media_nick);
         }
     }
 
@@ -52,8 +53,11 @@ public class MediaException extends Exception {
      */
     public static class NotEqual extends MediaException {
 
-        public NotEqual(Account account, String media_nick) {
-            super(account, media_nick);
+    	public String media_nick_expected;
+
+        public NotEqual(String media_nick_expected, String media_nick) {
+            super(media_nick);
+            this.media_nick_expected = media_nick_expected;
         }
     }
 }

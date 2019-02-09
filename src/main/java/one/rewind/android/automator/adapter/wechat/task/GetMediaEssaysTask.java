@@ -8,6 +8,7 @@ import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
+import one.rewind.android.automator.adapter.wechat.util.PublicAccountInfo;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
@@ -52,6 +53,8 @@ public class GetMediaEssaysTask extends Task {
     // 任务对应的Adapter
     public WeChatAdapter adapter;
 
+    public int page = Integer.MAX_VALUE;
+
     // 采集的公众号
     public Media media;
 
@@ -81,14 +84,19 @@ public class GetMediaEssaysTask extends Task {
      */
     public GetMediaEssaysTask(TaskHolder holder, String... params) throws IllegalParamsException {
 
-        // 0
         super(holder, params);
 
         // A 参数判断 获取需要采集的公众号昵称
-        if (params.length != 1)
-            throw new IllegalParamsException(Arrays.stream(params).collect(Collectors.joining(", ")));
-
-        media_nick = params[0];
+		if(params.length == 1) {
+			media_nick = params[0];
+		} else if(params.length == 2) {
+			media_nick = params[0];
+			try {
+				page = Integer.parseInt(params[1]);
+			} catch (Exception e) {
+				throw new IllegalParamsException(Arrays.stream(params).collect(Collectors.joining(", ")));
+			}
+		} else throw new IllegalParamsException(Arrays.stream(params).collect(Collectors.joining(", ")));
 
         // B 初始化当前任务类型允许的账号状态
         accountPermitStatuses.add(Account.Status.Search_Public_Account_Frozen);
@@ -112,31 +120,37 @@ public class GetMediaEssaysTask extends Task {
     }
 
     @Override
-    public Boolean call() throws IOException, AccountException.NoAvailableAccount, AccountException.Broken, AdapterException.NoResponseException, AdapterException.LoginScriptError, DBInitException, SQLException {
-
-        boolean retry = false;
+    public Boolean call() throws
+			InterruptedException,
+			IOException,
+			AccountException.NoAvailableAccount,
+			AccountException.Broken,
+			AdapterException.IllegalStateException,
+			AdapterException.NoResponseException,
+			AdapterException.LoginScriptError,
+			DBInitException,
+			SQLException
+	{
 
         // 任务执行
         try {
-            // A1 判定Adapter加载的Account的状态，并尝试切换账号
-            checkAccountStatus(); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
 
-            // A2 设定过滤器
+            RC("0A 判定Adapter加载的Account的状态，并尝试切换账号");
+			checkAccountStatus(adapter); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
+
+			RC("0B 设置过滤器");
             setupFilters();
 
-            // B1 重置微信进入首页
-            RC("B1 重置微信进入首页");
+            RC("0C 重置微信进入首页");
             adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
 
-            // B2 进入已订阅公众号的列表页面params
-			RC("B2 进入已订阅公众号的列表页面");
+			RC("1 进入已订阅公众号的列表页面");
             adapter.goToSubscribePublicAccountList();
 
-            // B3 根据 media_nick 搜索到相关的公众号（已订阅的公众号）
-			RC("B3 搜索到相关的公众号（已订阅的公众号）");
+			RC("2 搜索公众号 " + media_nick);
             adapter.goToSubscribedPublicAccountHome(media_nick);
 
-            // B4 基于media_nick 查询Media
+			RC("3 查询Media并加载已采集文章 " + media_nick);
             try {
 
                 Media media = Daos.get(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
@@ -159,72 +173,72 @@ public class GetMediaEssaysTask extends Task {
                     });
                 }
 
-            } catch (Exception e) {
+            } catch (SQLException e) {
                 logger.error("Error handling DB, ", e);
-            }
+            } catch (MediaException.Illegal e) {
+				failure(e);
+				return false;
+			}
 
-            // C1 进入历史文章数据列表页
-			RC("C1 进入历史文章数据列表页");
+			RC("4 进入历史文章数据列表页");
             adapter.gotoPublicAccountEssayList();
 
             boolean atBottom = false;
 
-            // D 截图分析数据点击文章
-            while (!atBottom) {
+            int current_page = 0;
 
-                // D1 截图分析文章坐标  此处得到的图像识别结果是一个通用的东西  需要分解出日期的坐标
+            // 是否到达列表底部
+            while (!atBottom && current_page < page) {
+
+				RC("5A 截图分析文章标题坐标");
                 List<OCRParser.TouchableTextArea> textAreas = this.adapter.getEssayListTextAreas();
 
-                // D3 逐个文章去点击
+				RC("5B 逐个点击文章标题");
                 for (OCRParser.TouchableTextArea area : textAreas) {
 
-                    // D2 通过 textAreas 分析是否是最后一页 一般来讲都是最后一个 是 已无更多
+                    // 通过 textAreas 分析是否是最后一页 一般来讲都是最后一个 是 已无更多
+					RC("6A 判定是否已经到达列表底部");
                     if (area.content.equals("已无更多") && textAreas.indexOf(area) == textAreas.size() - 1) {
                         atBottom = true;
                         break;
                     }
 
-                    // D2 去重判断
+					RC("6B 文章标题去重判断");
                     String feature = area.content + " " + DateFormatUtil.dfd.print(area.date.getTime());
                     if (collectedEssays.contains(feature) || visitedEssays.contains(feature)) continue;
 
-                    // D3 进入文章
-                    countDown = new CountDownLatch(1);
-
-					RC("D3 进入文章");
+					RC("6C 进入文章");
+					countDown = new CountDownLatch(1);
                     adapter.goToEssayDetail(area);
 
-                    // D4 判断是否进入了文章页
-					RC("D4 判断是否进入了文章页");
+					RC("7A 判断是否进入了文章页");
                     if (adapter.device.reliableTouch(area.left, area.top)) {
 
-						RC("D41 向下滑动两次");
+						RC("7B 向下滑动两次");
                         for (int i = 0; i < 2; i++) {
                             this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                         }
 
                         countDown.await(10, TimeUnit.SECONDS);
 
-                        // D42 如果进入成功 需要记录已经点击的文章标题-时间
+						RC("7C 记录已经点击的文章标题 时间");
                         visitedEssays.add(feature);
 
-                        // D43 在文章采集过程中 判断是否是转发文章
+						RC("7D 判断是否是转发文章");
                         if (forward) {
 
                             countDown = new CountDownLatch(1);
 
-                            // 点进去被转发的文章
-							RC("D43 点进去被转发的文章");
+							RC("8A 点进被转发的文章");
                             adapter.device.touch(582, 557, 6000);
 
-							RC("D44 向下滑动两次");
+							RC("8B 向下滑动两次");
                             for (int i = 0; i < 2; i++) {
                                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                             }
                         }
 
-                        // D44 关闭文章
-						RC("D45 关闭文章");
+						RC("7E 关闭文章");
                         adapter.touchUpperLeftButton();
                         // adapter.device.touch(67, 165, 1000);
 
@@ -232,62 +246,50 @@ public class GetMediaEssaysTask extends Task {
                     }
                 }
 
-                // D5 确定回到文章列表页
+				RC("5C 确定回到文章列表页");
                 if (adapter.status != WeChatAdapter.Status.PublicAccount_Essay_List)
                     throw new AdapterException.IllegalStateException(adapter);
 
-                // D51 向下滑动
-				RC("D46 向下滑动一页");
+				RC("5D 向下滑动一页");
                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
-
+                current_page ++;
             }
+
+			RC("9 任务圆满完成");
+			success();
+            return false;
         }
         // 微信查看全部消息被限流
         catch (GetPublicAccountEssayListFrozenException e) {
 
-            logger.error("Error enter Media[{}] history essay list page, Account:[{}], ", media_nick, adapter.account.id, e);
+            failure(e);
 
-            try {
+			this.adapter.account.status = Account.Status.Get_Public_Account_Essay_List_Frozen;
+			this.adapter.account.update();
 
-                // 更新账号状态
-                this.adapter.account.status = Account.Status.Get_Public_Account_Essay_List_Frozen;
-                this.adapter.account.update();
-
-            } catch (Exception e1) {
-                logger.error("Error update account status failure, ", e);
-            }
-
-            // 将当前任务提交 下一次在执行任务的时候
-            retry = true;
+            // 将当前任务提交 下一次在执行任务的时候再根据具体帐号状态条件切换帐号
+            return true;
 
         }
         // 在指定账号的订阅列表中找不到指定的公众号的异常
         catch (MediaException.NotSubscribe e) {
 
-            logger.error("Account:[{}] didn't subscribe public account:[{}], ", adapter.account.id, media_nick, e);
+			failure(e, "not subscribe " + e.media_nick);
+			return false;
 
         }
         // 指定的媒体账号和订阅的账号不一致
         catch (MediaException.NotEqual e) {
 
-            logger.error("Strange error for Account:[{}] public account:[{}], ", adapter.account.id, media_nick, e);
+			failure(e, "expect:" + e.media_nick_expected + " actual:" + e.media_nick);
+			return false;
 
         }
-        // Adapter状态异常
-        catch (AdapterException.IllegalStateException e) {
-
-            logger.error("Adapter State IllegalStateException, ", e);
-
-            // 继续重试
-            retry = true;
-        }
-        // 线程中断异常   此异常在外部捕获不到
+        /*// 线程中断异常   此异常在外部捕获不到
         catch (InterruptedException e){
 
-            logger.error("Thread InterruptedException, ", e);
-        }
-
-        return retry;
+            logger.error("Thread Interrupted, ", e);
+        }*/
     }
 
 
@@ -296,7 +298,7 @@ public class GetMediaEssaysTask extends Task {
      */
     public void setupFilters() {
 
-        logger.info("Add Request/Response filters...");
+        logger.info("[{}] [{}] Add Request/Response filters...", adapter.getInfo(), getInfo());
 
         RequestFilter requestFilter = (request, contents, messageInfo) -> null;
 
@@ -407,19 +409,21 @@ public class GetMediaEssaysTask extends Task {
      */
     public void removeFilters() {
 
+		logger.info("[{}] [{}] Remove Request/Response filters...", adapter.getInfo(), getInfo());
+
         adapter.device.setProxyRequestFilter((request, contents, messageInfo) -> null);
 
         adapter.device.setProxyResponseFilter((response, contents, messageInfo) -> {
         });
     }
 
-    /**
-     * 解析文章主题内容
-     *
-     * @param source
-     * @return
-     * @throws ParseException
-     */
+	/**
+	 * 解析文章内容
+	 *
+	 * @param source
+	 * @param f_id
+	 * @return
+	 */
     public Essay parseContent(String source, String f_id) {
 
         String title = null;
@@ -632,12 +636,15 @@ public class GetMediaEssaysTask extends Task {
         return f_id;
     }
 
-    /**
-     * @param mid
-     * @param source
-     * @return
-     * @throws ParseException
-     */
+	/**
+	 *
+	 * @param f_type
+	 * @param f_id
+	 * @param mid
+	 * @param source
+	 * @return
+	 * @throws ParseException
+	 */
     public static List<Comment> parseComments(Comment.FType f_type, String f_id, String mid, String source) throws ParseException {
 
         List<Comment> comments = new ArrayList<>();
@@ -680,13 +687,17 @@ public class GetMediaEssaysTask extends Task {
         return StringUtil.MD5(SubscribeMediaTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
     }
 
-    /**
-     * @param pai
-     * @return
-     */
-    public static Media parseMedia(WeChatAdapter.PublicAccountInfo pai) throws DBInitException, SQLException {
+	/**
+	 *
+	 * @param pai
+	 * @return
+	 * @throws DBInitException
+	 * @throws SQLException
+	 */
+    public static Media parseMedia(PublicAccountInfo pai) throws DBInitException, SQLException {
 
     	Media media = Model.getById(Media.class, SubscribeMediaTask.genId(pai.nick));
+
     	if(media == null) {
 			media = new Media();
 			media.id = SubscribeMediaTask.genId(pai.nick);

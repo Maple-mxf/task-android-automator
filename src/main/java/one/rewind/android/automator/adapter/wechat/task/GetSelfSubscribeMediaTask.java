@@ -2,10 +2,12 @@ package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.OCRParser;
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.util.PublicAccountInfo;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
@@ -29,7 +31,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 
     public WeChatAdapter adapter;
 
-    public List<String> accountSubscribedMediaNicks = new ArrayList<>();
+    private List<String> accountSubscribedMediaNicks = new ArrayList<>();
 
     /**
      * @param holder
@@ -38,6 +40,9 @@ public class GetSelfSubscribeMediaTask extends Task {
     public GetSelfSubscribeMediaTask(TaskHolder holder, String... params) throws IllegalParamsException {
 
         super(holder, params);
+
+		accountPermitStatuses.add(Account.Status.Get_Public_Account_Essay_List_Frozen);
+		accountPermitStatuses.add(Account.Status.Search_Public_Account_Frozen);
     }
 
 	@Override
@@ -59,11 +64,10 @@ public class GetSelfSubscribeMediaTask extends Task {
 			AccountException.Broken, // 账号不可用
 			AdapterException.LoginScriptError, // Adapter 逻辑出错
 			AdapterException.IllegalStateException, // Adapter 状态有问题 多数情况下是 逻辑出错
-			AdapterException.NoResponseException, DBInitException // App 没有响应
+			AdapterException.NoResponseException, // App 没有响应
+			SQLException,
+			DBInitException
     {
-
-
-        boolean retry = false;
 
 		RC("0A 读取已经保存的数据库记录");
 		try {
@@ -72,7 +76,10 @@ public class GetSelfSubscribeMediaTask extends Task {
 			logger.error("Error get Account[{}] subscribed Media, ", adapter.account.id, e);
 		}
 
-		RC("0B 启动APP");
+		RC("0B 判断帐号状态");
+		checkAccountStatus(adapter);
+
+		RC("0C 启动APP");
 		adapter.restart();
 
 		RC("1 进入已订阅公众号的列表页面");
@@ -115,7 +122,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 				adapter.goToSubscribedPublicAccountHome(area.left + 10, area.top + 10);
 
 				RC("4A 查看公众号更多资料 获取PublicAccountInfo");
-				WeChatAdapter.PublicAccountInfo pai = null;
+				PublicAccountInfo pai;
 				try {
 					pai = this.adapter.getPublicAccountInfo(false);
 				} catch (MediaException.Illegal illegal) {
@@ -165,7 +172,9 @@ public class GetSelfSubscribeMediaTask extends Task {
 
 		RC("5 任务圆满完成");
 
-        return retry;
+		success();
+
+        return false;
     }
 
     /**
