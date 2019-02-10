@@ -17,10 +17,10 @@ public interface AndroidDeviceCallBack {
 	void call(AndroidDevice ad) throws
 			AndroidException.IllegalStatusException,
 			AndroidException.NoSuitableAdapter,
-			AndroidException.NoAvailableDeviceException,
+			AndroidException.NoAvailableDevice,
 			AccountException.AccountNotLoad,
 			AccountException.Broken,
-			TaskException.IllegalParamException,
+			TaskException.IllegalParameters,
 			InterruptedException,
 			SQLException,
 			DBInitException;

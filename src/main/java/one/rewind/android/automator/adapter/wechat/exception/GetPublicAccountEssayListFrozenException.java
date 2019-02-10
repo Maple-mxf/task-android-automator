@@ -13,6 +13,7 @@ public class GetPublicAccountEssayListFrozenException extends Exception {
 	public Account account;
 
 	public GetPublicAccountEssayListFrozenException(Account account) {
+		super(account.username);
 		this.account = account;
 	}
 }

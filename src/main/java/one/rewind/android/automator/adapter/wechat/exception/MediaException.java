@@ -12,6 +12,7 @@ public class MediaException extends Exception {
     public String media_nick;
 
     public MediaException(String media_nick) {
+    	super(media_nick);
         this.media_nick = media_nick;
     }
 

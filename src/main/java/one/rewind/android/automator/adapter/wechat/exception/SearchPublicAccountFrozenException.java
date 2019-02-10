@@ -13,6 +13,7 @@ public class SearchPublicAccountFrozenException extends Exception {
 	public Account account;
 
 	public SearchPublicAccountFrozenException(Account account) {
+		super(account.username);
 		this.account = account;
 	}
 }

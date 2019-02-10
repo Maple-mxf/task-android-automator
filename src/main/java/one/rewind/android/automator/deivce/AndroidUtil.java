@@ -56,18 +56,18 @@ public class AndroidUtil {
 	 * 设备需要连接WIFI，设备与本机器在同一网段
 	 *
 	 * @param udid
-	 * @param local_ip
-	 * @param proxyPort
+	 * @param host
+	 * @param port
 	 * @throws IOException
 	 * @throws JadbException
 	 */
-	public static void setupRemoteWifiProxy(String udid, String local_ip, int proxyPort) throws IOException, JadbException {
+	public static void setupRemoteWifiProxy(String udid, String host, int port) throws IOException, JadbException {
 
 		Optional.ofNullable(getJadbDevice(udid)).ifPresent(d -> {
 
 			try {
-				execShell(d, "settings", "put", "global", "http_proxy", local_ip + ":" + proxyPort);
-				execShell(d, "settings", "put", "global", "https_proxy", local_ip + ":" + proxyPort);
+				execShell(d, "settings", "put", "global", "http_proxy", host + ":" + port);
+				execShell(d, "settings", "put", "global", "https_proxy", host + ":" + port);
 				// d.push(new File("ca.crt"), new RemoteFile("/sdcard/_certs/ca.crt"));
 				Thread.sleep(2000);
 
@@ -89,9 +89,11 @@ public class AndroidUtil {
 		Optional.ofNullable(getJadbDevice(udid)).ifPresent(d -> {
 			try {
 				execShell(d, "settings", "delete", "global", "http_proxy");
-				execShell(d, "settings", "delete", "global", "https_proxy");
 				execShell(d, "settings", "delete", "global", "global_http_proxy_host");
 				execShell(d, "settings", "delete", "global", "global_http_proxy_port");
+				execShell(d, "settings", "delete", "global", "https_proxy");
+				execShell(d, "settings", "delete", "global", "global_https_proxy_host");
+				execShell(d, "settings", "delete", "global", "global_https_proxy_port");
 
 				Thread.sleep(2000);
 
@@ -342,15 +344,15 @@ public class AndroidUtil {
 			}
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		} finally {
 			try {
 				is.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error("", e);
 			}
 		}
 
-		logger.info(builder.toString());
+		logger.info(builder.toString().replaceAll("\\r?\\n$", ""));
 	}
 }

@@ -1,5 +1,7 @@
 package one.rewind.android.automator.deivce;
 
+import com.dw.ocr.client.OCRClient;
+import com.dw.ocr.parser.OCRParser;
 import com.dw.ocr.util.ImageUtil;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -569,7 +571,7 @@ public class AndroidDevice extends ModelL {
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
         if (!(status == Status.Idle)) {
             throw new AndroidException.IllegalStatusException();
@@ -917,7 +919,7 @@ public class AndroidDevice extends ModelL {
 
         serviceCapabilities.setCapability(MobileCapabilityType.PLATFORM_NAME, "Android");
         serviceCapabilities.setCapability(MobileCapabilityType.UDID, udid); // udid是设备的唯一标识
-        serviceCapabilities.setCapability(MobileCapabilityType.NEW_COMMAND_TIMEOUT, 3600);
+        serviceCapabilities.setCapability(MobileCapabilityType.NEW_COMMAND_TIMEOUT, 0); // 永不超时
 
         // B 定义AppiumService
         if (EnvUtil.isHostLinux()) {
@@ -1050,6 +1052,58 @@ public class AndroidDevice extends ModelL {
             Thread.sleep(sleepTime);
         }
     }
+
+	/**
+	 *
+	 * @param by
+	 * @param input
+	 */
+	public void search(By by, String input) throws InterruptedException, IOException, AdapterException.NoResponseException {
+
+		// 输入框输入关键词
+		driver.findElement(by).sendKeys(input);
+
+		Thread.sleep(1000);
+
+		// 点击软键盘搜索
+		reliableTouch(1350, 2250, 4000L, 0);
+	}
+
+	/**
+	 *
+	 * @param by
+	 * @param input
+	 * @param x1
+	 * @param y1
+	 * @param x2
+	 * @param y2
+	 * @return
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public List<OCRParser.TouchableTextArea> searchAndGetResult(By by, String input, int x1, int y1, int x2, int y2) throws InterruptedException, IOException, AdapterException.NoResponseException {
+
+		search(by, input);
+
+		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(screenshot(), x1, y1, x2, y2);
+
+		return textAreas;
+	}
+
+	/**
+	 *
+	 * @param areas
+	 * @param text
+	 * @return
+	 */
+	public boolean checkContent(List<OCRParser.TouchableTextArea> areas, String... text) {
+		for(OCRParser.TouchableTextArea area : areas) {
+			for(String t : text) {
+				if(area.content.contains(t)) return true;
+			}
+		}
+		return false;
+	}
 
     /**
      * @param x

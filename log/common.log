@@ -1,33 +1,58 @@
-2019-02-10 04:24:44.792 INFO  [main] [AndroidDeviceManager:356] getAvailableDeviceUdids - List of devices attachedZX1G22PQLH	device
-2019-02-10 04:24:44.995 INFO  [main] [AndroidDevice:209] setupExecutor - Local IP: 192.168.3.10
-2019-02-10 04:24:45.055 INFO  [main] [AndroidDevice:256] addAdapter - [ZX1G22PQLH-WeChatAdapter] added 
-2019-02-10 04:24:45.057 INFO  [main] [AndroidDeviceManager:164] detectDevices - Add Device:[ZX1G22PQLH] to device container
-2019-02-10 04:24:45.059 INFO  [ADM-0] [AndroidDeviceManager:169] lambda$detectDevices$1 - Try to start Device:[ZX1G22PQLH]
-2019-02-10 04:24:45.061 INFO  [ZX1G22PQLH-0] [Init:27] call - [ZX1G22PQLH] Init...
-2019-02-10 04:24:45.063 INFO  [ZX1G22PQLH-0] [Init:37] call - [ZX1G22PQLH] start proxy...
-2019-02-10 04:24:45.294 INFO  [main] [AndroidDeviceManager:252] submit - Assign [SubscribeMediaTask-0435e104] --> [ZX1G22PQLH]
-2019-02-10 04:24:46.120 INFO  [ZX1G22PQLH-0] [AndroidDevice:875] startProxy - Proxy started @proxyPort 41000
-2019-02-10 04:24:46.120 INFO  [ZX1G22PQLH-0] [Init:41] call - [ZX1G22PQLH] setup wifi proxy...
-2019-02-10 04:24:47.109 INFO  [ZX1G22PQLH-0] [AndroidUtil:354] execShell - 
-2019-02-10 04:24:48.102 INFO  [ZX1G22PQLH-0] [AndroidUtil:354] execShell - 
-2019-02-10 04:24:50.103 INFO  [ZX1G22PQLH-0] [Init:45] call - [ZX1G22PQLH] start appium local service / driver ...
-2019-02-10 04:24:59.934 INFO  [ZX1G22PQLH-0] [AndroidDevice:951] initAppiumServiceAndDriver - Appium Service URL: http://0.0.0.0:42756/wd/hub
-2019-02-10 04:25:56.590 INFO  [ZX1G22PQLH-0] [WeChatAdapter:781] getLocalUserInfo - user_id:wxid_cra61aoltdhs22 user_name:将小白
-2019-02-10 04:26:01.591 INFO  [ZX1G22PQLH-0] [AndroidDevice:299] startAdapter - [ZX1G22PQLH-WeChatAdapter(4)] started
-2019-02-10 04:26:01.591 INFO  [ZX1G22PQLH-0] [Init:55] call - [ZX1G22PQLH] init success
-2019-02-10 04:26:01.591 INFO  [ADM-0] [AndroidDevice:336] start - [ZX1G22PQLH] INIT done
-2019-02-10 04:26:01.595 INFO  [ADM-1] [AndroidDeviceManager:198] assign - [ZX1G22PQLH] take Task[SubscribeMediaTask-0435e104] from queue
-2019-02-10 04:26:01.596 INFO  [ZX1G22PQLH-0] [Task:251] RC - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104] 0A 确认帐号状态
-2019-02-10 04:26:01.645 INFO  [ZX1G22PQLH-0] [Task:251] RC - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104] 0B 启动微信
-2019-02-10 04:26:10.747 INFO  [ZX1G22PQLH-0] [Task:251] RC - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104] 1 进入搜索页
-2019-02-10 04:26:12.495 INFO  [ZX1G22PQLH-0] [Task:251] RC - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104] 2 点击公众号选项
-2019-02-10 04:26:16.412 INFO  [ZX1G22PQLH-0] [Task:251] RC - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104] 3 搜索 拍拍贷
-2019-02-10 04:26:31.287 INFO  [ZX1G22PQLH-0] [Task:251] RC - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104] 4 取消订阅
-2019-02-10 04:26:37.972 ERROR [ADM-1] [Task:227] failure - [ZX1G22PQLH-WeChatAdapter(4)] [SubscribeMediaTask-0435e104], one.rewind.android.automator.exception.AdapterException$IllegalStateException: null
-	at one.rewind.android.automator.adapter.wechat.WeChatAdapter.unsubscribePublicAccount(WeChatAdapter.java:587) ~[classes/:?]
-	at one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask.call(SubscribeMediaTask.java:116) ~[classes/:?]
-	at one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask.call(SubscribeMediaTask.java:31) ~[classes/:?]
+2019-02-11 04:01:31.392 INFO  [main] [AndroidDeviceManager:356] getAvailableDeviceUdids - List of devices attachedZX1G22PQLH	device
+2019-02-11 04:01:31.582 INFO  [main] [AndroidDevice:211] setupExecutor - Local IP: 192.168.3.10
+2019-02-11 04:01:31.691 INFO  [main] [AndroidDevice:258] addAdapter - [ZX1G22PQLH-WeChatAdapter] added 
+2019-02-11 04:01:31.694 INFO  [main] [AndroidDeviceManager:164] detectDevices - Add Device:[ZX1G22PQLH] to device container
+2019-02-11 04:01:31.695 INFO  [ADM-0] [AndroidDeviceManager:169] lambda$detectDevices$1 - Try to start Device:[ZX1G22PQLH]
+2019-02-11 04:01:31.698 INFO  [ZX1G22PQLH-0] [Init:27] call - [ZX1G22PQLH] Init...
+2019-02-11 04:01:31.700 INFO  [ZX1G22PQLH-0] [Init:37] call - [ZX1G22PQLH] start proxy...
+2019-02-11 04:01:31.712 INFO  [main] [AndroidDeviceManager:252] submit - Assign [GetMediaEssaysTask-d605fb9b] --> [ZX1G22PQLH]
+2019-02-11 04:01:32.707 INFO  [ZX1G22PQLH-0] [AndroidDevice:877] startProxy - Proxy started @proxyPort 41000
+2019-02-11 04:01:32.707 INFO  [ZX1G22PQLH-0] [Init:41] call - [ZX1G22PQLH] setup wifi proxy...
+2019-02-11 04:01:34.078 INFO  [ZX1G22PQLH-0] [AndroidUtil:356] execShell - 
+2019-02-11 04:01:35.069 INFO  [ZX1G22PQLH-0] [AndroidUtil:356] execShell - 
+2019-02-11 04:01:37.070 INFO  [ZX1G22PQLH-0] [Init:45] call - [ZX1G22PQLH] start appium local service / driver ...
+2019-02-11 04:01:49.426 INFO  [ZX1G22PQLH-0] [AndroidDevice:953] initAppiumServiceAndDriver - Appium Service URL: http://0.0.0.0:42756/wd/hub
+2019-02-11 04:02:45.156 INFO  [ZX1G22PQLH-0] [WeChatAdapter:738] getLocalUserInfo - user_id:wxid_cra61aoltdhs22 user_name:将小白
+2019-02-11 04:02:50.156 INFO  [ZX1G22PQLH-0] [AndroidDevice:301] startAdapter - [ZX1G22PQLH-WeChatAdapter(4)] started
+2019-02-11 04:02:50.156 INFO  [ZX1G22PQLH-0] [Init:55] call - [ZX1G22PQLH] init success
+2019-02-11 04:02:50.156 INFO  [ADM-0] [AndroidDevice:338] start - [ZX1G22PQLH] INIT done
+2019-02-11 04:02:50.160 INFO  [ADM-1] [AndroidDeviceManager:198] assign - [ZX1G22PQLH] take Task[GetMediaEssaysTask-d605fb9b] from queue
+2019-02-11 04:02:50.161 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 0 判断帐号状态
+2019-02-11 04:02:50.224 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 1 设置过滤器
+2019-02-11 04:02:50.273 INFO  [ZX1G22PQLH-0] [GetMediaEssaysTask:312] setupFilters - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] Add Request/Response filters...
+2019-02-11 04:02:50.275 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 2 重置微信进入首页
+2019-02-11 04:02:59.245 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 3 进入已订阅公众号的列表页面
+2019-02-11 04:03:02.207 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 4 搜索公众号 拍拍贷
+2019-02-11 04:03:17.564 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 5 查询Media并加载已采集文章 拍拍贷
+2019-02-11 04:03:17.656 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 6 进入历史文章数据列表页
+2019-02-11 04:03:32.016 INFO  [ZX1G22PQLH-0] [Task:250] RC - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b] 7 - 截图分析文章标题坐标
+2019-02-11 04:03:35.794 ERROR [ADM-1] [Task:226] failure - [ZX1G22PQLH-WeChatAdapter(4)] [GetMediaEssaysTask-d605fb9b], java.lang.NullPointerException: null
+	at com.dw.ocr.parser.OCRParser$TouchableTextArea.<init>(OCRParser.java:107) ~[ocr-service-0.1.9-SNAPSHOT.jar:?]
+	at com.dw.ocr.client.OCRClient$Response.lambda$convert$0(OCRClient.java:231) ~[ocr-service-0.1.9-SNAPSHOT.jar:?]
+	at java.util.ArrayList.forEach(ArrayList.java:1257) ~[?:1.8.0_181]
+	at com.dw.ocr.client.OCRClient$Response.convert(OCRClient.java:225) ~[ocr-service-0.1.9-SNAPSHOT.jar:?]
+	at com.dw.ocr.client.OCRClient$Response.<init>(OCRClient.java:209) ~[ocr-service-0.1.9-SNAPSHOT.jar:?]
+	at com.dw.ocr.client.OCRClient.call(OCRClient.java:177) ~[ocr-service-0.1.9-SNAPSHOT.jar:?]
+	at com.dw.ocr.client.OCRClient.getTextBlockArea(OCRClient.java:93) ~[ocr-service-0.1.9-SNAPSHOT.jar:?]
+	at one.rewind.android.automator.adapter.wechat.WeChatAdapter.getEssayListTextAreas(WeChatAdapter.java:219) ~[classes/:?]
+	at one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask.call(GetMediaEssaysTask.java:199) ~[classes/:?]
+	at one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask.call(GetMediaEssaysTask.java:50) ~[classes/:?]
 	at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[?:1.8.0_181]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) [?:1.8.0_181]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) [?:1.8.0_181]
+	at java.lang.Thread.run(Thread.java:748) [?:1.8.0_181]
+
+2019-02-11 04:03:35.873 INFO  [ADM-1] [AndroidDevice:289] removeAdapter - [ZX1G22PQLH-WeChatAdapter(4)] removed, 
+2019-02-11 04:03:35.897 ERROR [ADM-2] [AndroidDevice$1:1218] onFailure - Callbacks run failed, one.rewind.android.automator.exception.AndroidException$NoAvailableDevice: null
+	at one.rewind.android.automator.deivce.AndroidDeviceManager.getDevice(AndroidDeviceManager.java:285) ~[classes/:?]
+	at one.rewind.android.automator.deivce.AndroidDeviceManager.submit(AndroidDeviceManager.java:249) ~[classes/:?]
+	at one.rewind.android.automator.deivce.AndroidDevice.submit(AndroidDevice.java:808) ~[classes/:?]
+	at one.rewind.android.automator.deivce.AndroidDeviceManager.assign(AndroidDeviceManager.java:201) ~[classes/:?]
+	at one.rewind.android.automator.deivce.AndroidDeviceManager.lambda$detectDevices$2(AndroidDeviceManager.java:178) ~[classes/:?]
+	at one.rewind.android.automator.deivce.AndroidDevice.lambda$runCallbacks$7(AndroidDevice.java:1205) ~[classes/:?]
+	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleTask.runInterruptibly(TrustedListenableFutureTask.java:125) ~[guava-25.1-jre.jar:?]
+	at com.google.common.util.concurrent.InterruptibleTask.run(InterruptibleTask.java:57) ~[guava-25.1-jre.jar:?]
+	at com.google.common.util.concurrent.TrustedListenableFutureTask.run(TrustedListenableFutureTask.java:78) ~[guava-25.1-jre.jar:?]
 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) [?:1.8.0_181]
 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) [?:1.8.0_181]
 	at java.lang.Thread.run(Thread.java:748) [?:1.8.0_181]

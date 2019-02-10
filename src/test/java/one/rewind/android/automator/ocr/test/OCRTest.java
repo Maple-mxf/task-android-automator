@@ -1,0 +1,38 @@
+package one.rewind.android.automator.ocr.test;
+
+import com.dw.ocr.client.OCRClient;
+import com.dw.ocr.parser.OCRParser;
+import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.json.JSON;
+import one.rewind.util.FileUtil;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.List;
+
+/**
+ * @author scisaga@gmail.com
+ * @date 2019/2/10
+ */
+public class OCRTest {
+
+	@Test
+	public void testGetSearchResult1() throws IOException {
+
+		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile("tmp/screenshots/self_subscribe_media_search_result_1.png"), 200, 255, 1400, 2380);
+
+		System.err.println(JSON.toPrettyJson(textAreas));
+
+	}
+
+	@Test
+	public void testGetSearchResult2() throws IOException {
+
+		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile("tmp/screenshots/media_search_result.png"), 250, 430, 1400, 2390);
+
+		textAreas = Adapter.mergeForTitle(textAreas, 70);
+
+		System.err.println(JSON.toPrettyJson(textAreas));
+	}
+
+}

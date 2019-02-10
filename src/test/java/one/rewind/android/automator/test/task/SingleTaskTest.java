@@ -74,7 +74,7 @@ public class SingleTaskTest {
     }
 
     @Test
-    public void submitSubscribeTask() throws AccountException.AccountNotLoad, TaskException.IllegalParamException, AndroidException.NoAvailableDeviceException, InterruptedException {
+    public void submitSubscribeTask() throws AccountException.AccountNotLoad, TaskException.IllegalParameters, AndroidException.NoAvailableDevice, InterruptedException {
 
         List<String> media = Lists.newArrayList();
         media.add("阿里巴巴");

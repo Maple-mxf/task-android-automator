@@ -37,8 +37,7 @@ public abstract class Task implements Callable<Boolean> {
 
     public TaskHolder h;
 
-    // Flag 在call()和调用方法中，显式调用，判断任务是否继续执行
-    public volatile boolean stop = false;
+    private int logCount = 0;
 
     //
     public List<Account.Status> accountPermitStatuses = new ArrayList<>();
@@ -248,7 +247,7 @@ public abstract class Task implements Callable<Boolean> {
 	public void RC(String c) {
 		try {
 			TaskRecord record = new TaskRecord(this);
-			logger.info("[{}] [{}] {}", getAdapter().getInfo(), getInfo(), c);
+			logger.info("[{}] [{}] {}", getAdapter().getInfo(), getInfo(), (logCount ++) + " " + c);
 			record.content = c;
 			record.insert();
 		} catch (DBInitException | SQLException e) {

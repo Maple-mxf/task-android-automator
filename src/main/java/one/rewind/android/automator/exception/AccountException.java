@@ -21,6 +21,8 @@ public class AccountException extends Exception {
 		int accountId;
 
 		public AccountNotLoad(int accountId) {
+
+			super(String.valueOf(accountId));
 			this.accountId = accountId;
 		}
 
@@ -31,6 +33,7 @@ public class AccountException extends Exception {
 		public Account account;
 
 		public Broken(Account account) {
+			super(account.username);
 			this.account = account;
 		}
 

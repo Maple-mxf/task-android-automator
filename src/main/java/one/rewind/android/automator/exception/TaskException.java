@@ -5,7 +5,7 @@ package one.rewind.android.automator.exception;
  */
 public class TaskException extends Exception {
 
-    public static class IllegalParamException extends Exception{
+    public static class IllegalParameters extends Exception{
 
     }
 }

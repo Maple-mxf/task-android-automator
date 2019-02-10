@@ -14,7 +14,6 @@ import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Media;
 import one.rewind.db.exception.DBInitException;
-import one.rewind.txt.StringUtil;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -69,20 +68,20 @@ public class GetSelfSubscribeMediaTask extends Task {
 			DBInitException
     {
 
-		RC("0A 读取已经保存的数据库记录");
+		RC("读取已经保存的数据库记录");
 		try {
 			accountSubscribedMediaNicks = WechatAccountMediaSubscribe.getSubscribeMediaIds(adapter.account.id);
 		} catch (Exception e) {
 			logger.error("Error get Account[{}] subscribed Media, ", adapter.account.id, e);
 		}
 
-		RC("0B 判断帐号状态");
+		RC("判断帐号状态");
 		checkAccountStatus(adapter);
 
-		RC("0C 启动APP");
+		RC("启动APP");
 		adapter.restart();
 
-		RC("1 进入已订阅公众号的列表页面");
+		RC("进入已订阅公众号的列表页面");
 		adapter.goToSubscribePublicAccountList();
 
 		// 最后一页
@@ -90,23 +89,23 @@ public class GetSelfSubscribeMediaTask extends Task {
 
 		while (!atBottom) {
 
-			RC("2A 获取当前页截图");
+			RC("- 获取当前页截图");
 			List<OCRParser.TouchableTextArea> publicAccountTitles = OCRClient.getInstance()
 					.getTextBlockArea(adapter.device.screenshot(), 240, 332, 1356, 2392);
 
-			RC("2B 解析公众号名称所在位置坐标");
+			RC("- 解析公众号名称所在位置坐标");
 			for (OCRParser.TouchableTextArea area : publicAccountTitles) {
 
-				RC("3A 当前文字坐标 --> " + area.toJSON());
+				RC("-- 当前文字坐标 --> " + area.toJSON());
 				if (area.content.matches("\\d+个公众号")) {
-					RC("3B 已经到公众号列表底部");
+					RC("-- 已经到公众号列表底部");
 					atBottom = true;
 					break;
 				}
 
 				/*if(area.content.matches("该帐号已冻结|该帐号已注销")) {
 					// 取消关注
-					RC("3D 公众号状态异常 取消订阅");
+					RC("公众号状态异常 取消订阅");
 					adapter.goToSubscribedPublicAccountHome(area.left + 10, area.top + 10);
 					adapter.unsubscribePublicAccount();
 					continue;
@@ -118,16 +117,24 @@ public class GetSelfSubscribeMediaTask extends Task {
 						|| area.top + area.height > 2392
 						|| area.height < 40) continue;
 
-				RC("3C 进入公众号Home页");
+				RC("--- 进入公众号Home页");
 				adapter.goToSubscribedPublicAccountHome(area.left + 10, area.top + 10);
 
-				RC("4A 查看公众号更多资料 获取PublicAccountInfo");
+				RC("--- 查看公众号更多资料 获取PublicAccountInfo");
 				PublicAccountInfo pai;
 				try {
-					pai = this.adapter.getPublicAccountInfo(false);
-				} catch (MediaException.Illegal illegal) {
-					RC("3D 公众号状态异常 取消订阅");
-					adapter.unsubscribePublicAccount();
+					pai = this.adapter.getPublicAccountInfo(false, true);
+				}
+				catch (MediaException.Illegal illegal) {
+
+					RC("--- 公众号状态异常 取消订阅");
+
+					try {
+						adapter.unsubscribePublicAccount(area.content);
+					} catch (MediaException.NotSubscribe notSubscribe) {
+						logger.warn("[{}] not subscribe {}, ", adapter.getInfo(), area.content, notSubscribe);
+					}
+
 					h.findings.add(area.content);
 					continue;
 				}
@@ -137,19 +144,19 @@ public class GetSelfSubscribeMediaTask extends Task {
 					!h.findings.contains(pai.nick) && !accountSubscribedMediaNicks.contains(pai.nick)
 				) {
 
+					h.findings.add(area.content);
+
 					// 公众号名称图像识别结果 与 实际获取结果 不相同
 					if(!pai.nick.equals(area.content)) {
-						h.findings.add(area.content);
+						h.findings.add(pai.nick);
 					}
 
-					h.findings.add(pai.nick);
-
 					try {
-						RC("4B 生成Media");
+						RC("--- 生成Media");
 						Media media = GetMediaEssaysTask.parseMedia(pai);
 						media.update();
 
-						RC("4C 记录Account订阅的Media信息");
+						RC("--- 记录Account订阅的Media信息");
 						WechatAccountMediaSubscribe wams = new WechatAccountMediaSubscribe(this.adapter.account.id, media.id, media.name, media.nick);
 						wams.insert();
 					} catch (SQLException e) {
@@ -157,7 +164,7 @@ public class GetSelfSubscribeMediaTask extends Task {
 					}
 				}
 
-				RC("4D 返回公众号列表页面");
+				RC("--- 返回公众号列表页面");
 				adapter.device.goBack();
 				Thread.sleep(1000);
 				adapter.device.goBack();
@@ -166,27 +173,14 @@ public class GetSelfSubscribeMediaTask extends Task {
 				adapter.status = WeChatAdapter.Status.Subscribe_PublicAccount_List;
 			}
 
-			RC("2C Slide down");
+			RC("- Slide down");
 			this.adapter.device.slideToPoint(1000, 1600, 1000, 400, 2000);
 		}
 
-		RC("5 任务圆满完成");
+		RC("任务完成");
 
 		success();
 
         return false;
     }
-
-    /**
-     * 媒体账号ID 生成
-     *
-     * @param media_nick
-     * @param title
-     * @param src_id
-     * @return
-     */
-    public static String genId(String media_nick, String title, String src_id) {
-        return StringUtil.MD5(SubscribeMediaTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
-    }
-
 }

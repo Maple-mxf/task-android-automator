@@ -187,7 +187,7 @@ public class AndroidDeviceManager {
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
      */
-    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, AccountException.AccountNotLoad, TaskException.IllegalParamException, AndroidException.NoAvailableDeviceException {
+    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, AccountException.AccountNotLoad, TaskException.IllegalParameters, AndroidException.NoAvailableDevice {
 
         AndroidDevice device = deviceTaskMap.keySet().stream().filter(d -> d.udid.equals(ad.udid)).findFirst().orElse(null);
 
@@ -206,14 +206,14 @@ public class AndroidDeviceManager {
     /**
      * @param task
      */
-    public SubmitInfo submit(Task task) throws InterruptedException, AndroidException.NoAvailableDeviceException, TaskException.IllegalParamException, AccountException.AccountNotLoad {
+    public SubmitInfo submit(Task task) throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
         if (task == null) return new SubmitInfo(false);
 
-        if (task.h == null || task.h.class_name == null) throw new TaskException.IllegalParamException();
+        if (task.h == null || task.h.class_name == null) throw new TaskException.IllegalParameters();
 
         String adapterClassName = task.h.adapter_class_name;
-        if (StringUtils.isBlank(adapterClassName)) throw new TaskException.IllegalParamException();
+        if (StringUtils.isBlank(adapterClassName)) throw new TaskException.IllegalParameters();
 
         AndroidDevice device = null;
 
@@ -242,7 +242,7 @@ public class AndroidDeviceManager {
 
             if (device != null && !device.adapters.containsKey(adapterClassName)) device = null;
 
-            if (device == null) throw new AndroidException.NoAvailableDeviceException();
+            if (device == null) throw new AndroidException.NoAvailableDevice();
         }
         // C
         else {
@@ -263,7 +263,7 @@ public class AndroidDeviceManager {
      * @param AdapterClassName
      * @return
      */
-    public AndroidDevice getDevice(String AdapterClassName) throws AndroidException.NoAvailableDeviceException {
+    public AndroidDevice getDevice(String AdapterClassName) throws AndroidException.NoAvailableDevice {
 
         List<AndroidDevice> devices = deviceTaskMap.keySet().stream()
                 .filter(d ->
@@ -282,7 +282,7 @@ public class AndroidDeviceManager {
             return devices.get(0);
         }
 
-        throw new AndroidException.NoAvailableDeviceException();
+        throw new AndroidException.NoAvailableDevice();
     }
 
     /**

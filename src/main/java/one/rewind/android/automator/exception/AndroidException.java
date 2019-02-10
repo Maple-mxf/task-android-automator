@@ -25,7 +25,7 @@ public class AndroidException extends Exception {
 
 	}
 
-	public static class NoAvailableDeviceException extends Exception {}
+	public static class NoAvailableDevice extends Exception {}
 
 	public static class NoSuitableAdapter extends Exception {}
 }

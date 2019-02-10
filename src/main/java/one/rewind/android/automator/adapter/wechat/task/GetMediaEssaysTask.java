@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
+import com.google.common.collect.ImmutableMap;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.account.Account;
@@ -8,7 +9,9 @@ import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.GetPublicAccountEssayListFrozenException;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
+import one.rewind.android.automator.adapter.wechat.util.Generator;
 import one.rewind.android.automator.adapter.wechat.util.PublicAccountInfo;
+import one.rewind.android.automator.adapter.wechat.util.ReqObj;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
@@ -25,14 +28,12 @@ import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.txt.StringUtil;
+import one.rewind.util.FileUtil;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -76,6 +77,9 @@ public class GetMediaEssaysTask extends Task {
     public CountDownLatch countDown;
 
     public volatile boolean forward = false;
+
+    private Map<String, ReqObj> reqs = new HashMap<>();
+    private Map<String, Integer> responseCount = new HashMap<>();
 
     /**
      * @param holder
@@ -135,22 +139,23 @@ public class GetMediaEssaysTask extends Task {
         // 任务执行
         try {
 
-            RC("0A 判定Adapter加载的Account的状态，并尝试切换账号");
+			RC("判断帐号状态");
 			checkAccountStatus(adapter); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
 
-			RC("0B 设置过滤器");
+			RC("设置过滤器");
             setupFilters();
 
-            RC("0C 重置微信进入首页");
+            RC("重置微信进入首页");
             adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
 
-			RC("1 进入已订阅公众号的列表页面");
+			RC("进入已订阅公众号的列表页面");
             adapter.goToSubscribePublicAccountList();
 
-			RC("2 搜索公众号 " + media_nick);
+			RC("搜索公众号 " + media_nick);
             adapter.goToSubscribedPublicAccountHome(media_nick);
 
-			RC("3 查询Media并加载已采集文章 " + media_nick);
+			RC("查询Media并加载已采集文章 " + media_nick);
+
             try {
 
                 Media media = Daos.get(Media.class).queryBuilder().where().eq("nick", media_nick).queryForFirst();
@@ -158,7 +163,7 @@ public class GetMediaEssaysTask extends Task {
                 // 如果对应的media不存在
                 if (media == null) {
 
-                    media = parseMedia(adapter.getPublicAccountInfo(false));
+                    media = parseMedia(adapter.getPublicAccountInfo(false, true));
                     media.insert();
 
                 }
@@ -180,8 +185,8 @@ public class GetMediaEssaysTask extends Task {
 				return false;
 			}
 
-			RC("4 进入历史文章数据列表页");
-            adapter.gotoPublicAccountEssayList();
+			RC("进入历史文章数据列表页");
+            adapter.goToPublicAccountEssayList();
 
             boolean atBottom = false;
 
@@ -190,72 +195,59 @@ public class GetMediaEssaysTask extends Task {
             // 是否到达列表底部
             while (!atBottom && current_page < page) {
 
-				RC("5A 截图分析文章标题坐标");
-                List<OCRParser.TouchableTextArea> textAreas = this.adapter.getEssayListTextAreas();
+				RC("- 截图分析文章标题坐标");
+                List<OCRParser.TouchableTextArea> textAreas = adapter.getEssayListTextAreas();
 
-				RC("5B 逐个点击文章标题");
+				RC("- 获取文章标题区域列表");
                 for (OCRParser.TouchableTextArea area : textAreas) {
 
                     // 通过 textAreas 分析是否是最后一页 一般来讲都是最后一个 是 已无更多
-					RC("6A 判定是否已经到达列表底部");
+					RC("-- 判定是否已经到达列表底部");
                     if (area.content.equals("已无更多") && textAreas.indexOf(area) == textAreas.size() - 1) {
                         atBottom = true;
                         break;
                     }
 
-					RC("6B 文章标题去重判断");
+					RC("-- 文章标题去重判断");
                     String feature = area.content + " " + DateFormatUtil.dfd.print(area.date.getTime());
                     if (collectedEssays.contains(feature) || visitedEssays.contains(feature)) continue;
 
-					RC("6C 进入文章");
+					RC("-- 进入文章");
 					countDown = new CountDownLatch(1);
                     adapter.goToEssayDetail(area);
 
-					RC("7A 判断是否进入了文章页");
-                    if (adapter.device.reliableTouch(area.left, area.top)) {
+					countDown.await(10, TimeUnit.SECONDS);
+					RC("-- 判断是否是转发文章");
+					if (forward) {
 
-						RC("7B 向下滑动两次");
-                        for (int i = 0; i < 2; i++) {
-                            this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
-                        }
+						countDown = new CountDownLatch(1);
 
-                        countDown.await(10, TimeUnit.SECONDS);
+						RC("--- 点进被转发的文章");
+						adapter.device.touch(582, 557, 6000);
 
-						RC("7C 记录已经点击的文章标题 时间");
-                        visitedEssays.add(feature);
+						RC("--- 向下滑动两次");
+						for (int i = 0; i < 2; i++) {
+							this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
+						}
+					}
 
-						RC("7D 判断是否是转发文章");
-                        if (forward) {
+					RC("-- 关闭文章");
+					adapter.goToEssayPreviousPage();
+					// adapter.device.touch(67, 165, 1000);
 
-                            countDown = new CountDownLatch(1);
-
-							RC("8A 点进被转发的文章");
-                            adapter.device.touch(582, 557, 6000);
-
-							RC("8B 向下滑动两次");
-                            for (int i = 0; i < 2; i++) {
-                                this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
-                            }
-                        }
-
-						RC("7E 关闭文章");
-                        adapter.touchUpperLeftButton();
-                        // adapter.device.touch(67, 165, 1000);
-
-                        forward = false;
-                    }
+					forward = false;
                 }
 
-				RC("5C 确定回到文章列表页");
+				RC("- 确定回到文章列表页");
                 if (adapter.status != WeChatAdapter.Status.PublicAccount_Essay_List)
                     throw new AdapterException.IllegalStateException(adapter);
 
-				RC("5D 向下滑动一页");
+				RC("- 向下滑动一页");
                 this.adapter.device.slideToPoint(1000, 800, 1000, 2000, 1000);
                 current_page ++;
             }
 
-			RC("9 任务圆满完成");
+			RC("任务完成");
 			success();
             return false;
         }
@@ -274,7 +266,7 @@ public class GetMediaEssaysTask extends Task {
         // 在指定账号的订阅列表中找不到指定的公众号的异常
         catch (MediaException.NotSubscribe e) {
 
-			failure(e, "not subscribe " + e.media_nick);
+			failure(e, e.media_nick + " not subscribe");
 			return false;
 
         }
@@ -284,7 +276,10 @@ public class GetMediaEssaysTask extends Task {
 			failure(e, "expect:" + e.media_nick_expected + " actual:" + e.media_nick);
 			return false;
 
-        }
+        } catch (MediaException.Illegal e) {
+			failure(e, e.media_nick + " illegal");
+			return false;
+		}
         /*// 线程中断异常   此异常在外部捕获不到
         catch (InterruptedException e){
 
@@ -292,6 +287,22 @@ public class GetMediaEssaysTask extends Task {
         }*/
     }
 
+    public static String getFeature(String url) {
+
+    	Map<String, String> features = ImmutableMap.of(
+    			"https://mp.weixin.qq.com/mp/profile_ext?action=home", "EssayList",
+				"https://mp.weixin.qq.com/mp/profile_ext?action=getmsg", "EssayList",
+				"https://mp.weixin.qq.com/s", "EssayContent",
+				"https://mp.weixin.qq.com/mp/getappmsgext", "EssayStat",
+				"https://mp.weixin.qq.com/mp/appmsg_comment?action=getcomment", "EssayComments"
+		);
+
+    	for(String feature : features.keySet()) {
+    		if(url.contains(feature)) return features.get(feature);
+		}
+
+		return null;
+	}
 
     /**
      *
@@ -300,11 +311,35 @@ public class GetMediaEssaysTask extends Task {
 
         logger.info("[{}] [{}] Add Request/Response filters...", adapter.getInfo(), getInfo());
 
-        RequestFilter requestFilter = (request, contents, messageInfo) -> null;
+        RequestFilter requestFilter = (request, contents, messageInfo) -> {
+
+			// 请求记录
+			String url = messageInfo.getOriginalUrl();
+
+			reqs.put(url, new ReqObj(url, request.method(), ImmutableMap.copyOf(request.headers().entries()), contents.getTextContents()));
+
+        	return null;
+		};
 
         ResponseFilter responseFilter = (response, contents, messageInfo) -> {
 
-            String url = messageInfo.getOriginalUrl();
+        	String url = messageInfo.getOriginalUrl();
+
+        	String feature = getFeature(url);
+
+        	// 返回内容记录
+			if (contents != null && contents.isText() && feature != null) {
+
+				if(reqs.get(url) != null) {
+
+					int count = responseCount.get(feature) == null? 0 : responseCount.get(feature);
+
+					ReqObj resObj = reqs.get(url).setRes(contents.getTextContents());
+					FileUtil.writeBytesToFile(resObj.toJSON().getBytes(), "tmp/wx/res/" + feature + "-"+ (count ++) + ".html");
+
+					responseCount.put(feature, count);
+				}
+			}
 
             if (contents != null && (contents.isText() || url.contains("https://mp.weixin.qq.com/s"))) {
 
@@ -314,7 +349,7 @@ public class GetMediaEssaysTask extends Task {
                     content_stack.push(contents.getTextContents());
                 }
                 // 统计信息
-                else if (url.contains("getappmsgext")) {
+                else if (url.contains("mp/getappmsgext")) {
                     logger.info(" :: " + url);
                     stats_stack.push(contents.getTextContents());
                 }
@@ -332,7 +367,6 @@ public class GetMediaEssaysTask extends Task {
 
                     // TODO 此处模拟共享，复制链接，保存文章持久连接
                     // adapter.device.driver.getClipboardText();
-                    logger.info(content_src);
 
                     // 获取转发的Essay Id
                     String f_id = parseForwardId(content_src);
@@ -465,14 +499,14 @@ public class GetMediaEssaysTask extends Task {
 
         // 生成文章
         Essay essay = new Essay();
-        essay.platform_id = SubscribeMediaTask.platform.id;
-        essay.platform = SubscribeMediaTask.platform.short_name;
+        essay.platform_id = WeChatAdapter.platform.id;
+        essay.platform = WeChatAdapter.platform.short_name;
         essay.title = title;
         essay.media_nick = media_nick;
         essay.src_id = src_id;
         essay.media_src_id = media_src_id;
         essay.f_id = f_id;
-        essay.media_id = SubscribeMediaTask.genId(media_nick);
+        essay.media_id = Generator.genMediaId(media_nick);
         essay.id = genId(media_nick, title, src_id);
 
         // 元信息
@@ -548,7 +582,7 @@ public class GetMediaEssaysTask extends Task {
                 try {
                     // 生成下载图片的任务
                     BasicDistributor.getInstance("download").submit(Source.getDTH(img_url));
-                } catch (Exception e) {
+                } catch (Exception | Error e) {
                     logger.error("Error download {}", img_url, e);
                 }
 
@@ -684,7 +718,7 @@ public class GetMediaEssaysTask extends Task {
      * @return
      */
     public static String genId(String media_nick, String title, String src_id) {
-        return StringUtil.MD5(SubscribeMediaTask.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
+        return StringUtil.MD5(WeChatAdapter.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
     }
 
 	/**
@@ -696,11 +730,11 @@ public class GetMediaEssaysTask extends Task {
 	 */
     public static Media parseMedia(PublicAccountInfo pai) throws DBInitException, SQLException {
 
-    	Media media = Model.getById(Media.class, SubscribeMediaTask.genId(pai.nick));
+    	Media media = Model.getById(Media.class, Generator.genMediaId(pai.nick));
 
     	if(media == null) {
 			media = new Media();
-			media.id = SubscribeMediaTask.genId(pai.nick);
+			media.id = Generator.genMediaId(pai.nick);
 			media.insert();
 		}
 

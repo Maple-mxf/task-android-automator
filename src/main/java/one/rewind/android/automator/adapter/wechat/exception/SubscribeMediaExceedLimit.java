@@ -13,6 +13,7 @@ public class SubscribeMediaExceedLimit extends Exception {
 	public Account account;
 
 	public SubscribeMediaExceedLimit(Account account) {
+		super(account.username);
 		this.account = account;
 	}
 }
