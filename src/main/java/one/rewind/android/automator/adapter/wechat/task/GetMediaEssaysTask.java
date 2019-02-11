@@ -23,7 +23,6 @@ import one.rewind.data.raw.model.Source;
 import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.Model;
-import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.txt.ContentCleaner;
 import one.rewind.txt.DateFormatUtil;
 import one.rewind.txt.NumberFormatUtil;
@@ -34,11 +33,16 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * 获取微信公众号文章
@@ -304,6 +308,11 @@ public class GetMediaEssaysTask extends Task {
 		return null;
 	}
 
+	public static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
+		Map<Object, Boolean> seen = new ConcurrentHashMap<>();
+		return object -> seen.putIfAbsent(keyExtractor.apply(object), Boolean.TRUE) == null;
+	}
+
     /**
      *
      */
@@ -334,7 +343,17 @@ public class GetMediaEssaysTask extends Task {
 
 					int count = responseCount.get(feature) == null? 0 : responseCount.get(feature);
 
-					ReqObj resObj = reqs.get(url).setRes(contents.getTextContents());
+					/*Map<String, String> map = response.headers().entries().stream()
+							.collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, toList())))
+							.entrySet().stream()
+							.map(entry -> new AbstractMap.SimpleEntry<String, String>(entry.getKey(), entry.getValue().stream().collect(Collectors.joining())))
+							.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));*/
+
+					ReqObj resObj = reqs.get(url).setRes(
+							response.headers().entries().stream()
+									.collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, toList())))
+							, contents.getTextContents());
+
 					FileUtil.writeBytesToFile(resObj.toJSON().getBytes(), "tmp/wx/res/" + feature + "-"+ (count ++) + ".html");
 
 					responseCount.put(feature, count);
@@ -382,7 +401,7 @@ public class GetMediaEssaysTask extends Task {
 
                     try {
                         Source source = new Source(essay.id, url_permanent, null, essay.id + ".html", "text/xml", content_src.getBytes());
-                        source.insert();
+                        /*source.insert();*/
                     } catch (Exception e) {
                         logger.error("Error insert source:{}, ", essay.id, e);
                     }
@@ -570,7 +589,7 @@ public class GetMediaEssaysTask extends Task {
 			}*/
 
             // 去重
-            imgs = imgs.stream().distinct().collect(Collectors.toList());
+            imgs = imgs.stream().distinct().collect(toList());
 
             // 下载图片 保存图片
             List<String> imgs_ = new ArrayList<>();
@@ -580,8 +599,8 @@ public class GetMediaEssaysTask extends Task {
                 String img_source_id = StringUtil.MD5(img_url);
 
                 try {
-                    // 生成下载图片的任务
-                    BasicDistributor.getInstance("download").submit(Source.getDTH(img_url));
+                    // TODO 生成下载图片的任务
+                    /*BasicDistributor.getInstance("download").submit(Source.getDTH(img_url));*/
                 } catch (Exception | Error e) {
                     logger.error("Error download {}", img_url, e);
                 }

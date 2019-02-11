@@ -5,6 +5,7 @@ import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
 import one.rewind.util.FileUtil;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,8 +18,16 @@ public class ReqObj implements JSONable<ReqObj> {
 	public HttpMethod method;
 	public Map<String, String> headers;
 	public String req;
+	public Map<String, List<String>> resHeaders;
 	public String res;
 
+	/**
+	 *
+	 * @param url
+	 * @param method
+	 * @param headers
+	 * @param req
+	 */
 	public ReqObj(String url, HttpMethod method, Map<String, String> headers, String req) {
 		this.url = url;
 		this.method = method;
@@ -26,7 +35,14 @@ public class ReqObj implements JSONable<ReqObj> {
 		this.req = req;
 	}
 
-	public ReqObj setRes(String res) {
+	/**
+	 *
+	 * @param resHeaders
+	 * @param res
+	 * @return
+	 */
+	public ReqObj setRes(Map<String, List<String>> resHeaders, String res) {
+		this.resHeaders = resHeaders;
 		this.res = res;
 		return this;
 	}
