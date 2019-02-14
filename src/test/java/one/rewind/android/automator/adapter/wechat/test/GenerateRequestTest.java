@@ -63,12 +63,14 @@ public class GenerateRequestTest {
 	@Test
 	public void testReplayRequest() throws MalformedURLException, URISyntaxException, UnsupportedEncodingException {
 
-		String src = FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html");
+		String src = FileUtil.readFileByLines("tmp/wx/res/EssayStat-3.html");
 		ReqObj reqObj = JSON.fromJson(src, ReqObj.class);
 
 		Task t = new Task(reqObj.url/*.replace("offset=10", "offset=20")*/);
-		if(reqObj.method.equals(HttpMethod.POST)) t.setPost();
+		t.setPost_data(reqObj.req);
+		t.setPost();
 		t.setHeaders(reqObj.headers);
+
 		//t.setProxy(new ProxyImpl("reid.red", 60103, null, null));
 
 		BasicRequester.getInstance().submit(t);

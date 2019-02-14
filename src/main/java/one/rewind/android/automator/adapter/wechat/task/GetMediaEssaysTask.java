@@ -441,7 +441,7 @@ public class GetMediaEssaysTask extends Task {
                             try {
                                 c.insert();
                             } catch (Exception e) {
-                                logger.error("Error insert comments:{}", e);
+                                logger.error("Error insert comments, {}", e.getMessage());
                             }
                         });
                     }
