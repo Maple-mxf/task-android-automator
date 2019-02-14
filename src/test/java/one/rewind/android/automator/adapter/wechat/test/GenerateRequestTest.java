@@ -1,64 +1,26 @@
 package one.rewind.android.automator.adapter.wechat.test;
 
 import io.netty.handler.codec.http.HttpMethod;
+import one.rewind.android.automator.adapter.wechat.util.EssayProcessor;
 import one.rewind.android.automator.adapter.wechat.util.ReqObj;
+import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.io.requester.basic.BasicRequester;
 import one.rewind.io.requester.task.Task;
+import one.rewind.io.requester.task.TaskHolder;
 import one.rewind.json.JSON;
 import one.rewind.util.FileUtil;
-import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author scisaga@gmail.com
  * @date 2019/2/11
  */
 public class GenerateRequestTest {
-
-	public static String parseHtml(String src) {
-
-		Pattern pattern = Pattern.compile("(?<=var msgList = ').+?(?=';)");
-		Matcher matcher = pattern.matcher(src);
-
-		if(matcher.find()) {
-			src = matcher.group();
-		}
-
-		return StringEscapeUtils.unescapeHtml4(src).replaceAll("\\\\", "");
-	}
-
-	public static String parseJson(String src) {
-
-		Pattern pattern = Pattern.compile("^\\{.+?\\}$");
-		Matcher matcher = pattern.matcher(src);
-
-		if(matcher.find()) {
-			src = matcher.group();
-		}
-
-		return StringEscapeUtils.unescapeHtml4(src).replaceAll("\\\\", "");
-	}
-
-	@Test
-	public void testParseHtml() {
-
-		String src = FileUtil.readFileByLines("tmp/wx/拍拍贷历史文章列表.html");
-		System.out.println(parseHtml(src));
-	}
-
-	@Test
-	public void testParseJson() {
-
-		String src = FileUtil.readFileByLines("tmp/wx/拍拍贷历史文章列表.page2.js");
-		System.out.println(parseJson(src));
-	}
 
 	@Test
 	public void testReplayRequest() throws MalformedURLException, URISyntaxException, UnsupportedEncodingException {
@@ -103,6 +65,47 @@ public class GenerateRequestTest {
 
 		System.out.println(uri.getHost());
 		System.out.println(uri.getPath());
+
+	}
+
+	@Test
+	public void testEncode() throws UnsupportedEncodingException {
+
+		String s = "SqivLFxBvIbBoK7hL3RWJjbMxrnIZG%252By4u6XPN%252BSTNQ0WJxXI64s98DA8SOBs6cM";
+		System.err.println(URLEncoder.encode(s, "UTF-8"));
+
+		System.err.println(URLDecoder.decode("SqivLFxBvIbBoK7hL3RWJjbMxrnIZG%252By4u6XPN%252BSTNQ0WJxXI64s98DA8SOBs6cM", "UTF-8"));
+
+	}
+
+	@Test
+	public void testParseListContent() throws Exception {
+
+		Class.forName(EssayProcessor.class.getName());
+
+		ReqObj reqObj0 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-0.html"), ReqObj.class);
+		ReqObj reqObj1 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html"), ReqObj.class);
+
+		EssayProcessor ep = new EssayProcessor(reqObj0, reqObj1);
+
+		List<TaskHolder> nths = new ArrayList<>();
+		ep.getEssayTH(reqObj1.res, "拍拍贷", nths);
+
+		System.out.println(JSON.toPrettyJson(nths.get(9)));
+
+		BasicDistributor.getInstance().submit(nths.get(9));
+
+		/*Task<Task> t = nths.get(9).build();
+
+		t.setHeaders(reqObj1.headers);
+		t.setCookies(reqObj1.getCookies().getCookies(t.url));
+
+		BasicRequester.getInstance().submit(t);
+		for(one.rewind.io.requester.callback.NextTaskGenerator callback : t.nextTaskGenerators) {
+			callback.run(t, new ArrayList<>());
+		}*/
+
+		Thread.sleep(1000000);
 
 	}
 }

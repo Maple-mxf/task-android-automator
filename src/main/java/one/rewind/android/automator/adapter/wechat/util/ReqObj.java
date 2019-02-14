@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter.wechat.util;
 
 import io.netty.handler.codec.http.HttpMethod;
+import one.rewind.io.requester.basic.Cookies;
 import one.rewind.json.JSON;
 import one.rewind.json.JSONable;
 import one.rewind.util.FileUtil;
@@ -45,6 +46,24 @@ public class ReqObj implements JSONable<ReqObj> {
 		this.resHeaders = resHeaders;
 		this.res = res;
 		return this;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public Cookies.Store getCookies() {
+
+		try {
+			List<String> setCookieStrs = this.resHeaders.get("Set-Cookie");
+			if (setCookieStrs != null) {
+				return new Cookies.Store(this.url, setCookieStrs);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return new Cookies.Store();
 	}
 
 	@Override
