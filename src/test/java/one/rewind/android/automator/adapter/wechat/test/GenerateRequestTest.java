@@ -1,16 +1,21 @@
 package one.rewind.android.automator.adapter.wechat.test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpMethod;
 import one.rewind.android.automator.adapter.wechat.util.EssayProcessor;
 import one.rewind.android.automator.adapter.wechat.util.ReqObj;
 import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.io.requester.basic.BasicRequester;
+import one.rewind.io.requester.proxy.ProxyImpl;
 import one.rewind.io.requester.task.Task;
 import one.rewind.io.requester.task.TaskHolder;
 import one.rewind.json.JSON;
 import one.rewind.util.FileUtil;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.util.ArrayList;
@@ -25,7 +30,7 @@ public class GenerateRequestTest {
 	@Test
 	public void testReplayRequest() throws MalformedURLException, URISyntaxException, UnsupportedEncodingException {
 
-		String src = FileUtil.readFileByLines("tmp/wx/res/EssayStat-3.html");
+		String src = FileUtil.readFileByLines("tmp/wx/res/EssayStat-0.html");
 		ReqObj reqObj = JSON.fromJson(src, ReqObj.class);
 
 		Task t = new Task(reqObj.url/*.replace("offset=10", "offset=20")*/);
@@ -36,20 +41,23 @@ public class GenerateRequestTest {
 		//t.setProxy(new ProxyImpl("reid.red", 60103, null, null));
 
 		BasicRequester.getInstance().submit(t);
+		FileUtil.writeBytesToFile(t.getResponse().getSrc(), "tmp/test1.html");
 		System.err.println(t.getResponse().getText());
-		/*System.err.println(parseJson(t.getResponse().getText()));*/
 	}
 
 	@Test
 	public void testGenerateEssayRequest() throws MalformedURLException, URISyntaxException, UnsupportedEncodingException {
 
-		String src = FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html");
+		String src = FileUtil.readFileByLines("tmp/wx/res/EssayList-18.html");
 		ReqObj reqObj = JSON.fromJson(src, ReqObj.class);
 
 		Task t = new Task(reqObj.url/*.replace("offset=10", "offset=20")*/);
-		if(reqObj.method.equals(HttpMethod.POST)) t.setPost();
+		if(reqObj.method.equals(HttpMethod.POST)) {
+			t.setPost();
+			t.setPost_data(reqObj.req);
+		}
 		t.setHeaders(reqObj.headers);
-		//t.setProxy(new ProxyImpl("reid.red", 60103, null, null));
+		t.setProxy(new ProxyImpl("reid.red", 60103, null, null));
 
 		BasicRequester.getInstance().submit(t);
 		System.err.println(t.getResponse().getText());
@@ -85,15 +93,22 @@ public class GenerateRequestTest {
 
 		ReqObj reqObj0 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-0.html"), ReqObj.class);
 		ReqObj reqObj1 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html"), ReqObj.class);
+		ReqObj reqObj2 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayContent-0.html"), ReqObj.class);
 
-		EssayProcessor ep = new EssayProcessor(reqObj0, reqObj1);
+		EssayProcessor ep = new EssayProcessor("拍拍贷", reqObj0, reqObj1, reqObj2);
 
 		List<TaskHolder> nths = new ArrayList<>();
-		ep.getEssayTH(reqObj1.res, "拍拍贷", nths);
+		ep.getEssayTH(reqObj0.res, "拍拍贷", nths);
 
-		System.out.println(JSON.toPrettyJson(nths.get(9)));
+		/*System.out.println(JSON.toPrettyJson(nths.get(9)));*/
 
-		BasicDistributor.getInstance().submit(nths.get(9));
+		nths.forEach(th -> {
+			try {
+				BasicDistributor.getInstance().submit(th);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		});
 
 		/*Task<Task> t = nths.get(9).build();
 
@@ -106,6 +121,48 @@ public class GenerateRequestTest {
 		}*/
 
 		Thread.sleep(1000000);
+	}
 
+	@Test
+	public void testGenerateNextPage() throws Exception {
+
+		Class.forName(EssayProcessor.class.getName());
+
+		ReqObj reqObj0 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-0.html"), ReqObj.class);
+		ReqObj reqObj1 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html"), ReqObj.class);
+		ReqObj reqObj2 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayContent-0.html"), ReqObj.class);
+
+		EssayProcessor ep = new EssayProcessor("黄生看金融", reqObj0, reqObj1, reqObj2);
+
+		/*List<TaskHolder> nths = new ArrayList<>();
+		ep.getEssayTH(FileUtil.readFileByLines("tmp/test1.html"),"黄生看金融", nths);
+		nths.forEach(th -> {
+			System.err.println(JSON.toPrettyJson(th));
+		});*/
+
+		/*EssayProcessor.parseComments(Comment.FType.Essay, "1", FileUtil.readFileByLines("tmp/test1.html"))
+				.forEach(c -> {
+					System.err.println(JSON.toPrettyJson(c));
+				});
+*/
+		ep.run();
+
+		Thread.sleep(100000000);
+	}
+
+	@Test
+	public void testDecode() {
+
+		String src = FileUtil.readFileByLines("tmp/test1.html");
+		src = StringEscapeUtils.unescapeHtml4(StringEscapeUtils.unescapeHtml4(src)).replaceAll("\\\\", "").replaceAll("(?si)^.+?\"general_msg_list\":\"", "").replaceAll("(?si)\",\"next_offset\":20.+?$", "");
+
+		System.out.println(src);
+
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			JsonNode jsonNode = mapper.readTree(src);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

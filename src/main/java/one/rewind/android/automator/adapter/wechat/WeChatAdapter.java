@@ -495,6 +495,8 @@ public class WeChatAdapter extends Adapter {
 
 			// 点击返回
 			touchUpperLeftButton();
+
+			this.status = Status.PublicAccount_Home;
 		}
 
         return wpa;
@@ -632,7 +634,7 @@ public class WeChatAdapter extends Adapter {
 
             // B 点击设置
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'设置')]"));
-            Thread.sleep(500);
+            Thread.sleep(1000);
 
             // C 向下滑
             device.slideToPoint(500, 1800, 600, 1000, 500);

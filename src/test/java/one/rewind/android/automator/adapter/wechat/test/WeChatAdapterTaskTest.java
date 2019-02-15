@@ -84,7 +84,7 @@ public class WeChatAdapterTaskTest {
 	@Test
 	public void testSubscribeAndGetEssays() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("黄生看金融"));
 
 		Task task = TaskFactory.getInstance().generateTask(holder);
 
@@ -92,7 +92,7 @@ public class WeChatAdapterTaskTest {
 
 		AndroidDeviceManager.getInstance().submit(
 				TaskFactory.getInstance().generateTask(
-						new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("拍拍贷"))));
+						new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("黄生看金融"))));
 
 		Thread.sleep(10000000);
 	}

@@ -9,6 +9,7 @@ import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.Model;
+import one.rewind.io.requester.basic.BasicDistributor;
 import one.rewind.io.requester.basic.Cookies;
 import one.rewind.io.requester.chrome.ChromeTask;
 import one.rewind.io.requester.task.Task;
@@ -21,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -36,7 +38,7 @@ import static java.util.stream.Collectors.toList;
  * @author scisaga@gmail.com
  * @date 2019/2/14
  */
-public class EssayProcessor {
+public class EssayProcessor implements Runnable {
 
 	public static final Logger logger = LogManager.getLogger(EssayProcessor.class.getName());
 
@@ -44,6 +46,8 @@ public class EssayProcessor {
 	 * EssayProcessor 所有生成的任务对应的 url --> 关联 EssayProcessor 对象
 	 */
 	public static ConcurrentHashMap<String, EssayProcessor> holderProcessorMap = new ConcurrentHashMap<>();
+
+	public String media_nick;
 
 	/**
 	 * 微信公众号历史文章页面的第一个列表请求
@@ -54,6 +58,12 @@ public class EssayProcessor {
 	 * 微信公众号历史文章页面的第一个翻页请求
 	 */
 	public ReqObj list1;
+
+
+	/**
+	 * 微信公众号第一个历史文章请求
+	 */
+	public ReqObj content1;
 
 	/**
 	 * 公用 Header
@@ -66,12 +76,30 @@ public class EssayProcessor {
 	public Cookies.Store cookieStore;
 
 	/**
+	 *
+	 */
+	public String abtest_cookie;
+
+	public String devicetype;
+
+	public String version;
+
+	public String pass_ticket;
+
+	public String biz;
+
+	public String appmsg_token;
+
+	/**
 	 * 构造方法
+	 *
 	 * @param list0 微信公众号历史文章页面的第一个列表请求
 	 * @param list1 微信公众号历史文章页面的第一个翻页请求
 	 * @throws Exception
 	 */
-	public EssayProcessor(ReqObj list0, ReqObj list1) throws Exception {
+	public EssayProcessor(String media_nick, ReqObj list0, ReqObj list1, ReqObj content1) throws Exception {
+
+		this.media_nick = media_nick;
 
 		this.list0 = list0;
 
@@ -84,14 +112,53 @@ public class EssayProcessor {
 		cookieStore.add(list1.getCookies());
 
 		// 初始化 公用 header
-		headers = list1.headers;
+		headers = content1.headers;
 
-		// TODO 生成后续翻页任务
+		this.content1 = content1;
 
+		// 解析公共参数
+		this.abtest_cookie = match(content1.res, "abtest_cookie.+?\"(?<T>.+?)\"");
+		this.devicetype = cookieStore.getCookies(content1.url, "devicetype");
+		this.version = cookieStore.getCookies(content1.url, "version");
+		this.pass_ticket = cookieStore.getCookies(content1.url, "pass_ticket");
+		this.biz = URLUtil.getParam(content1.url, "__biz");
+		this.appmsg_token = URLDecoder.decode(match(content1.res, "appmsg_token.+?\"(?<T>.+?)\""), "UTF-8");
+
+		logger.info("Common Parameters: abtest_cookie[{}], devicetype[{}], version[{}], pass_ticket[{}], biz[{}], appmsg_token[{}]", abtest_cookie, devicetype, version, pass_ticket, biz, appmsg_token);
+
+	}
+
+	public void run() {
+
+		try {
+			List<TaskHolder> nths = new ArrayList<>();
+			getEssayTH(list0.res, media_nick, nths);
+			getEssayTH(list1.res, media_nick, nths);
+			getNextPageTH(list1.url, list1.res, nths);
+
+			for(TaskHolder th : nths) {
+				BasicDistributor.getInstance().submit(th);
+			}
+
+		} catch (Exception e) {
+			logger.error("Error, ", e);
+		}
+	}
+
+
+	public static String match(String src, String regx) {
+
+		Pattern p = Pattern.compile(regx);
+		Matcher m = p.matcher(src);
+		if (m.find()) {
+			return m.group("T");
+		}
+		return null;
 	}
 
 	/**
 	 * 从list1..N 中 生成翻页任务
+	 *
 	 * @param url
 	 * @param src
 	 * @return
@@ -105,6 +172,10 @@ public class EssayProcessor {
 			// 获取下一个翻页的url
 			int offset = Integer.parseInt(URLUtil.getParam(url, "offset"));
 
+			logger.info("===================================================================");
+			logger.info("Next offset: {}", offset+10);
+			logger.info("===================================================================");
+
 			// 生成下一页 翻页请求
 			String newUrl = url.replaceAll("offset=" + offset, "offset=" + (offset + 10));
 
@@ -117,13 +188,18 @@ public class EssayProcessor {
 
 	/**
 	 * 列表页是否可翻页
+	 *
 	 * @param src
 	 * @return
 	 */
 	public static boolean canMsgContinue(String src) {
 
-		if(src.contains("\"can_msg_continue\":1")) return true;
+		if (src.contains("\"can_msg_continue\":1")) return true;
 		return false;
+	}
+
+	public static String buildEssayUrl(String url) {
+		return url.replaceAll("^http(s)?", "https").replaceAll("#wechat_redirect", "").replaceAll("&scene=\\d+", "");
 	}
 
 	/**
@@ -134,7 +210,15 @@ public class EssayProcessor {
 	 */
 	public void getEssayTH(String src, String nick, List<TaskHolder> nths) throws Exception {
 
-		src = StringEscapeUtils.unescapeHtml4(src).replaceAll("\\\\", "").replaceAll("^.+?\"general_msg_list\":\"", "").replaceAll("\",\"next_offset\":20.+?$", "");
+		Map<String, Object> common = new HashMap<>();
+		common.put("abtest_cookie_e1", encode(abtest_cookie, 1));
+		common.put("pass_ticket_e1", encode(pass_ticket, 1));
+		common.put("devicetype", devicetype);
+		common.put("version", version);
+
+		src = src.replaceAll("(?si)^.+?var msgList = '", "").replaceAll("(?si)';.+?$", "");
+
+		src = StringEscapeUtils.unescapeHtml4(StringEscapeUtils.unescapeHtml4(src)).replaceAll("\\\\", "").replaceAll("(?si)^.+?\"general_msg_list\":\"", "").replaceAll("(?si)\",\"next_offset\":.+?$", "");
 
 		// 构造 JsonNode
 		ObjectMapper mapper = new ObjectMapper();
@@ -143,84 +227,90 @@ public class EssayProcessor {
 		// 解析 list 属性对应的 元素
 		Iterator<JsonNode> elements = jsonNode.get("list").elements();
 
-		while(elements.hasNext()){
+		while (elements.hasNext()) {
 
 			JsonNode item = elements.next();
 
-			// 获取公众号昵称
-			String media_nick = item.get("app_msg_ext_info").get("author").asText();
-			if(media_nick.length() == 0) media_nick = nick;
+			try {
 
-			// 获取文章标题
-			String title = item.get("app_msg_ext_info").get("title").asText();
+				// 获取公众号昵称
+				String media_nick = item.get("app_msg_ext_info").get("author").asText();
+				if (media_nick.length() == 0) media_nick = nick;
 
-			// 获取文章时间标识 注意：此时间还不是文章的真正发布时间
-			String datetime = item.get("comm_msg_info").get("datetime").asText();
+				// 获取文章标题
+				String title = item.get("app_msg_ext_info").get("title").asText();
 
-			// 获取头图链接
-			String cover = item.get("app_msg_ext_info").get("cover").asText();
+				// 获取文章时间标识 注意：此时间还不是文章的真正发布时间
+				String datetime = item.get("comm_msg_info").get("datetime").asText();
 
-			// 获取文章链接
-			String new_url = item.get("app_msg_ext_info").get("content_url").asText();
+				// 获取头图链接
+				String cover = item.get("app_msg_ext_info").get("cover").asText();
 
-			// 生成第一层级的文章采集任务
-			if(new_url != null && new_url.length() > 1) {
+				// 获取文章链接
+				String new_url = item.get("app_msg_ext_info").get("content_url").asText();
 
-				logger.info("title:{} media_nick:{} ts:{} url:{} cover:{}", title, media_nick, datetime, new_url, cover);
+				// 生成第一层级的文章采集任务
+				if (new_url != null && new_url.length() > 1) {
 
-				TaskHolder th = ChromeTask.at(
-						EssayTask.class,
-						ImmutableMap.of(
-								"url", new_url,
-								"title", title,
-								"media_nick", media_nick,
-								"ts", datetime,
-								"cover", cover
-						));
+					logger.info("title:{} media_nick:{} ts:{} url:{} cover:{}", title, media_nick, datetime, new_url, cover);
 
-				holderProcessorMap.put(th.id, this);
+					Map<String, Object> data = new HashMap<>();
+					data.put("base_url", buildEssayUrl(new_url));
+					data.put("title", title);
+					data.put("media_nick", media_nick);
+					data.put("ts", datetime);
+					data.put("cover", cover);
+					data.putAll(common);
 
-				nths.add(th);
-			}
+					TaskHolder th = ChromeTask.at(EssayTask.class, data);
 
-			// app_msg_ext_info.multi_app_msg_item_list 还会包含文章信息
-			Iterator<JsonNode> inner_elements = item.get("app_msg_ext_info").get("multi_app_msg_item_list").elements();
+					holderProcessorMap.put(th.id, this);
 
-			while(inner_elements.hasNext()) {
-
-				JsonNode inner_item = inner_elements.next();
-
-				// 公众号昵称
-				String inner_media_nick = inner_item.get("author").asText();
-				if(inner_media_nick.length() == 0) inner_media_nick = nick;
-
-				// 文章标题
-				String inner_title = inner_item.get("title").asText();
-
-				// 文章链接
-				String inner_url = inner_item.get("content_url").asText();
-
-				// 头图
-				String inner_cover = inner_item.get("cover").asText();
-
-				if(inner_url != null && inner_url.length() > 1) {
-
-					logger.info("title:{} media_nick:{} ts:{} url:{} cover:{}", inner_title, inner_media_nick, datetime, inner_url, inner_cover);
-
-					TaskHolder th_ = ChromeTask.at(
-							EssayTask.class,
-							ImmutableMap.of(
-									"url", inner_url,
-									"title", inner_title,
-									"media_nick", inner_media_nick,
-									"ts", datetime,
-									"cover", inner_cover
-							));
-
-					holderProcessorMap.put(th_.id, this);
-
-					nths.add(th_);
+					nths.add(th);
 				}
+
+				// app_msg_ext_info.multi_app_msg_item_list 还会包含文章信息
+				Iterator<JsonNode> inner_elements = item.get("app_msg_ext_info").get("multi_app_msg_item_list").elements();
+
+				while (inner_elements.hasNext()) {
+
+					JsonNode inner_item = inner_elements.next();
+
+					// 公众号昵称
+					String inner_media_nick = inner_item.get("author").asText();
+					if (inner_media_nick.length() == 0) inner_media_nick = nick;
+
+					// 文章标题
+					String inner_title = inner_item.get("title").asText();
+
+					// 文章链接
+					String inner_url = inner_item.get("content_url").asText();
+
+					// 头图
+					String inner_cover = inner_item.get("cover").asText();
+
+					if (inner_url != null && inner_url.length() > 1) {
+
+						logger.info("title:{} media_nick:{} ts:{} url:{} cover:{}", inner_title, inner_media_nick, datetime, inner_url, inner_cover);
+
+						Map<String, Object> data = new HashMap<>();
+						data.put("base_url", buildEssayUrl(inner_url));
+						data.put("title", inner_title);
+						data.put("media_nick", inner_media_nick);
+						data.put("ts", datetime);
+						data.put("cover", inner_cover);
+						data.putAll(common);
+
+						TaskHolder th_ = ChromeTask.at(EssayTask.class, data);
+
+						holderProcessorMap.put(th_.id, this);
+
+						nths.add(th_);
+					}
+				}
+			}
+			catch (Exception e) {
+				logger.error("Parse error, ", item);
 			}
 		}
 	}
@@ -269,16 +359,19 @@ public class EssayProcessor {
 		if (title != null && url_f != null && media_nick != null) {
 			f_id = Generator.genEssayId(media_nick, title, src_id);
 
+			Map<String, Object> data = new HashMap<>();
+			data.put("abtest_cookie_e1", encode(abtest_cookie, 1));
+			data.put("pass_ticket_e1", encode(pass_ticket, 1));
+			data.put("devicetype", devicetype);
+			data.put("version", version);
+			data.put("base_url", buildEssayUrl(url_f));
+			data.put("title", version);
+			data.put("media_nick", media_nick);
+			data.put("cover", cover == null ? "" : cover);
+
 			logger.info("title:{} media_nick:{} url:{} cover:{}", title, media_nick, url_f, cover);
 
-			TaskHolder th_ = ChromeTask.at(
-					EssayTask.class,
-					ImmutableMap.of(
-							"url", url_f,
-							"title", title,
-							"media_nick", media_nick,
-							"cover", cover == null? "" : cover
-					));
+			TaskHolder th_ = ChromeTask.at(EssayTask.class, data);
 
 			holderProcessorMap.put(th_.id, this);
 			nths.add(th_);
@@ -401,7 +494,7 @@ public class EssayProcessor {
 			essay.content = ContentCleaner.clean(content, imgs);
 
 			// 头图
-			if(cover_image!= null && cover_image.length() > 0) {
+			if (cover_image != null && cover_image.length() > 0) {
 				imgs.add(0, cover_image);
 			}
 
@@ -434,43 +527,39 @@ public class EssayProcessor {
 	}
 
 	/**
-	 *
 	 * @param src
 	 * @param essay_id
 	 * @param title
-	 * @param biz
-	 * @param abtest_cookie
-	 * @param pass_ticket
 	 * @param nths
 	 * @throws Exception
 	 */
-	public void getStatTH(String src, String essay_id, String title, String biz, String abtest_cookie, String pass_ticket, List<TaskHolder> nths) throws Exception {
+	public void getStatTH(String src, String essay_id, String title, List<TaskHolder> nths) throws Exception {
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("essay_id", essay_id);
-		data.put("pass_ticket_e3", pass_ticket == null? "" : encode(pass_ticket, 3));
-		data.put("biz_e1", biz == null? "" : encode(biz, 1));
-		data.put("title_e2", title == null? "" : encode(title, 2));
-		data.put("abtest_cookie_e1", abtest_cookie == null? "" : encode(abtest_cookie, 1));
+		data.put("pass_ticket_e3", pass_ticket == null ? "" : encode(pass_ticket, 3));
+		data.put("biz_e1", biz == null ? "" : encode(biz, 1));
+		data.put("title_e2", title == null ? "" : encode(title, 2));
+		data.put("abtest_cookie_e1", abtest_cookie == null ? "" : encode(abtest_cookie, 1));
+		data.put("appmsg_token", encode(appmsg_token, 2));
 
 		Map<String, String> patterns = new LinkedHashMap<>();
-		patterns.put("abtest_cookie", "abtest_cookie.+?\"(?<T>.+?)\"");
 		patterns.put("uin", "window.uin.+?\"(?<T>\\d+?)\"");
 		patterns.put("key", "window.key.+?\"(?<T>\\d+?)\"");
 		patterns.put("wxtoken", "window.wxtoken.+?\"(?<T>\\d+?)\"");
 		patterns.put("devicetype", "devicetype.+?\"(?<T>.+?)\"");
 		patterns.put("clientversion", "clientversion.+?\"(?<T>.+?)\"");
-		patterns.put("appmsg_token", "appmsg_token.+?\"(?<T>.+?)\"");
-		patterns.put("mid", "mid.+?\"(?<T>\\d+?)\"");
+		patterns.put("mid", "var mid.+?\"(?<T>\\d+?)\"");
 		patterns.put("sn", "sn.+?\"(?<T>.+?)\"");
-		patterns.put("ct", "ct.+?\"(?<T>\\d+?)\"");
+		patterns.put("ct", "var ct.+?\"(?<T>\\d+?)\"");
 		patterns.put("comment_id", "comment_id.+?\"(?<T>\\d+?)\"");
-		patterns.put("req_id", "req_id.+?\"(?<T>.+?)\"");
+		patterns.put("req_id", "req_id.+?[\"'](?<T>.+?)[\"']");
+		patterns.put("idx", "var idx.+?\"(?<T>\\d+?)\"");
 
-		for(String k : patterns.keySet()) {
+		for (String k : patterns.keySet()) {
 			Pattern p = Pattern.compile(patterns.get(k));
 			Matcher m = p.matcher(src);
-			if(m.find()) {
+			if (m.find()) {
 				data.put(k, m.group("T"));
 			}
 		}
@@ -483,8 +572,9 @@ public class EssayProcessor {
 					data.put(k, encode(m.group("T"), 1));
 				} else data.put(k, m.group("T"));
 			}
-		}
-		System.err.println(JSON.toPrettyJson(data));*/
+		}*/
+
+		/*System.err.println(JSON.toPrettyJson(data));*/
 
 		TaskHolder th = ChromeTask.at(StatTask.class, data);
 		holderProcessorMap.put(th.id, this);
@@ -492,19 +582,17 @@ public class EssayProcessor {
 	}
 
 	/**
-	 *
 	 * @param src
-	 * @param biz
-	 * @param pass_ticket
 	 * @param nths
 	 * @throws Exception
 	 */
-	public void getCommentTH(String src, String essay_id, String biz, String pass_ticket, List<TaskHolder> nths) throws Exception {
+	public void getCommentTH(String src, String essay_id, List<TaskHolder> nths) throws Exception {
 
 		Map<String, Object> data = new HashMap<>();
 		data.put("essay_id", essay_id);
-		data.put("biz_e1", biz == null? "" : encode(biz, 1));
-		data.put("pass_ticket_e3", pass_ticket == null? "" : encode(pass_ticket, 3));
+		data.put("biz_e1", biz == null ? "" : encode(biz, 1));
+		data.put("pass_ticket_e3", pass_ticket == null ? "" : encode(pass_ticket, 3));
+		data.put("appmsg_token", encode(appmsg_token, 2));
 
 		Map<String, String> patterns = new HashMap<>();
 		patterns.put("appmsgid", "mid.+?\"(?<T>\\d+)\"");
@@ -514,12 +602,11 @@ public class EssayProcessor {
 		patterns.put("wxtoken", "window.wxtoken.+?\"(?<T>\\d+)\".*?;");
 		patterns.put("devicetype", "devicetype.+?\"(?<T>.+)\"");
 		patterns.put("clientversion", "clientversion.+?\"(?<T>.+)\"");
-		patterns.put("appmsg_token", "appmsg_token.+?\"(?<T>.+)\"");
 
-		for(String k : patterns.keySet()) {
+		for (String k : patterns.keySet()) {
 			Pattern p = Pattern.compile(patterns.get(k));
 			Matcher m = p.matcher(src);
-			if(m.find()) {
+			if (m.find()) {
 				data.put(k, m.group("T"));
 			}
 		}
@@ -554,7 +641,6 @@ public class EssayProcessor {
 	}
 
 	/**
-	 *
 	 * @param f_type
 	 * @param f_id
 	 * @param src
@@ -619,7 +705,7 @@ public class EssayProcessor {
 			super(url);
 
 			ep = holderProcessorMap.get(holder.id);
-			if(ep != null) {
+			if (ep != null) {
 				setHeaders(ep.headers);
 				setCookies(ep.cookieStore.getCookies(url));
 			}
@@ -627,12 +713,20 @@ public class EssayProcessor {
 			addNextTaskGenerator((t, nts) -> {
 
 				// 生成文章采集任务
-				ep.getEssayTH(t.getResponse().getText(), getStringFromVars("media_nick"), nts);
+				try {
+					ep.getEssayTH(t.getResponse().getText(), getStringFromVars("media_nick"), nts);
+				} catch (Exception e) {
+					logger.info("Error generate essay task, ", e);
+				}
 
 				// 生成翻页任务
-				ep.getNextPageTH(t.url, t.getResponse().getText(), nts);
+				try {
+					ep.getNextPageTH(t.url, t.getResponse().getText(), nts);
+				} catch (Exception e) {
+					logger.info("Error generate next page task, ", e);
+				}
 
-				if(t.getResponse().getCookies() != null)
+				if (t.getResponse().getCookies() != null)
 					ep.cookieStore.add(t.getResponse().getCookies());
 
 			});
@@ -649,14 +743,27 @@ public class EssayProcessor {
 			/**
 			 * 注册 解析文章内容 任务
 			 */
+			Map<String, String> paramTypes = Maps.newHashMap();
+			paramTypes.put("base_url", "String");
+			paramTypes.put("devicetype", "String");
+			paramTypes.put("version", "String");
+			paramTypes.put("abtest_cookie_e1", "String");
+			paramTypes.put("pass_ticket_e1", "String");
+			paramTypes.put("title", "String");
+			paramTypes.put("media_nick", "String");
+			paramTypes.put("ts", "String");
+			paramTypes.put("cover", "String");
+
+			Map<String, Object> paramDefaults = paramTypes.entrySet().stream().map(en -> new AbstractMap.SimpleEntry<>(en.getKey(), "")).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
 			ChromeTask.registerBuilder(
 					EssayTask.class,
-					"{{url}}",
-					ImmutableMap.of("url", "String", "title", "String", "media_nick", "String", "ts", "String", "cover", "String"),
-					ImmutableMap.of("url", "", "title", "", "media_nick", "", "ts", "", "cover", ""),
+					"{{base_url}}&scene=4&subscene=126&ascene=0&devicetype={{devicetype}}&version={{version}}&nettype=WIFI&abtest_cookie={{abtest_cookie_e1}}&lang=zh_CN&pass_ticket={{pass_ticket_e1}}&wx_header=1",
+					paramTypes,
+					paramDefaults,
 					false,
 					Task.Priority.MEDIUM,
-					60 * 60 * 1000L
+					0
 			);
 		}
 
@@ -667,7 +774,7 @@ public class EssayProcessor {
 			super(url);
 
 			ep = holderProcessorMap.get(holder.id);
-			if(ep != null) {
+			if (ep != null) {
 				setHeaders(ep.headers);
 				setCookies(ep.cookieStore.getCookies(url));
 			}
@@ -677,21 +784,18 @@ public class EssayProcessor {
 				String f_id = ep.parseFid(t.getResponse().getText(), nts, t.getStringFromVars("cover"));
 
 				Essay essay = ep.parseContent(t.getResponse().getText(), f_id, t.getStringFromVars("cover"));
-				essay.upsert();
 
-				ep.getStatTH(t.getResponse().getText(), essay.id,
-						getStringFromVars("title"),
-						URLUtil.getParam(t.url, "__biz"),
-						URLUtil.getParam(t.url, "abtest_cookie"),
-						ep.cookieStore.getCookies(t.url, "pass_ticket"), nts);
+				if(essay != null) {
 
-				ep.getCommentTH(t.getResponse().getText(), essay.id,
-						URLUtil.getParam(t.url, "__biz"),
-						ep.cookieStore.getCookies(t.url, "pass_ticket"), nts);
+					essay.upsert();
 
+					ep.getStatTH(t.getResponse().getText(), essay.id, getStringFromVars("title"), nts);
 
-				if(t.getResponse().getCookies() != null)
-					ep.cookieStore.add(t.getResponse().getCookies());
+					ep.getCommentTH(t.getResponse().getText(), essay.id, nts);
+
+					if (t.getResponse().getCookies() != null)
+						ep.cookieStore.add(t.getResponse().getCookies());
+				}
 
 			});
 		}
@@ -708,29 +812,30 @@ public class EssayProcessor {
 			 * 注册 获取文章统计信息 任务
 			 */
 			Map<String, String> paramTypes1 = Maps.newHashMap();
-			paramTypes1.put("uin", "String");
-			paramTypes1.put("key", "String");
-			paramTypes1.put("pass_ticket_e3", "String");
-			paramTypes1.put("wxtoken", "String");
-			paramTypes1.put("devicetype", "String");
-			paramTypes1.put("clientversion", "String");
-			paramTypes1.put("appmsg_token", "String");
-			paramTypes1.put("biz_e1", "String");
-			paramTypes1.put("mid", "String");
-			paramTypes1.put("sn", "String");
-			paramTypes1.put("title_e2", "String");
-			paramTypes1.put("ct", "String");
-			paramTypes1.put("abtest_cookie_e1", "String");
-			paramTypes1.put("comment_id", "String");
-			paramTypes1.put("req_id", "String");
-			paramTypes1.put("essay_id", "String");
+			paramTypes1.put("uin", "String"); // ?
+			paramTypes1.put("key", "String"); // ?
+			paramTypes1.put("pass_ticket_e3", "String"); //
+			paramTypes1.put("wxtoken", "String"); //
+			paramTypes1.put("devicetype", "String"); //
+			paramTypes1.put("clientversion", "String"); //
+			paramTypes1.put("appmsg_token", "String"); // ?
+			paramTypes1.put("biz_e1", "String"); //
+			paramTypes1.put("mid", "String"); //
+			paramTypes1.put("sn", "String"); //
+			paramTypes1.put("title_e2", "String"); //
+			paramTypes1.put("ct", "String"); //
+			paramTypes1.put("abtest_cookie_e1", "String"); //
+			paramTypes1.put("comment_id", "String"); //
+			paramTypes1.put("req_id", "String"); // ?
+			paramTypes1.put("essay_id", "String"); //
+			paramTypes1.put("idx", "String");
 
 			Map<String, Object> paramDefaults1 = paramTypes1.entrySet().stream().map(en -> new AbstractMap.SimpleEntry<>(en.getKey(), "")).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
 			ChromeTask.registerBuilder(
 					StatTask.class,
 					"https://mp.weixin.qq.com/mp/getappmsgext?f=json&mock=&uin={{uin}}&key={{key}}&pass_ticket={{pass_ticket_e3}}&wxtoken={{wxtoken}}&devicetype={{devicetype}}&clientversion={{clientversion}}&appmsg_token={{appmsg_token}}&x5=1&f=json",
-					"r=0.8186501018503087&__biz={{biz_e1}}&appmsg_type=9&mid={{mid}}&sn={{sn}}&idx=1&scene=4&title={{title_e2}}&ct={{ct}}&abtest_cookie={{abtest_cookie_e1}}&devicetype={{devicetype}}&version={{clientversion}}&is_need_ticket=0&is_need_ad=0&comment_id={{comment_id}}&is_need_reward=0&both_ad=0&reward_uin_count=0&send_time=&msg_daily_idx=1&is_original=0&is_only_read=1&req_id={{req_id}}&pass_ticket={{pass_ticket_e3}}&is_temp_url=0&item_show_type=0&tmp_version=1&more_read_type=0&appmsg_like_type=2",
+					"r=0.8186501018503087&__biz={{biz_e1}}&appmsg_type=9&mid={{mid}}&sn={{sn}}&idx={{idx}}&scene=4&title={{title_e2}}&ct={{ct}}&abtest_cookie={{abtest_cookie_e1}}&devicetype={{devicetype}}&version={{clientversion}}&is_need_ticket=0&is_need_ad=0&comment_id={{comment_id}}&is_need_reward=0&both_ad=0&reward_uin_count=0&send_time=&msg_daily_idx=1&is_original=0&is_only_read=1&req_id={{req_id}}&pass_ticket={{pass_ticket_e3}}&is_temp_url=0&item_show_type=0&tmp_version=1&more_read_type=0&appmsg_like_type=2",
 					paramTypes1,
 					paramDefaults1,
 					false,
@@ -746,9 +851,8 @@ public class EssayProcessor {
 			super(url);
 
 			ep = holderProcessorMap.get(holder.id);
-			if(ep != null) {
+			if (ep != null) {
 				Map<String, String> newHeader = new HashMap<>(ep.headers);
-				newHeader.put("Content-Length", "123"); // TODO
 				newHeader.put("Origin", "https://mp.weixin.qq.com");
 				setHeaders(newHeader);
 				setCookies(ep.cookieStore.getCookies(url));
@@ -757,12 +861,12 @@ public class EssayProcessor {
 			addNextTaskGenerator((t, nts) -> {
 
 				Essay essay = Model.getById(Essay.class, getStringFromVars("essay_id"));
-				if(essay != null) {
+				if (essay != null) {
 					ep.parseStat(essay, t.getResponse().getText());
 					essay.update();
 				}
 
-				if(t.getResponse().getCookies() != null)
+				if (t.getResponse().getCookies() != null)
 					ep.cookieStore.add(t.getResponse().getCookies());
 
 			});
@@ -813,30 +917,32 @@ public class EssayProcessor {
 			super(url);
 
 			ep = holderProcessorMap.get(holder.id);
-			if(ep != null) {
+			if (ep != null) {
 				setHeaders(ep.headers);
 				setCookies(ep.cookieStore.getCookies(url));
 			}
 
 			addNextTaskGenerator((t, nts) -> {
 
-				ep.parseComments(Comment.FType.Essay, getStringFromVars("essay_id"), t.getResponse().getText())
-					.forEach(comment -> {
-						try {
-							comment.insert();
-						} catch (DBInitException | SQLException e) {
-							logger.error("Error insert comment, ", e);
-						}
-					});
+				/*System.out.println(t.getResponse().getText());*/
 
-				if(t.getResponse().getCookies() != null)
+				ep.parseComments(Comment.FType.Essay, getStringFromVars("essay_id"), t.getResponse().getText())
+						.forEach(comment -> {
+							try {
+								logger.info(comment.toJSON());
+								comment.insert();
+							} catch (DBInitException | SQLException e) {
+								logger.error("Error insert comment:[{}]", comment.id);
+							}
+						});
+
+				if (t.getResponse().getCookies() != null)
 					ep.cookieStore.add(t.getResponse().getCookies());
 			});
 		}
 	}
 
 	/**
-	 *
 	 * @param src
 	 * @param count
 	 * @return
@@ -844,20 +950,8 @@ public class EssayProcessor {
 	 */
 	public static String encode(String src, int count) throws UnsupportedEncodingException {
 		if (count > 0) {
-			return encode(URLEncoder.encode(src, "UTF-8"), -- count);
+			return encode(URLEncoder.encode(src, "UTF-8"), --count);
 		}
 		return src;
-	}
-
-	public static String parseHtml(String src) {
-
-		Pattern pattern = Pattern.compile("(?<=var msgList = ').+?(?=';)");
-		Matcher matcher = pattern.matcher(src);
-
-		if(matcher.find()) {
-			src = matcher.group();
-		}
-
-		return StringEscapeUtils.unescapeHtml4(src).replaceAll("\\\\", "");
 	}
 }
