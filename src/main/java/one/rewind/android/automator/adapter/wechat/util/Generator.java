@@ -17,6 +17,10 @@ public class Generator {
 		return StringUtil.MD5(WeChatAdapter.platform.short_name + "-" + media_nick + "-" + title + "-" + src_id);
 	}
 
+	public static String genAuthorId(String src_id, String name) {
+		return StringUtil.MD5(WeChatAdapter.platform.short_name + "-" + src_id + "-" + name);
+	}
+
 	public static String genCommentId(String f_id, String src_id, String comment) {
 		return StringUtil.MD5(WeChatAdapter.platform.short_name + "-" + f_id + "-" + src_id + "-" + comment);
 	}
