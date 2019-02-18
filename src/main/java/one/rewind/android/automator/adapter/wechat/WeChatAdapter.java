@@ -682,8 +682,9 @@ public class WeChatAdapter extends Adapter {
             device.driver.findElement(By.xpath("//android.widget.EditText[contains(@text,'请填写密码')]")).sendKeys(account.password);
             Thread.sleep(1000);
 
-            // B 点击登录  android.widget.Button  BUG
+            // B 点击登录  Xpath   //android.widget.Button[@text,'登录']
 //            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'登录')]")).click();
+//            device.driver.findElement(By.xpath("//android.widget.Button[@text,'登录']")).click();
             device.touch(722, 1316, 8000);
 
         } catch (InterruptedException e) {

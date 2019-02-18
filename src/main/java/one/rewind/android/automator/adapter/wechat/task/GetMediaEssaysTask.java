@@ -2,6 +2,7 @@ package one.rewind.android.automator.adapter.wechat.task;
 
 import com.dw.ocr.parser.OCRParser;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.filters.ResponseFilter;
 import one.rewind.android.automator.account.Account;
@@ -30,9 +31,7 @@ import one.rewind.util.FileUtil;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -78,7 +77,15 @@ public class GetMediaEssaysTask extends Task {
     public volatile boolean forward = false;
 
     private Map<String, ReqObj> reqs = new HashMap<>();
+
     private Map<String, Integer> responseCount = new HashMap<>();
+
+
+    // Executor Queue
+    private transient LinkedBlockingQueue queue = new LinkedBlockingQueue<Runnable>();
+
+    // Executor
+    private transient ThreadPoolExecutor executor;
 
     /**
      * @param holder
@@ -109,6 +116,11 @@ public class GetMediaEssaysTask extends Task {
             // 移除过滤器
             ((GetMediaEssaysTask) t).removeFilters();
         });
+
+        // 初始化单线程执行器
+        executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
+        executor.setThreadFactory(new ThreadFactoryBuilder()
+                .setNameFormat("GetMediaEssaysTask" + "-%d").build());
     }
 
     @Override
@@ -183,7 +195,8 @@ public class GetMediaEssaysTask extends Task {
 
             RC("进入历史文章数据列表页");
             adapter.goToPublicAccountEssayList();
-
+            
+            // 采集接口任务
             boolean atBottom = false;
 
             int current_page = 0;
