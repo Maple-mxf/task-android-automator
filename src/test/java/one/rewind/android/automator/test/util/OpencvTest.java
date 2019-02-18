@@ -36,13 +36,7 @@ public class OpencvTest {
 		Mat mat = Converters.vector_char_to_Mat(byteList);
 		System.out.println(mat);
 	}
-
-	public static void main(String[] args) {
-		String s = "2018年10月15日";
-		if (s.contains("年")){
-			System.out.println("包含日期");
-		}
-	}
+	
 
 	public static byte[] getByteFromFile(File file) throws IOException {
 		InputStream in = new FileInputStream(file);

@@ -2,6 +2,7 @@ package one.rewind.android.automator.test.util;
 
 import one.rewind.android.automator.util.DateUtil;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.junit.Test;
 
 import java.text.ParseException;
@@ -71,6 +72,10 @@ public class DateUtilTest {
 		System.out.println(d1.before(new Date()));
 		// d1 > new Date()
 		System.out.println(d1.compareTo(new Date()));
+	}
+
+	public static void main(String[] args) {
+		System.out.println(DateFormatUtils.format(DateUtils.addYears(new Date(1548759086),49),"yyyy-MM-dd"));
 	}
 
 

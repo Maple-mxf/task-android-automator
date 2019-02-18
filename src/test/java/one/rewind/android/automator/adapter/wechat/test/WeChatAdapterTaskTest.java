@@ -28,72 +28,112 @@ import java.util.Arrays;
  */
 public class WeChatAdapterTaskTest {
 
-	@Before
-	public void initAndroidDeviceManager() throws Exception {
+    @Before
+    public void initAndroidDeviceManager() throws Exception {
 
-		Model.getAll(Account.class).stream().forEach(a-> {
-			a.occupied = false;
-			try {
-				a.update();
-			} catch (DBInitException | SQLException e) {
-				e.printStackTrace();
-			}
-		});
+        Model.getAll(Account.class).stream().forEach(a -> {
+            a.occupied = false;
+            try {
+                a.update();
+            } catch (DBInitException | SQLException e) {
+                e.printStackTrace();
+            }
+        });
 
-		AndroidDeviceManager.getInstance().detectDevices();
-	}
+        AndroidDeviceManager.getInstance().detectDevices();
+    }
 
-	@Test
-	public void testGetSelfSubscribePublicAccountTest() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
+    @Test
+    public void testGetSelfSubscribePublicAccountTest() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetSelfSubscribeMediaTask.class.getName());
+        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetSelfSubscribeMediaTask.class.getName());
 
-		Task task = TaskFactory.getInstance().generateTask(holder);
+        Task task = TaskFactory.getInstance().generateTask(holder);
 
-		AndroidDeviceManager.getInstance().submit(task);
+        AndroidDeviceManager.getInstance().submit(task);
 
-		Thread.sleep(10000000);
+        Thread.sleep(10000000);
 
-	}
+    }
 
-	@Test
-	public void testSubscribe() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
+    @Test
+    public void testSubscribe() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
 
-		Task task = TaskFactory.getInstance().generateTask(holder);
+        Task task = TaskFactory.getInstance().generateTask(holder);
 
-		AndroidDeviceManager.getInstance().submit(task);
+        AndroidDeviceManager.getInstance().submit(task);
 
-		Thread.sleep(10000000);
+        Thread.sleep(10000000);
 
-	}
+    }
 
-	@Test
-	public void testUnsubscribe() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
+    @Test
+    public void testUnsubscribe() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
 
-		Task task = TaskFactory.getInstance().generateTask(holder);
+        Task task = TaskFactory.getInstance().generateTask(holder);
 
-		AndroidDeviceManager.getInstance().submit(task);
+        AndroidDeviceManager.getInstance().submit(task);
 
-		Thread.sleep(10000000);
-	}
+        Thread.sleep(10000000);
+    }
 
-	@Test
-	public void testSubscribeAndGetEssays() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
+    @Test
+    public void testSubscribeAndGetEssays() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-		TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("黄生看金融"));
+        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("黄生看金融"));
 
-		Task task = TaskFactory.getInstance().generateTask(holder);
+        Task task = TaskFactory.getInstance().generateTask(holder);
 
-		//AndroidDeviceManager.getInstance().submit(task);
+        //AndroidDeviceManager.getInstance().submit(task);
 
-		AndroidDeviceManager.getInstance().submit(
-				TaskFactory.getInstance().generateTask(
-						new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("黄生看金融"))));
+        AndroidDeviceManager.getInstance().submit(
+                TaskFactory.getInstance().generateTask(
+                        new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("黄生看金融"))));
 
-		Thread.sleep(10000000);
-	}
+        Thread.sleep(10000000);
+    }
+
+
+    // BUG修复1 进入文章历史消息出现错误
+    // BUG修复2 切换账号出现操作错误
+
+    @Test
+    public void testSwitchAccount() {
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
