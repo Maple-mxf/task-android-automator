@@ -401,7 +401,6 @@ public class GetMediaEssaysTask extends Task {
                         logger.error("Error insert source:{}, ", essay.id, e);
                     }
 
-                    essay.source_id = essay.id;
                     essay.origin_url = url_permanent;
 
                     try {
