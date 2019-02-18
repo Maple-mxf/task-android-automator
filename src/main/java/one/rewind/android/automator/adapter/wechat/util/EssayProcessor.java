@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.data.raw.model.Author;
 import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
 import one.rewind.db.exception.DBInitException;
@@ -527,6 +528,50 @@ public class EssayProcessor implements Runnable {
 	}
 
 	/**
+	 *
+	 * @param source
+	 * @return
+	 */
+	public static Author parseAuthor(String source) {
+
+		String name = null, src_id = null;
+
+		// 标题 必须
+		Pattern pattern = Pattern.compile("var author_id.+?\"(?<T>.+?)\"");
+		Matcher matcher = pattern.matcher(source);
+		if (matcher.find()) {
+			src_id = matcher.group("T");
+		}
+
+		// 作者原始平台id
+		pattern = Pattern.compile("(?si)<div class=\"reward-author\" .+?</div>");
+		matcher = pattern.matcher(source);
+		if (matcher.find()) {
+			name = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
+		}
+
+		// 作者名称
+		pattern = Pattern.compile("(?si)(?<=mid = \").+?(?=\";)");
+		matcher = pattern.matcher(source);
+		if (matcher.find()) {
+			src_id = matcher.group().replaceAll("\"| |\\|", "");
+		}
+
+		if(name == null || name.length() == 0 || src_id == null || src_id.length() == 0) {
+			return null;
+		}
+
+		Author author = new Author();
+		author.platform_id = WeChatAdapter.platform.id;
+		author.platform = WeChatAdapter.platform.short_name;
+		author.src_id = src_id;
+		author.name = name;
+		author.id = Generator.genAuthorId(src_id, name);
+
+		return author;
+	}
+
+	/**
 	 * @param src
 	 * @param essay_id
 	 * @param title
@@ -600,8 +645,8 @@ public class EssayProcessor implements Runnable {
 		patterns.put("uin", "window.uin.+?\"(?<T>\\d+)\".*?;");
 		patterns.put("key", "window.key.+?\"(?<T>\\d+)\".*?;");
 		patterns.put("wxtoken", "window.wxtoken.+?\"(?<T>\\d+)\".*?;");
-		patterns.put("devicetype", "devicetype.+?\"(?<T>.+)\"");
-		patterns.put("clientversion", "clientversion.+?\"(?<T>.+)\"");
+		patterns.put("devicetype", "devicetype.+?\"(?<T>.+?)\"");
+		patterns.put("clientversion", "clientversion.+?\"(?<T>.+?)\"");
 
 		for (String k : patterns.keySet()) {
 			Pattern p = Pattern.compile(patterns.get(k));
@@ -637,7 +682,37 @@ public class EssayProcessor implements Runnable {
 			essay.like_count = NumberFormatUtil.parseInt(matcher.group());
 		}
 
+		pattern = Pattern.compile("(?si)(?<=\"comment_count\":)\\d+");
+		matcher = pattern.matcher(source);
+		if (matcher.find()) {
+			essay.comment_count = NumberFormatUtil.parseInt(matcher.group());
+		}
+
+		pattern = Pattern.compile("(?si)(?<=\"reward_total_count\":)\\d+");
+		matcher = pattern.matcher(source);
+		if (matcher.find()) {
+			essay.reward_count = NumberFormatUtil.parseInt(matcher.group());
+		}
+
 		return essay;
+	}
+
+	/**
+	 * 解析阅读数和点赞量
+	 *
+	 * @param author
+	 * @param source
+	 * @return
+	 */
+	public static Author parseAvatar(Author author, String source) {
+
+		Pattern pattern = Pattern.compile("(?si)(?<=\"reward_author_head\":\").+?(?=\")");
+		Matcher matcher = pattern.matcher(source);
+		if (matcher.find()) {
+			author.avatar = matcher.group().replaceAll("\\\\", "");
+		}
+
+		return author;
 	}
 
 	/**
@@ -785,7 +860,14 @@ public class EssayProcessor implements Runnable {
 
 				Essay essay = ep.parseContent(t.getResponse().getText(), f_id, t.getStringFromVars("cover"));
 
+				Author author = ep.parseAuthor(t.getResponse().getText());
+
 				if(essay != null) {
+
+					if(author != null) {
+						author.upsert();
+						essay.author_id = author.id;
+					}
 
 					essay.upsert();
 
@@ -864,6 +946,13 @@ public class EssayProcessor implements Runnable {
 				if (essay != null) {
 					ep.parseStat(essay, t.getResponse().getText());
 					essay.update();
+
+					if(essay.author_id != null && essay.author_id.length() > 0) {
+						Author author = Model.getById(Author.class, essay.author_id);
+						ep.parseAvatar(author, t.getResponse().getText());
+						author.update();
+					}
+
 				}
 
 				if (t.getResponse().getCookies() != null)

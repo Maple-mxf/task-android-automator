@@ -332,7 +332,7 @@ public class GetMediaEssaysTask extends Task {
         	String feature = getFeature(url);
 
         	// 返回内容记录
-			if (contents != null && contents.isText() && feature != null) {
+			if (contents != null && contents.isText()/* && feature != null*/) {
 
 				if(reqs.get(url) != null) {
 
