@@ -682,9 +682,9 @@ public class WeChatAdapter extends Adapter {
             device.driver.findElement(By.xpath("//android.widget.EditText[contains(@text,'请填写密码')]")).sendKeys(account.password);
             Thread.sleep(1000);
 
-            // B 点击登录
-            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'登录')]")).click();
-            Thread.sleep(5000);
+            // B 点击登录  android.widget.Button  BUG
+//            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'登录')]")).click();
+            device.touch(722, 1316, 8000);
 
         } catch (InterruptedException e) {
             throw e;
@@ -703,7 +703,6 @@ public class WeChatAdapter extends Adapter {
         }
         // F 无法进入首页，应该是账号问题
         else {
-            account = null;
             account.status = Account.Status.Broken;
             throw new AccountException.Broken(account);
         }
