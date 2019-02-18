@@ -26,13 +26,11 @@ import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.txt.NumberFormatUtil;
 import org.openqa.selenium.*;
+import org.openqa.selenium.NoSuchElementException;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -43,18 +41,18 @@ public class WeChatAdapter extends Adapter {
 
     public static boolean NeedAccount = true;
 
-	public static Platform platform;
+    public static Platform platform;
 
-	static {
-		try {
-			Dao<Platform, String> platformDao = Daos.get(one.rewind.data.raw.model.Platform.class);
-			platform = new Platform("微信公众号平台", "WX");
-			platform.id = 1;
-			platformDao.createIfNotExists(platform);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+    static {
+        try {
+            Dao<Platform, String> platformDao = Daos.get(one.rewind.data.raw.model.Platform.class);
+            platform = new Platform("微信公众号平台", "WX");
+            platform.id = 1;
+            platformDao.createIfNotExists(platform);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public enum Status {
         Init,                                  // 初始化
@@ -78,7 +76,8 @@ public class WeChatAdapter extends Adapter {
     // 状态信息
     public Status status = Status.Init;
 
-    public WeChatAdapter() {}
+    public WeChatAdapter() {
+    }
 
     /**
      * 构造方法
@@ -92,93 +91,92 @@ public class WeChatAdapter extends Adapter {
         this.appInfo = new Adapter.AppInfo("com.tencent.mm", ".ui.LauncherUI");
     }
 
-	/**
-	 * 启动Adapter 启动Adapter之后确认在APP首页
-	 *
-	 * @throws Exception
-	 */
-	public void start() throws
-			InterruptedException,
-			AccountException.Broken,
-			AdapterException.LoginScriptError
-	{
+    /**
+     * 启动Adapter 启动Adapter之后确认在APP首页
+     *
+     * @throws Exception
+     */
+    public void start() throws
+            InterruptedException,
+            AccountException.Broken,
+            AdapterException.LoginScriptError {
 
-		super.start();
+        super.start();
 
-		Thread.sleep(5000);
+        Thread.sleep(5000);
 
-		// 判断是否有更新提示
-		try {
-			if (device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更新')]")) != null) {
-				device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'取消')]")).click();
-			}
-		} catch (Exception e) {
+        // 判断是否有更新提示
+        try {
+            if (device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更新')]")) != null) {
+                device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'取消')]")).click();
+            }
+        } catch (Exception e) {
 
-		}
+        }
 
-		// A 验证是否时登陆页面
-		// 此时假设设备上的微信都登陆过账号
-		// 如果是登陆页面，使用当前account进行登陆
-		// 验证到首页 或者 首页登陆界面 并更改状态
-		if (!atHome()) {
-			login();
-		}
-		else {
-			status = Status.Home;
-		}
-	}
-
-	/**
-	 *
-	 * @throws InterruptedException
-	 * @throws AccountException.Broken
-	 * @throws AdapterException.LoginScriptError
-	 */
-	public void checkAccount() throws
-			InterruptedException,
-			AccountException.Broken,
-			AdapterException.LoginScriptError {
-
-		// B11 验证当前微信用户 与 account 相对应
-		UserInfo userInfo;
-		try {
-
-			userInfo = getLocalUserInfo();
-		} catch (Exception e) {
-			logger.error("[{}] login process unfinished, ", getInfo(), e);
-			throw new AdapterException.LoginScriptError(this, account);
-		}
-
-		if(userInfo == null) throw new AdapterException.LoginScriptError(this, account);
-
-		// 微信昵称 与 微信号 有一个不对应
-
-		if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
-			logout();
-			login();
-		}
-	}
-
-	/**
-	 * 重启微信
-	 */
-	public void restart() throws
-			InterruptedException,
-			AdapterException.LoginScriptError,
-			AccountException.Broken
-	{
-
-		super.restart();
-		start();
-	}
+        // A 验证是否时登陆页面
+        // 此时假设设备上的微信都登陆过账号
+        // 如果是登陆页面，使用当前account进行登陆
+        // 验证到首页 或者 首页登陆界面 并更改状态
+        if (!atHome()) {
+            login();
+        } else {
+            status = Status.Home;
+        }
+    }
 
     /**
-	 * 判断是否 在 微信首页
+     * @throws InterruptedException
+     * @throws AccountException.Broken
+     * @throws AdapterException.LoginScriptError
+     */
+    public void checkAccount() throws
+            InterruptedException,
+            AccountException.Broken,
+            AdapterException.LoginScriptError {
+
+        // B11 验证当前微信用户 与 account 相对应
+        UserInfo userInfo;
+        try {
+
+            userInfo = getLocalUserInfo();
+        } catch (Exception e) {
+            logger.error("[{}] login process unfinished, ", getInfo(), e);
+            throw new AdapterException.LoginScriptError(this, account);
+        }
+
+        if (userInfo == null) throw new AdapterException.LoginScriptError(this, account);
+
+        // 微信昵称 与 微信号 有一个不对应
+        Account temp = this.account;
+
+        if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
+            logout();
+            this.account = temp;
+            login();
+        }
+    }
+
+    /**
+     * 重启微信
+     */
+    public void restart() throws
+            InterruptedException,
+            AdapterException.LoginScriptError,
+            AccountException.Broken {
+
+        super.restart();
+        start();
+    }
+
+    /**
+     * 判断是否 在 微信首页
+     *
      * @return
      */
     public boolean atHome() {
 
-    	// TODO 需要判断更新提示
+        // TODO 需要判断更新提示
 
         try {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
@@ -189,14 +187,14 @@ public class WeChatAdapter extends Adapter {
         }
     }
 
-	/**
-	 * 点击左上角的叉号 或者 返回按钮
-	 */
-	public void touchUpperLeftButton() throws InterruptedException {
+    /**
+     * 点击左上角的叉号 或者 返回按钮
+     */
+    public void touchUpperLeftButton() throws InterruptedException {
 
-		// x=70 y=168
-		device.touch(70, 168, 1000);
-	}
+        // x=70 y=168
+        device.touch(70, 168, 1000);
+    }
 
     /**
      * 获取 微信公众号历史文章列表中的 文本区域
@@ -207,20 +205,20 @@ public class WeChatAdapter extends Adapter {
      * @throws SearchPublicAccountFrozenException
      */
     public List<OCRParser.TouchableTextArea> getEssayListTextAreas() throws
-			IOException,
-			AdapterException.NoResponseException,
+            IOException,
+            AdapterException.NoResponseException,
             AdapterException.IllegalStateException,
-			GetPublicAccountEssayListFrozenException
-	{
+            GetPublicAccountEssayListFrozenException {
 
         if (status != Status.PublicAccount_Essay_List) throw new AdapterException.IllegalStateException(this);
 
         // A 获取可点击文本区域
         List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
 
-        if(device.checkContent(textAreaList, "微信没有响应")) throw new AdapterException.NoResponseException();
+        if (device.checkContent(textAreaList, "微信没有响应")) throw new AdapterException.NoResponseException();
 
-		if(device.checkContent(textAreaList, "操作频繁", "请稍后再试")) throw new GetPublicAccountEssayListFrozenException(account);
+        if (device.checkContent(textAreaList, "操作频繁", "请稍后再试"))
+            throw new GetPublicAccountEssayListFrozenException(account);
 
         textAreaList = mergeForTitle(textAreaList, 60);
 
@@ -272,30 +270,31 @@ public class WeChatAdapter extends Adapter {
             throw new AdapterException.IllegalStateException(this);
 
         // 输入框输入公众号
-		List<OCRParser.TouchableTextArea> areaList = device.searchAndGetResult(By.className("android.widget.EditText"), "\"" + media_nick + "\"", 250, 430, 1400, 2390);
+        List<OCRParser.TouchableTextArea> areaList = device.searchAndGetResult(By.className("android.widget.EditText"), "\"" + media_nick + "\"", 250, 430, 1400, 2390);
         Thread.sleep(1000);
 
         this.status = Status.PublicAccount_Search_Result;
 
-		if(areaList.size() == 0) {
-			throw new MediaException.NotFound(media_nick);
-		}
+        if (areaList.size() == 0) {
+            throw new MediaException.NotFound(media_nick);
+        }
 
-		// 识别是否被限流
-		if(device.checkContent(areaList, "微信没有响应")) throw new AdapterException.NoResponseException();
+        // 识别是否被限流
+        if (device.checkContent(areaList, "微信没有响应")) throw new AdapterException.NoResponseException();
 
-		if(device.checkContent(areaList, "frequently", "操作频繁", "请稍后再试")) throw new SearchPublicAccountFrozenException(account);
+        if (device.checkContent(areaList, "frequently", "操作频繁", "请稍后再试"))
+            throw new SearchPublicAccountFrozenException(account);
 
-		areaList = mergeForTitle(areaList, 60);
+        areaList = mergeForTitle(areaList, 60);
 
-		// 进入微信公众号首页
-		goToSubscribedPublicAccountHome(areaList.get(0).left + 10, areaList.get(0).top + 10);
+        // 进入微信公众号首页
+        goToSubscribedPublicAccountHome(areaList.get(0).left + 10, areaList.get(0).top + 10);
 
-		this.status = Status.PublicAccount_Home;
+        this.status = Status.PublicAccount_Home;
 
-		PublicAccountInfo pai = getPublicAccountInfo(false, false);
+        PublicAccountInfo pai = getPublicAccountInfo(false, false);
 
-		if(!pai.nick.equals(media_nick)) throw new MediaException.NotEqual(media_nick, pai.nick);
+        if (!pai.nick.equals(media_nick)) throw new MediaException.NotEqual(media_nick, pai.nick);
     }
 
     /**
@@ -331,13 +330,13 @@ public class WeChatAdapter extends Adapter {
      * @throws MediaException                         在订阅列表中找不到指定的公众号
      */
     public void goToSubscribedPublicAccountHome(String media_nick) throws
-			InterruptedException,
-			AdapterException.IllegalStateException,
-			IOException,
-			AdapterException.NoResponseException,
-			MediaException.NotSubscribe,
-			MediaException.NotEqual,
-			MediaException.Illegal {
+            InterruptedException,
+            AdapterException.IllegalStateException,
+            IOException,
+            AdapterException.NoResponseException,
+            MediaException.NotSubscribe,
+            MediaException.NotEqual,
+            MediaException.Illegal {
 
         if (this.status != Status.Subscribe_PublicAccount_List)
             throw new AdapterException.IllegalStateException(this);
@@ -346,21 +345,21 @@ public class WeChatAdapter extends Adapter {
         device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
         Thread.sleep(1000);
 
-		List<OCRParser.TouchableTextArea> areaList = device.searchAndGetResult(By.className("android.widget.EditText"), media_nick, 200, 255, 1400, 2380);
+        List<OCRParser.TouchableTextArea> areaList = device.searchAndGetResult(By.className("android.widget.EditText"), media_nick, 200, 255, 1400, 2380);
 
 
-        if(device.checkContent(areaList, "无结果") || areaList.size() == 0) {
-			throw new MediaException.NotSubscribe(account, media_nick);
-		}
+        if (device.checkContent(areaList, "无结果") || areaList.size() == 0) {
+            throw new MediaException.NotSubscribe(account, media_nick);
+        }
 
-		// 进入微信公众号首页
-		goToSubscribedPublicAccountHome(areaList.get(0).left + 10, areaList.get(0).top + 10);
+        // 进入微信公众号首页
+        goToSubscribedPublicAccountHome(areaList.get(0).left + 10, areaList.get(0).top + 10);
 
         this.status = Status.PublicAccount_Home;
 
-		PublicAccountInfo pai = getPublicAccountInfo(false, false);
+        PublicAccountInfo pai = getPublicAccountInfo(false, false);
 
-		if(!pai.nick.equals(media_nick)) throw new MediaException.NotEqual(media_nick, pai.nick);
+        if (!pai.nick.equals(media_nick)) throw new MediaException.NotEqual(media_nick, pai.nick);
     }
 
     /**
@@ -370,17 +369,16 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.IllegalStateException
      */
     public void goToSubscribedPublicAccountHome(int x, int y) throws
-			InterruptedException,
-			AdapterException.IllegalStateException
-	{
+            InterruptedException,
+            AdapterException.IllegalStateException {
 
-    	if (status != Status.Subscribe_PublicAccount_List && status != Status.PublicAccount_Search_Result)
+        if (status != Status.Subscribe_PublicAccount_List && status != Status.PublicAccount_Search_Result)
             throw new AdapterException.IllegalStateException(this);
 
         this.device.touch(x, y, 1000);
 
-        if(status == Status.Subscribe_PublicAccount_List)
-        	device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+        if (status == Status.Subscribe_PublicAccount_List)
+            device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
 
         Thread.sleep(1000);
 
@@ -392,9 +390,8 @@ public class WeChatAdapter extends Adapter {
      * 查看公众号更多资料
      */
     public void goToPublicAccountMoreInfoPage() throws
-			InterruptedException,
-			AdapterException.IllegalStateException
-	{
+            InterruptedException,
+            AdapterException.IllegalStateException {
 
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
@@ -411,17 +408,17 @@ public class WeChatAdapter extends Adapter {
         this.status = Status.PublicAccount_MoreInfo;
     }
 
-	/**
-	 * 公众号首页 :: 获取公众号信息
-	 *
-	 * Adapter状态不发生变化
-	 *
-	 * @param subscribe
-	 * @return
-	 * @throws AdapterException.IllegalStateException
-	 * @throws InterruptedException
-	 * @throws MediaException.Illegal
-	 */
+    /**
+     * 公众号首页 :: 获取公众号信息
+     * <p>
+     * Adapter状态不发生变化
+     *
+     * @param subscribe
+     * @return
+     * @throws AdapterException.IllegalStateException
+     * @throws InterruptedException
+     * @throws MediaException.Illegal
+     */
     public PublicAccountInfo getPublicAccountInfo(boolean subscribe, boolean getMoreInfo) throws AdapterException.IllegalStateException, InterruptedException, MediaException.Illegal {
 
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
@@ -439,22 +436,22 @@ public class WeChatAdapter extends Adapter {
         wpa.nick = els.get(0).getText();
 
         // 公众号首页异常信息
-		for (WebElement we : els) {
-			if(
-				we.getText().contains("该公众号已迁移至新帐号") ||
-					we.getText().contains("帐号已被系统回收") ||
-					we.getText().contains("该帐号已系统注销") ||
-					we.getText().contains("该帐号已自主注销")
+        for (WebElement we : els) {
+            if (
+                    we.getText().contains("该公众号已迁移至新帐号") ||
+                            we.getText().contains("帐号已被系统回收") ||
+                            we.getText().contains("该帐号已系统注销") ||
+                            we.getText().contains("该帐号已自主注销")
 
-			) {
-				throw new MediaException.Illegal(wpa.nick);
-			}
-		}
+            ) {
+                throw new MediaException.Illegal(wpa.nick);
+            }
+        }
 
         // 该公众号已迁移至新账号，帐号已被系统回收
-        if(wpa.nick.matches("transfer_.+?") || wpa.nick.matches("该帐号已注销|该帐号已冻结")) {
-			throw new MediaException.Illegal(wpa.nick);
-		}
+        if (wpa.nick.matches("transfer_.+?") || wpa.nick.matches("该帐号已注销|该帐号已冻结")) {
+            throw new MediaException.Illegal(wpa.nick);
+        }
 
         wpa.content = els.get(1).getText();
         wpa.essay_count = NumberFormatUtil.parseInt(
@@ -463,41 +460,41 @@ public class WeChatAdapter extends Adapter {
         // TODO 需要识别当日无法订阅更多公众号异常
         if (subscribe) subscribePublicAccount();
 
-        if(getMoreInfo) {
+        if (getMoreInfo) {
 
-			goToPublicAccountMoreInfoPage();
+            goToPublicAccountMoreInfoPage();
 
-			// 对更多资料内容进行处理
-			els = device.driver.findElementsByClassName("android.widget.TextView");
+            // 对更多资料内容进行处理
+            els = device.driver.findElementsByClassName("android.widget.TextView");
 
-			els = els.stream().filter(el -> !el.getText().equals("更多资料") && el.getLocation().x != 0).collect(Collectors.toList());
+            els = els.stream().filter(el -> !el.getText().equals("更多资料") && el.getLocation().x != 0).collect(Collectors.toList());
 
-			List<String> info = new ArrayList<>();
+            List<String> info = new ArrayList<>();
 
-			for (int i = 0; i < els.size() - 1; i = i + 2) {
-				info.add(els.get(i).getText() + "" + els.get(i + 1).getText());
-			}
+            for (int i = 0; i < els.size() - 1; i = i + 2) {
+                info.add(els.get(i).getText() + "" + els.get(i + 1).getText());
+            }
 
-			for (String info_item : info) {
-				if (info_item.contains("微信号")) {
-					wpa.name = info_item.replaceAll("微信号:? ?", "");
-				}
-				if (info_item.contains("帐号主体")) {
-					wpa.subject = info_item.replaceAll("帐号主体", "");
-				}
-				if (info_item.contains("商标保护")) {
-					wpa.trademark = info_item.replaceAll("商标保护", "");
-				}
-				if (info_item.contains("客服电话")) {
-					wpa.phone = info_item.replaceAll("客服电话", "");
-				}
-			}
+            for (String info_item : info) {
+                if (info_item.contains("微信号")) {
+                    wpa.name = info_item.replaceAll("微信号:? ?", "");
+                }
+                if (info_item.contains("帐号主体")) {
+                    wpa.subject = info_item.replaceAll("帐号主体", "");
+                }
+                if (info_item.contains("商标保护")) {
+                    wpa.trademark = info_item.replaceAll("商标保护", "");
+                }
+                if (info_item.contains("客服电话")) {
+                    wpa.phone = info_item.replaceAll("客服电话", "");
+                }
+            }
 
-			// 点击返回
-			touchUpperLeftButton();
+            // 点击返回
+            touchUpperLeftButton();
 
-			this.status = Status.PublicAccount_Home;
-		}
+            this.status = Status.PublicAccount_Home;
+        }
 
         return wpa;
     }
@@ -514,16 +511,16 @@ public class WeChatAdapter extends Adapter {
 
         try {
 
-			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
 
-			Thread.sleep(5000);
+            Thread.sleep(5000);
 
-			this.status = Status.PublicAccount_Conversation;
-		}
-		// TODO 可能已经关注了
-		catch (NoSuchElementException e) {
+            this.status = Status.PublicAccount_Conversation;
+        }
+        // TODO 可能已经关注了
+        catch (NoSuchElementException e) {
 
-		}
+        }
 
         // 返回到公众号主页
         device.goBack();
@@ -532,39 +529,38 @@ public class WeChatAdapter extends Adapter {
     }
 
 
-	/**
-	 * 公众号首页 取消订阅
-	 *
-	 * @throws InterruptedException
-	 * @throws AdapterException.IllegalStateException
-	 */
-	public void unsubscribePublicAccount(String media_nick) throws InterruptedException, AdapterException.IllegalStateException, MediaException.NotSubscribe {
+    /**
+     * 公众号首页 取消订阅
+     *
+     * @throws InterruptedException
+     * @throws AdapterException.IllegalStateException
+     */
+    public void unsubscribePublicAccount(String media_nick) throws InterruptedException, AdapterException.IllegalStateException, MediaException.NotSubscribe {
 
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
         try {
-			device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'取消关注')]")).click();
-		} catch (Exception e) {
-        	throw new MediaException.NotSubscribe(account, media_nick);
-		}
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'取消关注')]")).click();
+        } catch (Exception e) {
+            throw new MediaException.NotSubscribe(account, media_nick);
+        }
 
         Thread.sleep(1000);
 
-		WebElement ae = device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'不再关注')]"));
-		if(ae != null) {
-			ae.click();
-			Thread.sleep(1000);
-		}
+        WebElement ae = device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'不再关注')]"));
+        if (ae != null) {
+            ae.click();
+            Thread.sleep(1000);
+        }
 
-		for(AndroidElement el : device.driver.findElementsByClassName("android.widget.TextView")) {
-			if (el.getText().matches("微信(\\(\\d+\\))?")) {
-				this.status = Status.Home;
-			}
-			else if(el.getText().equals("公众号")) {
-				this.status = Status.Subscribe_PublicAccount_List;
-			}
-			break;
-		}
+        for (AndroidElement el : device.driver.findElementsByClassName("android.widget.TextView")) {
+            if (el.getText().matches("微信(\\(\\d+\\))?")) {
+                this.status = Status.Home;
+            } else if (el.getText().equals("公众号")) {
+                this.status = Status.Subscribe_PublicAccount_List;
+            }
+            break;
+        }
     }
 
     /**
@@ -600,7 +596,7 @@ public class WeChatAdapter extends Adapter {
 
         // B 向下滑拿到文章热度数据和评论数据
         for (int i = 0; i < 2; i++) {
-			device.slideToPoint(1000, 800, 1000, 2000, 1000);
+            device.slideToPoint(1000, 800, 1000, 2000, 1000);
         }
 
         this.status = Status.PublicAccountEssay;
@@ -627,13 +623,13 @@ public class WeChatAdapter extends Adapter {
      */
     public void logout() throws AdapterException.LoginScriptError, InterruptedException {
 
-		try {
+        try {
             // A 点击我
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click();
             Thread.sleep(500);
 
             // B 点击设置
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'设置')]"));
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'设置')]")).click();
             Thread.sleep(1000);
 
             // C 向下滑
@@ -643,20 +639,21 @@ public class WeChatAdapter extends Adapter {
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出')]")).click();
             Thread.sleep(1000);
 
-            // D 点击退出
+            // E 点击退出登录
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'退出登录')]")).click();
-            Thread.sleep(5000);
+            Thread.sleep(3000);
 
-		// 不能正常执行上述操作
-        }
-        catch (InterruptedException e) {
-			throw e;
-		}
-        catch (Exception e) {
+            // F 点击弹窗中的确认退出
+            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'退出')]")).click();
+            Thread.sleep(8000);
+
+            // 不能正常执行上述操作
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
             logger.error("Adapter:[{}] Account:[{}] logout process unfinished, ", this.getClass().getSimpleName(), account.id, e);
             throw new AdapterException.LoginScriptError(this, account);
-        }
-        finally {
+        } finally {
             account = null;
             status = Status.Home_Login;
         }
@@ -669,30 +666,30 @@ public class WeChatAdapter extends Adapter {
 
         try {
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'更多')]")).click();
             Thread.sleep(2000);
 
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录其他帐号')]")).click();
             Thread.sleep(2000);
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'用微信号/QQ号/邮箱登录')]")).click();
             Thread.sleep(2000);
 
             // A 输入账号密码  appAccount
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'用微信号/QQ号/邮箱登录')]")).sendKeys(account.src_id);
+            device.driver.findElement(By.xpath("//android.widget.EditText[contains(@text,'请填写微信号/QQ号/邮箱')]")).sendKeys(account.src_id);
             Thread.sleep(1000);
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'请填写密码')]")).sendKeys(account.password);
+            device.driver.findElement(By.xpath("//android.widget.EditText[contains(@text,'请填写密码')]")).sendKeys(account.password);
             Thread.sleep(1000);
 
-            // B 点击登录
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'登录')]")).click();
-            Thread.sleep(5000);
-        }
-		catch (InterruptedException e) {
-			throw e;
-		}
-        catch (Exception e) {
+            // B 点击登录  Xpath   //android.widget.Button[@text,'登录']
+//            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'登录')]")).click();
+//            device.driver.findElement(By.xpath("//android.widget.Button[@text,'登录']")).click();
+            device.touch(722, 1316, 8000);
+
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
             logger.error("Adapter:[{}] Account:[{}] login process unfinished, ", this.getClass().getSimpleName(), account.id, e);
             throw new AdapterException.LoginScriptError(this, account);
         }
@@ -707,7 +704,6 @@ public class WeChatAdapter extends Adapter {
         }
         // F 无法进入首页，应该是账号问题
         else {
-            account = null;
             account.status = Account.Status.Broken;
             throw new AccountException.Broken(account);
         }
@@ -722,7 +718,7 @@ public class WeChatAdapter extends Adapter {
 
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'我')]")).click(); //点击我
 
-		Thread.sleep(500);
+        Thread.sleep(500);
 
         Point qrCodeLoc = device.driver.findElementByAccessibilityId("查看二维码").getLocation(); // 找到二维码位置
 
@@ -1434,54 +1430,53 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
-     *
      * @throws InterruptedException
      * @throws AccountException.NoAvailableAccount
      * @throws AdapterException.OperationException
      * @throws DBInitException
      * @throws SQLException
      */
-	public void switchAccount(Account.Status... statuses) throws
-			InterruptedException,
-			AccountException.NoAvailableAccount,
-			AdapterException.LoginScriptError,
-			SQLException,
-			DBInitException
-	{
+    public void switchAccount(Account.Status... statuses) throws
+            InterruptedException,
+            AccountException.NoAvailableAccount,
+            AdapterException.LoginScriptError,
+            SQLException,
+            DBInitException {
 
-        Account account = null;
+        Account account;
 
-	    if(statuses.length == 0) {
+        if (statuses.length == 0) {
             account = Account.getAccount(device.udid, WeChatAdapter.class.getName());
         } else {
             account = Account.getAccount(device.udid, getClass().getName(), Arrays.asList(statuses));
         }
 
-		if(account != null) {
+        if (account != null) {
 
-		    try {
+            try {
 
                 this.account = account;
 
                 // A 退出登录
                 logout();
 
-                // B 登录账号  TODO 登录账号需要改变当前类的Account
+                // B 获取账号  TODO 当前Account为空？
+                this.account = Account.getAccount(device.udid, getClass().getName(), Arrays.asList(statuses));
+
+                // C 登录账号  TODO 登录账号需要改变当前类的Account
                 login();
 
-			}
-		    catch (AccountException.Broken broken) {
+            } catch (AccountException.Broken broken) {
 
-		        logger.warn("[{}] account broken, ", getInfo(), account.id, broken);
-				account.status = Account.Status.Broken;
-				account.update();
-				switchAccount();
-			}
-		}
-		else {
-			throw new AccountException.NoAvailableAccount();
-		}
-	}
+                logger.warn("[{}] account broken, ", getInfo(), account.id, broken);
+                account.status = Account.Status.Broken;
+                account.update();
+                switchAccount();
+            }
+        } else {
+            throw new AccountException.NoAvailableAccount();
+        }
+    }
 
     /**
      * 判断首页是否存在更新提示    Adapter的Home状态回调函数

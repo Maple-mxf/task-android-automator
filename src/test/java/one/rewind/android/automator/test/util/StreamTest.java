@@ -21,7 +21,6 @@ public class StreamTest {
         for (ITmp adapter : allAdapters) {
             adapter.APITask = true;
         }
-
         allAdapters.forEach(v -> System.out.println(v.APITask));
     }
 
