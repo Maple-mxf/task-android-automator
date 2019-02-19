@@ -3,8 +3,6 @@ package one.rewind.android.automator.adapter.wechat.task;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.exception.MediaException;
-import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
-import one.rewind.android.automator.adapter.wechat.util.Generator;
 import one.rewind.android.automator.exception.AccountException;
 import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;

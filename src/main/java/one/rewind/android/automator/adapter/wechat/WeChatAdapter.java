@@ -101,8 +101,6 @@ public class WeChatAdapter extends Adapter {
             AccountException.Broken,
             AdapterException.LoginScriptError {
 
-        super.start();
-
         Thread.sleep(5000);
 
         // 判断是否有更新提示
@@ -111,7 +109,7 @@ public class WeChatAdapter extends Adapter {
                 device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'取消')]")).click();
             }
         } catch (Exception e) {
-
+            logger.info("Home Page No update tip" + e);
         }
 
         // A 验证是否时登陆页面
@@ -119,9 +117,15 @@ public class WeChatAdapter extends Adapter {
         // 如果是登陆页面，使用当前account进行登陆
         // 验证到首页 或者 首页登陆界面 并更改状态
         if (!atHome()) {
+
+            logger.info("current page is not Home Page");
             login();
+
         } else {
+
+            logger.info("current page is Home Page");
             status = Status.Home;
+
         }
     }
 
@@ -176,12 +180,12 @@ public class WeChatAdapter extends Adapter {
      */
     public boolean atHome() {
 
-        // TODO 需要判断更新提示
+        logger.info("current Thread Name[{}]", Thread.currentThread().getName());
 
         try {
-            Thread.sleep(5000);
 
-            device.driver.findElement(By.xpath("//android.widget.ImageView[contains(@text,'微信')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
+
             return true;
         } catch (Exception e) {
             logger.warn("Can't find '微信' tab, ", e);
