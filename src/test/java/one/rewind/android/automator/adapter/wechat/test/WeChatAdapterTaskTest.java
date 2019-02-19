@@ -72,11 +72,20 @@ public class WeChatAdapterTaskTest {
     @Test
     public void testUnsubscribe() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+        TaskHolder holder1 = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+        TaskHolder holder2 = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+        TaskHolder holder3 = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
+        TaskHolder holder4 = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), UnsubscribeMediaTask.class.getName(), Arrays.asList("拍拍贷"));
 
-        Task task = TaskFactory.getInstance().generateTask(holder);
+        Task task1 = TaskFactory.getInstance().generateTask(holder1);
+        Task task2 = TaskFactory.getInstance().generateTask(holder2);
+        Task task3 = TaskFactory.getInstance().generateTask(holder3);
+        Task task4 = TaskFactory.getInstance().generateTask(holder4);
 
-        AndroidDeviceManager.getInstance().submit(task);
+        AndroidDeviceManager.getInstance().submit(task1);
+        AndroidDeviceManager.getInstance().submit(task2);
+        AndroidDeviceManager.getInstance().submit(task3);
+        AndroidDeviceManager.getInstance().submit(task4);
 
         Thread.sleep(10000000);
     }
@@ -84,7 +93,7 @@ public class WeChatAdapterTaskTest {
     @Test
     public void testSubscribeAndGetEssays() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("黄生看金融"));
+        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("雷帝触网"));
 
         Task task = TaskFactory.getInstance().generateTask(holder);
 
@@ -92,7 +101,7 @@ public class WeChatAdapterTaskTest {
 
         AndroidDeviceManager.getInstance().submit(
                 TaskFactory.getInstance().generateTask(
-                        new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("黄生看金融"))));
+                        new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("雷帝触网"))));
 
         Thread.sleep(10000000);
     }

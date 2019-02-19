@@ -132,19 +132,8 @@ public class GenerateRequestTest {
 		ReqObj reqObj1 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html"), ReqObj.class);
 		ReqObj reqObj2 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayContent-0.html"), ReqObj.class);
 
-		EssayProcessor ep = new EssayProcessor("黄生看金融", reqObj0, reqObj1, reqObj2);
+		EssayProcessor ep = new EssayProcessor("雷帝触网", reqObj0, reqObj1, reqObj2);
 
-		/*List<TaskHolder> nths = new ArrayList<>();
-		ep.getEssayTH(FileUtil.readFileByLines("tmp/test1.html"),"黄生看金融", nths);
-		nths.forEach(th -> {
-			System.err.println(JSON.toPrettyJson(th));
-		});*/
-
-		/*EssayProcessor.parseComments(Comment.FType.Essay, "1", FileUtil.readFileByLines("tmp/test1.html"))
-				.forEach(c -> {
-					System.err.println(JSON.toPrettyJson(c));
-				});
-*/
 		ep.run();
 
 		Thread.sleep(100000000);

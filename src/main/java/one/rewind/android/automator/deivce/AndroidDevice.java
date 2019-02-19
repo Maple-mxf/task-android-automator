@@ -297,7 +297,7 @@ public class AndroidDevice extends ModelL {
 
         try {
             adapter.start();
-            adapter.checkAccount();
+//            adapter.checkAccount();
 			logger.info("[{}] started", adapter.getInfo());
 
         } catch (AccountException.Broken broken) {
@@ -1090,6 +1090,23 @@ public class AndroidDevice extends ModelL {
 		return textAreas;
 	}
 
+    public List<AndroidElement> searchAndGetResult2(By by, String input, int x1, int y1, int x2, int y2) throws InterruptedException, IOException, AdapterException.NoResponseException {
+
+        search(by, input);
+
+        List<AndroidElement> els = new ArrayList<>();
+
+        for(AndroidElement ae : driver.findElements(By.className("android.widget.TextView"))) {
+            if(ae.getRect().x < x1 || ae.getRect().y < y1 || ae.getRect().x + ae.getRect().width > x2 || ae.getRect().y + ae.getRect().height > y2 ) {
+
+            } else {
+                els.add(ae);
+            }
+        }
+
+        return els;
+    }
+
 	/**
 	 *
 	 * @param areas
@@ -1104,6 +1121,15 @@ public class AndroidDevice extends ModelL {
 		}
 		return false;
 	}
+
+    public boolean checkContent2(List<AndroidElement> els, String... text) {
+        for(AndroidElement el : els) {
+            for(String t : text) {
+                if(el.getText().contains(t)) return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * @param x

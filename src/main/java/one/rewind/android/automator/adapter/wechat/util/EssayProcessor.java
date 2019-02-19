@@ -174,7 +174,7 @@ public class EssayProcessor implements Runnable {
 			int offset = Integer.parseInt(URLUtil.getParam(url, "offset"));
 
 			logger.info("===================================================================");
-			logger.info("Next offset: {}", offset+10);
+			logger.info("Next offset: {}", offset+100);
 			logger.info("===================================================================");
 
 			// 生成下一页 翻页请求
@@ -536,26 +536,20 @@ public class EssayProcessor implements Runnable {
 
 		String name = null, src_id = null;
 
-		// 标题 必须
+		// 作者原始平台id
 		Pattern pattern = Pattern.compile("var author_id.+?\"(?<T>.+?)\"");
 		Matcher matcher = pattern.matcher(source);
 		if (matcher.find()) {
 			src_id = matcher.group("T");
 		}
 
-		// 作者原始平台id
+		// 作者名称
 		pattern = Pattern.compile("(?si)<div class=\"reward-author\" .+?</div>");
 		matcher = pattern.matcher(source);
 		if (matcher.find()) {
 			name = matcher.group().replaceAll("<.+?>| +|\r\n|\n", "");
 		}
 
-		// 作者名称
-		pattern = Pattern.compile("(?si)(?<=mid = \").+?(?=\";)");
-		matcher = pattern.matcher(source);
-		if (matcher.find()) {
-			src_id = matcher.group().replaceAll("\"| |\\|", "");
-		}
 
 		if(name == null || name.length() == 0 || src_id == null || src_id.length() == 0) {
 			return null;
@@ -858,9 +852,9 @@ public class EssayProcessor implements Runnable {
 
 				String f_id = ep.parseFid(t.getResponse().getText(), nts, t.getStringFromVars("cover"));
 
-				Essay essay = ep.parseContent(t.getResponse().getText(), f_id, t.getStringFromVars("cover"));
+				Essay essay = parseContent(t.getResponse().getText(), f_id, t.getStringFromVars("cover"));
 
-				Author author = ep.parseAuthor(t.getResponse().getText());
+				Author author = parseAuthor(t.getResponse().getText());
 
 				if(essay != null) {
 

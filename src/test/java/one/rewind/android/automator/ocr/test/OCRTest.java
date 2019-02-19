@@ -19,7 +19,8 @@ public class OCRTest {
 	@Test
 	public void testGetSearchResult1() throws IOException {
 
-		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile("tmp/screenshots/self_subscribe_media_search_result_1.png"), 200, 255, 1400, 2380);
+		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile("tmp/1.png"), 240, 255, 1400, 2380);
+//		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(FileUtil.readBytesFromFile("tmp/1.png"));
 
 		System.err.println(JSON.toPrettyJson(textAreas));
 

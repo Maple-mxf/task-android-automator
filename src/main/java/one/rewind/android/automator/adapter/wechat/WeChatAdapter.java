@@ -179,7 +179,9 @@ public class WeChatAdapter extends Adapter {
         // TODO 需要判断更新提示
 
         try {
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
+            Thread.sleep(5000);
+
+            device.driver.findElement(By.xpath("//android.widget.ImageView[contains(@text,'微信')]")).click();
             return true;
         } catch (Exception e) {
             logger.warn("Can't find '微信' tab, ", e);
@@ -345,15 +347,14 @@ public class WeChatAdapter extends Adapter {
         device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'搜索')]")).click();
         Thread.sleep(1000);
 
-        List<OCRParser.TouchableTextArea> areaList = device.searchAndGetResult(By.className("android.widget.EditText"), media_nick, 200, 255, 1400, 2380);
+        List<AndroidElement> els = device.searchAndGetResult2(By.className("android.widget.EditText"), media_nick, 200, 255, 1400, 2380);
 
-
-        if (device.checkContent(areaList, "无结果") || areaList.size() == 0) {
+        if (device.checkContent2(els, "无结果") || els.size() == 0) {
             throw new MediaException.NotSubscribe(account, media_nick);
         }
 
         // 进入微信公众号首页
-        goToSubscribedPublicAccountHome(areaList.get(0).left + 10, areaList.get(0).top + 10);
+        goToSubscribedPublicAccountHome(els.get(0).getRect().x + 10, els.get(0).getRect().y + 10);
 
         this.status = Status.PublicAccount_Home;
 
@@ -562,6 +563,46 @@ public class WeChatAdapter extends Adapter {
             break;
         }
     }
+
+    /**
+     * 公众号首页 取消订阅
+     *
+     * @throws InterruptedException
+     * @throws AdapterException.IllegalStateException
+     */
+    public void unsubscribePublicAccount() throws InterruptedException, AdapterException.IllegalStateException, MediaException.NotSubscribe {
+
+        if (this.status != Status.Subscribe_PublicAccount_List) throw new AdapterException.IllegalStateException(this);
+
+        // A 长按取消关注
+        new TouchAction<>(device.driver).longPress(PointOption.point(297, 430)).perform();
+        Thread.sleep(1000);
+
+        boolean flag = true;
+
+        try {
+
+            // B 查找
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'取消关注')]")).click();
+            Thread.sleep(1000);
+
+        } catch (Exception e) {
+            flag = false;
+        }
+
+        if (flag) {
+
+            // C 点击不再关注
+            device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'不再关注')]")).click();
+            Thread.sleep(2000);
+
+            // D 递归调用
+            unsubscribePublicAccount();
+        }
+
+
+    }
+
 
     /**
      * 公众号首页 --> 公众号历史文章列表
