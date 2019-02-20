@@ -136,16 +136,16 @@ public class AndroidDevice extends ModelL {
     public boolean ca = false; // 是否已经安装CA证书
 
     // 本地代理服务器
-	public transient BrowserMobProxyServer bmProxy;
+    public transient BrowserMobProxyServer bmProxy;
 
     // Appium相关服务对象
-	public transient AppiumDriverLocalService service;
+    public transient AppiumDriverLocalService service;
 
     // 本地Driver
     public transient AndroidDriver<AndroidElement> driver;
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
-	public int proxyPort; // TODO 移动端代理端口
+    public int proxyPort; // TODO 移动端代理端口
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
     public int appiumPort; // 本地 appium 服务端口
@@ -154,7 +154,7 @@ public class AndroidDevice extends ModelL {
     public int localProxyPort; // TODO 代码运行端代理端口 区别？
 
     // Appium 服务URL 本地
-	public transient URL serviceUrl;
+    public transient URL serviceUrl;
 
     @DatabaseField(dataType = DataType.INTEGER, width = 5)
     public int height; // 设备屏幕高度
@@ -193,7 +193,8 @@ public class AndroidDevice extends ModelL {
     // 当前正在执行的任务
     public transient Future<Boolean> taskFuture;
 
-	public AndroidDevice() {}
+    public AndroidDevice() {
+    }
 
     /**
      * 构造方法
@@ -203,20 +204,20 @@ public class AndroidDevice extends ModelL {
      */
     public AndroidDevice(String udid) {
         this.udid = udid;
-		setupExecutor();
+        setupExecutor();
     }
 
     private void setupExecutor() {
-		this.local_ip = NetworkUtil.getLocalIp();
-		logger.info("Local IP: {}", local_ip);
+        this.local_ip = NetworkUtil.getLocalIp();
+        logger.info("Local IP: {}", local_ip);
 
-		name = "" + udid + "";
+        name = "" + udid + "";
 
-		// 初始化单线程执行器
-		executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
-		executor.setThreadFactory(new ThreadFactoryBuilder()
-				.setNameFormat(name + "-%d").build());
-	}
+        // 初始化单线程执行器
+        executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue);
+        executor.setThreadFactory(new ThreadFactoryBuilder()
+                .setNameFormat(name + "-%d").build());
+    }
 
     /**
      * @param udid
@@ -234,7 +235,7 @@ public class AndroidDevice extends ModelL {
             ad = new AndroidDevice(udid);
             ad.insert();
         } else {
-        	ad.setupExecutor();
+            ad.setupExecutor();
             ad.update();
         }
 
@@ -255,7 +256,7 @@ public class AndroidDevice extends ModelL {
         }
 
         this.adapters.put(adapter.getClass().getName(), adapter);
-		logger.info("[{}] added ", adapter.getInfo());
+        logger.info("[{}] added ", adapter.getInfo());
 
         // 初始化回调函数
         this.initCallbacks.add((d) -> {
@@ -266,13 +267,13 @@ public class AndroidDevice extends ModelL {
 
             } catch (AdapterException.LoginScriptError e) {
 
-				logger.error("[{}] login script error, ", adapter.getInfo(), e);
-				removeAdapter(adapter);
+                logger.error("[{}] login script error, ", adapter.getInfo(), e);
+                removeAdapter(adapter);
 
             } catch (AccountException.NoAvailableAccount noAvailableAccount) {
 
-				logger.error("[{}] no available account, ", adapter.getInfo(), noAvailableAccount);
-				removeAdapter(adapter);
+                logger.error("[{}] no available account, ", adapter.getInfo(), noAvailableAccount);
+                removeAdapter(adapter);
             }
 
         });
@@ -280,14 +281,13 @@ public class AndroidDevice extends ModelL {
         return this;
     }
 
-	/**
-	 *
-	 * @param adapter
-	 */
-	public void removeAdapter(Adapter adapter){
-		this.adapters.remove(adapter.getClass().getName());
-		logger.info("[{}] removed, ", adapter.getInfo());
-	}
+    /**
+     * @param adapter
+     */
+    public void removeAdapter(Adapter adapter) {
+        this.adapters.remove(adapter.getClass().getName());
+        logger.info("[{}] removed, ", adapter.getInfo());
+    }
 
     /**
      * @param adapter
@@ -298,7 +298,7 @@ public class AndroidDevice extends ModelL {
         try {
             adapter.start();
 //            adapter.checkAccount();
-			logger.info("[{}] started", adapter.getInfo());
+            logger.info("[{}] started", adapter.getInfo());
 
         } catch (AccountException.Broken broken) {
 
@@ -334,17 +334,16 @@ public class AndroidDevice extends ModelL {
             boolean initSuccess = initFuture.get(INIT_TIMEOUT, TimeUnit.MILLISECONDS);
 
             if (initSuccess) {
-				status = Status.Idle;
+                status = Status.Idle;
                 logger.info("[{}] INIT done", udid);
-				// 执行状态回调函数
-				runCallbacks(idleCallbacks);
-				return initSuccess;
+                // 执行状态回调函数
+                runCallbacks(idleCallbacks);
+                return initSuccess;
+            } else {
+                status = Status.Failed;
+                logger.info("[{}] INIT failed", udid);
+                stop();
             }
-            else {
-				status = Status.Failed;
-				logger.info("[{}] INIT failed", udid);
-				stop();
-			}
 
         }
         // 当前进程被终止
@@ -354,25 +353,22 @@ public class AndroidDevice extends ModelL {
             logger.error("[{}] INIT interrupted, ", udid, e);
             stop();
 
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] INIT failed, ", udid, e.getCause());
             stop();
 
-        }
-        catch (TimeoutException e) {
+        } catch (TimeoutException e) {
 
             initFuture.cancel(true);
 
             status = Status.Failed;
             logger.error("[{}] INIT timeout, ", udid, e);
             stop();
+        } finally {
+            update();
         }
-        finally {
-			update();
-		}
 
         return false;
     }
@@ -407,39 +403,34 @@ public class AndroidDevice extends ModelL {
 
         try {
 
-			stopSuccess = closeFuture.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+            stopSuccess = closeFuture.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
 
-			if(stopSuccess) {
-				status = Status.Terminated;
-				logger.info("[{}] stop done", udid);
+            if (stopSuccess) {
+                status = Status.Terminated;
+                logger.info("[{}] stop done", udid);
 
-				if (runCallbacks) runCallbacks(terminatedCallbacks);
-			}
-			else {
-				logger.info("[{}] stop failed", udid);
-				status = Status.Failed;
-			}
-        }
-        catch (InterruptedException e) {
+                if (runCallbacks) runCallbacks(terminatedCallbacks);
+            } else {
+                logger.info("[{}] stop failed", udid);
+                status = Status.Failed;
+            }
+        } catch (InterruptedException e) {
 
             status = Status.Failed;
             logger.error("[{}] stop interrupted, ", udid, e);
 
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] stop failed, ", udid, e.getCause());
 
-        }
-        catch (TimeoutException e) {
+        } catch (TimeoutException e) {
 
             closeFuture.cancel(true);
             status = Status.Failed;
             logger.error("[{}] stop timeout, ", udid, e);
 
-        }
-        finally {
+        } finally {
 
             this.update();
         }
@@ -453,106 +444,97 @@ public class AndroidDevice extends ModelL {
      */
     public boolean clear() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
 
-    	boolean clearSuccess = false;
+        boolean clearSuccess = false;
 
         Future<Boolean> feature = executor.submit(new Clear(this));
 
         try {
 
-			clearSuccess = feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-			if(clearSuccess) {
-				logger.info("[{}] clear done", udid);
-			}
-			else {
-				logger.info("[{}] clear failed", udid);
-			}
+            clearSuccess = feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+            if (clearSuccess) {
+                logger.info("[{}] clear done", udid);
+            } else {
+                logger.info("[{}] clear failed", udid);
+            }
 
 
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
 
             status = Status.Failed;
             logger.error("[{}] clear interrupted, ", udid, e);
-			stop();
+            stop();
 
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] clear failed, ", udid, e.getCause());
-			stop();
+            stop();
 
-        }
-        catch (TimeoutException e) {
+        } catch (TimeoutException e) {
 
             feature.cancel(true);
             status = Status.Failed;
             logger.error("[{}] clear timeout, ", udid, e);
-			stop();
+            stop();
 
-        }
-        finally {
+        } finally {
             this.update();
         }
 
         return clearSuccess;
     }
 
-	/**
-	 * 设备重启
-	 * @throws DBInitException
-	 * @throws SQLException
-	 * @throws AndroidException.IllegalStatusException
-	 */
+    /**
+     * 设备重启
+     *
+     * @throws DBInitException
+     * @throws SQLException
+     * @throws AndroidException.IllegalStatusException
+     */
     public boolean reboot() throws DBInitException, SQLException, AndroidException.IllegalStatusException {
 
-    	// 停止本地服务
-		if(!stop(false)) return false;
+        // 停止本地服务
+        if (!stop(false)) return false;
 
-		boolean rebootSuccess = false;
+        boolean rebootSuccess = false;
 
         Future<Boolean> feature = executor.submit(new Reboot(this));
 
         try {
 
-			rebootSuccess = feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
-			if(rebootSuccess) {
-				logger.info("[{}] reboot done", udid);
-				status = Status.New;
-			}
-			else {
-				logger.info("[{}] reboot failed", udid);
-				status = Status.Failed;
-			}
+            rebootSuccess = feature.get(CLOSE_TIMEOUT, TimeUnit.MILLISECONDS);
+            if (rebootSuccess) {
+                logger.info("[{}] reboot done", udid);
+                status = Status.New;
+            } else {
+                logger.info("[{}] reboot failed", udid);
+                status = Status.Failed;
+            }
 
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
 
             status = Status.Failed;
             logger.error("[{}] reboot interrupted, ", udid, e);
 
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
 
             status = Status.Failed;
             logger.error("[{}] reboot failed, ", udid, e.getCause());
 
-        }
-        catch (TimeoutException e) {
+        } catch (TimeoutException e) {
 
             feature.cancel(true);
             status = Status.Failed;
             logger.error("[{}] reboot failed, ", udid, e);
 
-        }
-        finally {
+        } finally {
             this.update();
         }
 
-		// 重启本地服务
-        if(rebootSuccess) return start();
+        // 重启本地服务
+        if (rebootSuccess) return start();
 
-		return rebootSuccess;
+        return rebootSuccess;
     }
 
     /**
@@ -581,9 +563,9 @@ public class AndroidDevice extends ModelL {
 
         Adapter adapter = adapters.get(task.h.adapter_class_name);
 
-        if(adapter == null) {
-			throw new AndroidException.NoSuitableAdapter();
-		}
+        if (adapter == null) {
+            throw new AndroidException.NoSuitableAdapter();
+        }
 
         task.setAdapter(adapter); // 由于异常处理 task.adapter 有可能被 device 移除
 
@@ -598,7 +580,7 @@ public class AndroidDevice extends ModelL {
             // 正常执行任务后，任务对应的Adapter的异常记录重置
             task.getAdapter().exceptions.clear();
 
-			// 正常执行任务后，设备的异常标签重置
+            // 正常执行任务后，设备的异常标签重置
             flags.clear();
 
             status = Status.Idle;
@@ -606,37 +588,37 @@ public class AndroidDevice extends ModelL {
         // E1 线程中断异常 TODO 基本上是 executor 被异常终止才会报该异常
         catch (InterruptedException e) {
 
-			task.failure(e.getCause());
+            task.failure(e.getCause());
             status = Status.Failed;
             retry = false;
         }
         // E2 任务被外部终止 taskFuture.cancel() 产生 状态设为Idle
         catch (CancellationException e) {
 
-			task.failure(e.getCause());
+            task.failure(e.getCause());
             status = Status.Idle;
-			retry = false;
+            retry = false;
         }
         // E3 基本不会捕获
         catch (TimeoutException e) {
 
-			task.failure(e.getCause());
+            task.failure(e.getCause());
             taskFuture.cancel(true);
             status = Status.Idle;
-			retry = false;
+            retry = false;
         }
         // E4 执行异常
         catch (ExecutionException e) {
 
-        	// 统一预设置重试
-			retry = true;
+            // 统一预设置重试
+            retry = true;
 
             try {
 
                 // E5 账号Broken 尝试切换帐号
                 if (e.getCause() instanceof AccountException.Broken) {
 
-                	task.failure(e.getCause());
+                    task.failure(e.getCause());
 
                     task.getAdapter().switchAccount();
 
@@ -645,13 +627,12 @@ public class AndroidDevice extends ModelL {
                 // E6 Adapter 操作定义异常
                 else if (e.getCause() instanceof AdapterException.OperationException || e.getCause() instanceof AdapterException.IllegalStateException) {
 
-					task.failure(e.getCause());
+                    task.failure(e.getCause());
 
                     // 上一次执行 也抛出相同异常
                     if (task.getAdapter().exceptions.containsKey(e.getCause().getClass().getName())) {
-						removeAdapter(task.getAdapter());
-                    }
-                    else {
+                        removeAdapter(task.getAdapter());
+                    } else {
                         task.getAdapter().exceptions.put(e.getCause().getClass().getName(), 1);
                         // 重置Adapter状态
                         task.getAdapter().restart();
@@ -662,15 +643,15 @@ public class AndroidDevice extends ModelL {
                 // E7 App没有响应异常
                 else if (e.getCause() instanceof AdapterException.NoResponseException) {
 
-					task.failure(e.getCause());
+                    task.failure(e.getCause());
 
                     // 上一次执行 也遇到了相同异常
                     if (task.getAdapter().exceptions.containsKey(e.getCause().getClass().getName())) {
 
-                    	// 第4次 设备不可用
+                        // 第4次 设备不可用
                         if (flags.contains(Flag.NewReboot)) {
 
-                        	status = Status.Failed;
+                            status = Status.Failed;
                         }
                         // 第3次 重启设备
                         else if (flags.contains(Flag.Cleaned)) {
@@ -680,7 +661,7 @@ public class AndroidDevice extends ModelL {
                         // 第2次清空缓存 重启app
                         else {
 
-                        	this.clear();
+                            this.clear();
                             task.getAdapter().restart();
                             status = Status.Idle;
                         }
@@ -696,40 +677,38 @@ public class AndroidDevice extends ModelL {
                         status = Status.Idle;
                     }
 
-                }
-                else {
+                } else {
                     throw e.getCause();
                 }
             }
             // 代理问题 TODO 出现场景需确认
             catch (SocketException ex) {
-				task.failure(ex);
+                task.failure(ex);
                 status = Status.Failed;
             }
             // 脚本异常 / 操作异常
             // 异常参考 http://www.softwaretestingstudio.com/common-exceptions-selenium-webdriver/
             catch (ElementNotVisibleException |
                     NoAlertPresentException |
-					StaleElementReferenceException |
+                    StaleElementReferenceException |
                     ElementNotSelectableException |
                     NoSuchFrameException |
                     org.openqa.selenium.NoSuchElementException |
                     ElementClickInterceptedException ex) {
 
-				task.failure(ex);
+                task.failure(ex);
 
                 // 当前任务失败 连续出现三次
                 // 上一次执行 也遇到了相同异常
                 if (task.getAdapter().exceptions.containsKey(ex.getClass().getName())) {
 
-                	int count = task.getAdapter().exceptions.get(ex.getClass().getName());
-                	if(count < 3) {
-						task.getAdapter().exceptions.put(ex.getClass().getName(), count + 1);
-					}
+                    int count = task.getAdapter().exceptions.get(ex.getClass().getName());
+                    if (count < 3) {
+                        task.getAdapter().exceptions.put(ex.getClass().getName(), count + 1);
+                    }
 
-					removeAdapter(task.getAdapter());
-                }
-                else {
+                    removeAdapter(task.getAdapter());
+                } else {
                     task.getAdapter().exceptions.put(ex.getClass().getName(), 1);
                 }
 
@@ -744,85 +723,82 @@ public class AndroidDevice extends ModelL {
                     NoSuchSessionException |              // 无法识别的Session
                     ErrorHandler.UnknownServerException ex) {  // 未知服务端异常
 
-				task.failure(ex);
+                task.failure(ex);
 
-				if(flags.contains(Flag.NewRestart)) {
-					status = Status.Failed;
-				}
-				else {
-					restart();
-				}
+                if (flags.contains(Flag.NewRestart)) {
+                    status = Status.Failed;
+                } else {
+                    restart();
+                }
             }
 
             // 其他 WebDriver 异常 无法正常调用WebDriver --> 关闭
             catch (WebDriverException ex) {
 
-				task.failure(ex);
+                task.failure(ex);
 
-				if(flags.contains(Flag.NewRestart)) {
-					status = Status.Failed;
-				}
-				else {
-					restart();
-				}
+                if (flags.contains(Flag.NewRestart)) {
+                    status = Status.Failed;
+                } else {
+                    restart();
+                }
             }
             // 无可用账号异常 --> 对应的Adapter不可用
             catch (AccountException.NoAvailableAccount ex) {
 
-				task.failure(ex);
-				removeAdapter(task.getAdapter());
+                task.failure(ex);
+                removeAdapter(task.getAdapter());
                 status = Status.Idle;
             }
             // 当前使用的Adapter对应的Account失效 --> 对应的Adapter需要切换账号
             catch (AdapterException.LoginScriptError ex) {
 
-				task.failure(ex);
-				retry = false;
-				removeAdapter(task.getAdapter());
-				status = Status.Idle;
+                task.failure(ex);
+                retry = false;
+                removeAdapter(task.getAdapter());
+                status = Status.Idle;
 
             }
             // 其他未知异常
             catch (Throwable throwable) {
-				task.failure(throwable);
-				removeAdapter(task.getAdapter());
-				status = Status.Failed;
+                task.failure(throwable);
+                removeAdapter(task.getAdapter());
+                status = Status.Failed;
             }
 
-        }
-        finally {
+        } finally {
 
             this.update();
 
-			// 任务执行成功回调
-            if(task.h.success) {
-				task.successCallbacks.forEach(c -> c.call(task));
-				task.doneCallbacks.forEach(c -> c.call(task));
-			}
-			// 任务执行失败
-			else {
+            // 任务执行成功回调
+            if (task.h.success) {
+                task.successCallbacks.forEach(c -> c.call(task));
+                task.doneCallbacks.forEach(c -> c.call(task));
+            }
+            // 任务执行失败
+            else {
 
-				// 需要重试 且重试次数小于重试上线
-				if(retry && task.getRetryCount() < TASK_RETRY_LIMIT) {
-					task.addRetryCount();
-					AndroidDeviceManager.getInstance().submit(task);
-				}
-				// 任务执行失败回调
-				else {
-					task.failureCallbacks.forEach(c -> c.call(task));
-					task.doneCallbacks.forEach(c -> c.call(task));
-				}
-			}
+                // 需要重试 且重试次数小于重试上线
+                if (retry && task.getRetryCount() < TASK_RETRY_LIMIT) {
+                    task.addRetryCount();
+                    AndroidDeviceManager.getInstance().submit(task);
+                }
+                // 任务执行失败回调
+                else {
+                    task.failureCallbacks.forEach(c -> c.call(task));
+                    task.doneCallbacks.forEach(c -> c.call(task));
+                }
+            }
 
-			if(status == Status.Idle) {
-				runCallbacks(idleCallbacks);
-			}
+            if (status == Status.Idle) {
+                runCallbacks(idleCallbacks);
+            }
 
-			if(status == Status.Failed) {
-				stop();
-			}
+            if (status == Status.Failed) {
+                stop();
+            }
 
-			taskFuture = null;
+            taskFuture = null;
         }
     }
 
@@ -941,10 +917,10 @@ public class AndroidDevice extends ModelL {
 
         service.start();
 
-		File logFile = new File("log/appium.log");
-		logFile.createNewFile(); // if file already exists will do nothing
-		FileOutputStream oFile = new FileOutputStream(logFile, false);
-		service.sendOutputTo(oFile);
+        File logFile = new File("log/appium.log");
+        logFile.createNewFile(); // if file already exists will do nothing
+        FileOutputStream oFile = new FileOutputStream(logFile, false);
+        service.sendOutputTo(oFile);
 
         Thread.sleep(5000);
 
@@ -975,7 +951,7 @@ public class AndroidDevice extends ModelL {
         // driver.setLogLevel(Level.WARNING);
         Thread.sleep(15000);
 
-		// driver.startRecordingScreen();
+        // driver.startRecordingScreen();
 
         // 设置宽高
         this.width = getWidth();
@@ -989,7 +965,7 @@ public class AndroidDevice extends ModelL {
      */
     public void stopRemoteAppiumServer() throws IOException {
 
-		logger.info("[{}] stop appium Server", udid);
+        logger.info("[{}] stop appium Server", udid);
 
         String command1 = "adb -s " + this.udid + " shell am force-stop io.appium.settings";
         Runtime.getRuntime().exec(command1);
@@ -998,36 +974,36 @@ public class AndroidDevice extends ModelL {
         Runtime.getRuntime().exec(command2);
     }
 
-	/**
-	 * 唤醒设备
-	 *
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public void awake() throws IOException, InterruptedException {
+    /**
+     * 唤醒设备
+     *
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    public void awake() throws IOException, InterruptedException {
 
-		Runtime runtime = Runtime.getRuntime();
+        Runtime runtime = Runtime.getRuntime();
 
-		AndroidUtil.clickPower(udid);
-		Thread.sleep(2000);
+        AndroidUtil.clickPower(udid);
+        Thread.sleep(2000);
 
-		// 滑动解锁  728 2356  728 228  adb shell -s  input swipe  300 1500 300 200
-		String unlockCommand = "adb -s " + udid + " shell input swipe  300 1500 300 200";
-		runtime.exec(unlockCommand);
-		Thread.sleep(2000);
+        // 滑动解锁  728 2356  728 228  adb shell -s  input swipe  300 1500 300 200
+        String unlockCommand = "adb -s " + udid + " shell input swipe  300 1500 300 200";
+        runtime.exec(unlockCommand);
+        Thread.sleep(2000);
 
-		// 输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
-		String loginCommand = "adb -s " + udid + " shell input text " + PIN_PASSWORD;
-		runtime.exec(loginCommand);
-		Thread.sleep(4000);
+        // 输入密码adb -s ZX1G42BX4R shell input text szqj  adb -s ZX1G42BX4R shell input swipe 300 1000 300 500
+        String loginCommand = "adb -s " + udid + " shell input text " + PIN_PASSWORD;
+        runtime.exec(loginCommand);
+        Thread.sleep(4000);
 
-		// 点击确认
-		touch(1350, 2250, 6000);  //TODO 时间适当调整
-		Thread.sleep(2000);
-	}
+        // 点击确认
+        touch(1350, 2250, 6000);  //TODO 时间适当调整
+        Thread.sleep(2000);
+    }
 
 
-	/**
+    /**
      * @return
      * @throws IOException
      */
@@ -1053,42 +1029,41 @@ public class AndroidDevice extends ModelL {
         }
     }
 
-	/**
-	 *
-	 * @param by
-	 * @param input
-	 */
-	public void search(By by, String input) throws InterruptedException, IOException, AdapterException.NoResponseException {
+    /**
+     * @param by
+     * @param input
+     */
+    public void search(By by, String input) throws InterruptedException, IOException, AdapterException.NoResponseException {
 
-		// 输入框输入关键词
-		driver.findElement(by).sendKeys(input);
+        // 输入框输入关键词
+        driver.findElement(by).sendKeys(input);
 
-		Thread.sleep(1000);
+        Thread.sleep(1000);
 
-		// 点击软键盘搜索
-		reliableTouch(1350, 2250, 4000L, 0);
-	}
+        // 点击软键盘搜索
+//		reliableTouch(1350, 2250, 4000L, 0);
+        touch(1350, 2250, 4000);
+    }
 
-	/**
-	 *
-	 * @param by
-	 * @param input
-	 * @param x1
-	 * @param y1
-	 * @param x2
-	 * @param y2
-	 * @return
-	 * @throws InterruptedException
-	 * @throws IOException
-	 */
-	public List<OCRParser.TouchableTextArea> searchAndGetResult(By by, String input, int x1, int y1, int x2, int y2) throws InterruptedException, IOException, AdapterException.NoResponseException {
+    /**
+     * @param by
+     * @param input
+     * @param x1
+     * @param y1
+     * @param x2
+     * @param y2
+     * @return
+     * @throws InterruptedException
+     * @throws IOException
+     */
+    public List<OCRParser.TouchableTextArea> searchAndGetResult(By by, String input, int x1, int y1, int x2, int y2) throws InterruptedException, IOException, AdapterException.NoResponseException {
 
-		search(by, input);
+        search(by, input);
 
-		List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(screenshot(), x1, y1, x2, y2);
+        List<OCRParser.TouchableTextArea> textAreas = OCRClient.getInstance().getTextBlockArea(screenshot(), x1, y1, x2, y2);
 
-		return textAreas;
-	}
+        return textAreas;
+    }
 
     public List<AndroidElement> searchAndGetResult2(By by, String input, int x1, int y1, int x2, int y2) throws InterruptedException, IOException, AdapterException.NoResponseException {
 
@@ -1096,8 +1071,8 @@ public class AndroidDevice extends ModelL {
 
         List<AndroidElement> els = new ArrayList<>();
 
-        for(AndroidElement ae : driver.findElements(By.className("android.widget.TextView"))) {
-            if(ae.getRect().x < x1 || ae.getRect().y < y1 || ae.getRect().x + ae.getRect().width > x2 || ae.getRect().y + ae.getRect().height > y2 ) {
+        for (AndroidElement ae : driver.findElements(By.className("android.widget.TextView"))) {
+            if (ae.getRect().x < x1 || ae.getRect().y < y1 || ae.getRect().x + ae.getRect().width > x2 || ae.getRect().y + ae.getRect().height > y2) {
 
             } else {
                 els.add(ae);
@@ -1107,25 +1082,24 @@ public class AndroidDevice extends ModelL {
         return els;
     }
 
-	/**
-	 *
-	 * @param areas
-	 * @param text
-	 * @return
-	 */
-	public boolean checkContent(List<OCRParser.TouchableTextArea> areas, String... text) {
-		for(OCRParser.TouchableTextArea area : areas) {
-			for(String t : text) {
-				if(area.content.contains(t)) return true;
-			}
-		}
-		return false;
-	}
+    /**
+     * @param areas
+     * @param text
+     * @return
+     */
+    public boolean checkContent(List<OCRParser.TouchableTextArea> areas, String... text) {
+        for (OCRParser.TouchableTextArea area : areas) {
+            for (String t : text) {
+                if (area.content.contains(t)) return true;
+            }
+        }
+        return false;
+    }
 
     public boolean checkContent2(List<AndroidElement> els, String... text) {
-        for(AndroidElement el : els) {
-            for(String t : text) {
-                if(el.getText().contains(t)) return true;
+        for (AndroidElement el : els) {
+            for (String t : text) {
+                if (el.getText().contains(t)) return true;
             }
         }
         return false;
@@ -1225,33 +1199,33 @@ public class AndroidDevice extends ModelL {
 
         if (callbacks == null) return;
 
-		ListenableFuture<Boolean> future = AndroidDeviceManager.getInstance().executorService.submit((Callable<Boolean>) () -> {
+        ListenableFuture<Boolean> future = AndroidDeviceManager.getInstance().executorService.submit((Callable<Boolean>) () -> {
 
-			for (AndroidDeviceCallBack callback : callbacks) {
-				callback.call(this);
-			}
+            for (AndroidDeviceCallBack callback : callbacks) {
+                callback.call(this);
+            }
 
-			return true;
-		});
+            return true;
+        });
 
-		Futures.addCallback(future, new FutureCallback<Boolean>() {
+        Futures.addCallback(future, new FutureCallback<Boolean>() {
 
-			public void onSuccess(Boolean result) {
-				logger.info("Callbacks run success[{}]", result);
-			}
+            public void onSuccess(Boolean result) {
+                logger.info("Callbacks run success[{}]", result);
+            }
 
-			public void onFailure(Throwable thrown) {
-				logger.error("Callbacks run failed, ", thrown);
-			}
+            public void onFailure(Throwable thrown) {
+                logger.error("Callbacks run failed, ", thrown);
+            }
 
-		}, AndroidDeviceManager.getInstance().executorService);
+        }, AndroidDeviceManager.getInstance().executorService);
 
     }
 
-	/**
-	 *
-	 */
-	public static class JSONableFlagListPersister extends StringType {
+    /**
+     *
+     */
+    public static class JSONableFlagListPersister extends StringType {
 
         private static final JSONableFlagListPersister INSTANCE = new JSONableFlagListPersister();
 
@@ -1269,7 +1243,8 @@ public class AndroidDevice extends ModelL {
         }
 
         public Object sqlArgToJava(FieldType fieldType, Object sqlArg, int columnPos) {
-            Type type = (new TypeToken<List<Flag>>() {}).getType();
+            Type type = (new TypeToken<List<Flag>>() {
+            }).getType();
             List<Flag> list = (List) JSON.fromJson((String) sqlArg, type);
             return sqlArg != null ? list : null;
         }

@@ -74,4 +74,11 @@ public class StringTest {
 
         packages.forEach(System.out::println);
     }
+    @Test
+    public void testSplit2() {
+        String[] result = "ZX1G22MMSQ-9".split("-");
+        System.out.println(result[0]);
+        System.out.println(result[1]);
+    }
+
 }

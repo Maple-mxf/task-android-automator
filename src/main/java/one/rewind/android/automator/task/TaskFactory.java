@@ -9,6 +9,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Constructor;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -48,7 +50,10 @@ public class TaskFactory {
 
             // A2 检验设备是否存在
             if (StringUtils.isNotBlank(holder.udid)) {
-                if (!AndroidDeviceManager.getInstance().deviceTaskMap.containsKey(holder.udid)) return null;
+                
+                List<String> udids = AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().map(t -> t.udid).collect(Collectors.toList());
+
+                if (!udids.contains(holder.udid)) return null;
             }
 
             // A3 检验账号是否存在
@@ -66,7 +71,7 @@ public class TaskFactory {
             Constructor<?> cons = clazz.getConstructor(TaskHolder.class, String[].class);
 
             String[] params = null;
-            if(holder.params != null)
+            if (holder.params != null)
                 params = holder.params.toArray(new String[holder.params.size()]);
 
             task = (Task) cons.newInstance(holder, params);

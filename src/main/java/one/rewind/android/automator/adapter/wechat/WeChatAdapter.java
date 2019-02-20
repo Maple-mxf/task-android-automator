@@ -403,7 +403,7 @@ public class WeChatAdapter extends Adapter {
         // 点右上三个点图标
         // x=1342 y=168
         device.touch(1342, 168, 2000);
-        // device.driver.findElementByClassName("android.widget.ImageButton").click();
+//        device.driver.findElementByClassName("android.widget.ImageButton").click();
 
         // 点更多资料
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更多资料')]")).click();
@@ -516,9 +516,10 @@ public class WeChatAdapter extends Adapter {
 
         try {
 
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+            // TODO  为何点击不了？
+//            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
 
-            Thread.sleep(5000);
+            device.touch(702, 1277, 3000);
 
             this.status = Status.PublicAccount_Conversation;
         }
@@ -1533,7 +1534,7 @@ public class WeChatAdapter extends Adapter {
      * @throws AdapterException.NoResponseException
      * @throws AdapterException.IllegalStateException
      */
-    public void handUpdateTip() throws IOException, InterruptedException, SearchPublicAccountFrozenException, GetPublicAccountEssayListFrozenException, AdapterException.NoResponseException, AdapterException.IllegalStateException {
+    public void handUpdateTip() throws IOException, InterruptedException, AdapterException.IllegalStateException {
 
         if (this.status != Status.Home) throw new AdapterException.IllegalStateException(this);
 

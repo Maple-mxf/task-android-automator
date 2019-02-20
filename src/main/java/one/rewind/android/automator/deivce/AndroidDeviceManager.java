@@ -76,7 +76,7 @@ public class AndroidDeviceManager {
         executor.setThreadFactory(new ThreadFactoryBuilder()
                 .setNameFormat("ADM-%d").build());
 
-		executorService = MoreExecutors.listeningDecorator(executor);
+        executorService = MoreExecutors.listeningDecorator(executor);
 
         // TODO 需要先执行 adb
     }
@@ -151,8 +151,7 @@ public class AndroidDeviceManager {
                         ad.status = AndroidDevice.Status.Failed;
                         ad.update();
                     }
-                }
-                else {
+                } else {
 
                     cons = clazz.getConstructor(AndroidDevice.class);
                     cons.newInstance(ad);
@@ -174,9 +173,7 @@ public class AndroidDeviceManager {
             });
 
             // 添加 idle 回掉方法 获取执行任务
-            ad.addIdleCallback((d) -> {
-            	assign(d);
-			});
+            ad.addIdleCallback(this::assign);
         }
     }
 
@@ -196,7 +193,7 @@ public class AndroidDeviceManager {
             Task task = deviceTaskMap.get(device).take();
 
             logger.info("[{}] take Task[{}] from queue", device.udid, task.getInfo());
-            
+
             // 提交任务
             ad.submit(task);
         }
@@ -215,22 +212,21 @@ public class AndroidDeviceManager {
         String adapterClassName = task.h.adapter_class_name;
         if (StringUtils.isBlank(adapterClassName)) throw new TaskException.IllegalParameters();
 
-        AndroidDevice device = null;
+        AndroidDevice device;
 
         // A 指定 account_id
         if (task.h.account_id != 0) {
-            device = deviceTaskMap.keySet().stream()
+            List<AndroidDevice> tmpDevices = deviceTaskMap.keySet().stream()
                     .filter(d -> {
                         Adapter adapter = d.adapters.get(adapterClassName);
                         if (adapter == null) return false;
                         if (adapter.account == null) return false;
-                        if (adapter.account.id == task.h.account_id) return true;
-                        return false;
+                        return adapter.account.id == task.h.account_id;
                     })
-                    .collect(Collectors.toList())
-                    .get(0);
+                    .collect(Collectors.toList());
+            if (tmpDevices.size() == 0) throw new AccountException.AccountNotLoad(task.h.account_id);
 
-            if (device == null) throw new AccountException.AccountNotLoad(task.h.account_id);
+            device = tmpDevices.get(0);
         }
         // B 指定udid
         else if (task.h.udid != null) {
