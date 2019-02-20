@@ -40,6 +40,11 @@ public class DingdingAdapter extends Adapter {
 	}
 
 
+	@Override
+	public void switchAccount(Account account) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, SQLException, DBInitException {
+
+	}
+
 	/**
 	 * 导出所有钉钉的联系人，半自动
 	 *

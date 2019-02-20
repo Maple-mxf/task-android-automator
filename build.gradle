@@ -57,29 +57,14 @@ dependencies {
 
     compile 'com.github.vidstige:jadb:v1.0.1'
 
-    compile 'one.rewind:raw-data:1.0.66-SNAPSHOT'
+    compile 'one.rewind:raw-data:1.0.67-SNAPSHOT'
 
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.12.0'
 
     compile group: 'com.dw', name: 'ocr-service', version: '0.1.9-SNAPSHOT'
 }
 
-task copyFiles() << {
-    copy {
-        from 'ca.crt'
-        into 'src/main/dist'
-    }
-    copy {
-        from 'pk.crt'
-        into 'src/main/dist'
-    }
-    copy {
-        from fileTree('src/main/resources')
-        into 'src/main/dist'
-    }
-}
 
-jar.dependsOn copyFiles
 
 test {
     useJUnitPlatform()

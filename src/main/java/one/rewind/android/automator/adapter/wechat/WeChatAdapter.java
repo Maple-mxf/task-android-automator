@@ -243,7 +243,7 @@ public class WeChatAdapter extends Adapter {
 
         // 从首页点搜索按钮
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]")).click();
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         this.status = Status.Search;
     }
 
@@ -260,7 +260,7 @@ public class WeChatAdapter extends Adapter {
         // 在搜索页点公众号
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
 
-        Thread.sleep(3000);
+        Thread.sleep(5000);
 
         this.status = Status.SearchPublicAccount;
     }
@@ -284,6 +284,8 @@ public class WeChatAdapter extends Adapter {
         if (areaList.size() == 0) {
             throw new MediaException.NotFound(media_nick);
         }
+
+        logger.info("Search media ocr result, ", areaList.toString());
 
         // 识别是否被限流
         if (device.checkContent(areaList, "微信没有响应")) throw new AdapterException.NoResponseException();
@@ -515,11 +517,12 @@ public class WeChatAdapter extends Adapter {
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
         try {
-
             // TODO  为何点击不了？
-//            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
 
-            device.touch(702, 1277, 3000);
+            Thread.sleep(5000);
+
+//            device.touch(702, 1277, 3000);
 
             this.status = Status.PublicAccount_Conversation;
         }
@@ -530,6 +533,7 @@ public class WeChatAdapter extends Adapter {
 
         // 返回到公众号主页
         device.goBack();
+        Thread.sleep(1000);
 
         this.status = Status.PublicAccount_Home;
     }
@@ -604,8 +608,6 @@ public class WeChatAdapter extends Adapter {
             // D 递归调用
             unsubscribePublicAccount();
         }
-
-
     }
 
 
@@ -1508,6 +1510,31 @@ public class WeChatAdapter extends Adapter {
 
                 // B 获取账号  TODO 当前Account为空？
                 this.account = Account.getAccount(device.udid, getClass().getName(), Arrays.asList(statuses));
+
+                // C 登录账号  TODO 登录账号需要改变当前类的Account
+                login();
+
+            } catch (AccountException.Broken broken) {
+
+                logger.warn("[{}] account broken, ", getInfo(), account.id, broken);
+                account.status = Account.Status.Broken;
+                account.update();
+                switchAccount();
+            }
+        } else {
+            throw new AccountException.NoAvailableAccount();
+        }
+    }
+
+    @Override
+    public void switchAccount(Account account) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, SQLException, DBInitException {
+        if (account != null) {
+            try {
+                // A 退出登录
+                logout();
+
+                // B 获取账号  TODO 当前Account为空？
+                this.account = account;
 
                 // C 登录账号  TODO 登录账号需要改变当前类的Account
                 login();

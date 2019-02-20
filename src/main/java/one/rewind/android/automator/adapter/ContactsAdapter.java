@@ -33,6 +33,11 @@ public class ContactsAdapter extends Adapter {
 	}
 
 	@Override
+	public void switchAccount(Account account) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, SQLException, DBInitException {
+
+	}
+
+	@Override
 	public void switchAccount(Account.Status... statuses) throws InterruptedException, AdapterException.LoginScriptError, AccountException.NoAvailableAccount, DBInitException, SQLException {
 
 	}
