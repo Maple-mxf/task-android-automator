@@ -7,7 +7,10 @@ import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
-import one.rewind.android.automator.adapter.wechat.task.*;
+import one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask1;
+import one.rewind.android.automator.adapter.wechat.task.GetSelfSubscribeMediaTask;
+import one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask;
+import one.rewind.android.automator.adapter.wechat.task.UnsubscribeMediaTask;
 import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AccountException;
@@ -19,7 +22,6 @@ import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.db.Daos;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
-import one.rewind.db.model.Model;
 import one.rewind.txt.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +33,10 @@ import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -47,10 +52,19 @@ public class WeChatAdapterTaskTest {
     @Before
     public void initAndroidDeviceManager() throws Exception {
 
-        Model.getAll(Account.class).forEach(a -> {
+        Account.getAll(Account.class).forEach(a -> {
             a.occupied = false;
             try {
                 a.update();
+            } catch (DBInitException | SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        AndroidDevice.getAll(AndroidDevice.class).forEach(ad -> {
+            ad.status = AndroidDevice.Status.New;
+            try {
+                ad.update();
             } catch (DBInitException | SQLException e) {
                 e.printStackTrace();
             }
@@ -110,6 +124,23 @@ public class WeChatAdapterTaskTest {
                 ));
 
         Thread.sleep(10000000);
+    }
+
+    @Test
+    public void testMultiSubscribeMedia2() throws InterruptedException, DBInitException, SQLException, AccountException.AccountNotLoad, AndroidException.NoAvailableDevice, TaskException.IllegalParameters {
+
+    	List<String> udids = Arrays.asList("ZX1G426B3V", "ZX1G22MMSQ", "ZX1G227PZ7");
+
+		List<String> pa_nicks = Arrays.asList("黄生看金融");
+
+		for(String udid : udids) {
+			for(String nick : pa_nicks) {
+				TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList(nick));
+				AndroidDeviceManager.getInstance().submit(TaskFactory.getInstance().generateTask(holder));
+			}
+		}
+
+        Thread.sleep(1000000000);
     }
 
 

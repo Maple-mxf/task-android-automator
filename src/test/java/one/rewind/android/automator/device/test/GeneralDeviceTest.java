@@ -5,9 +5,7 @@ import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.deivce.AndroidUtil;
 import one.rewind.db.exception.DBInitException;
-import one.rewind.db.model.Model;
 import one.rewind.util.FileUtil;
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.openqa.selenium.By;
 import se.vidstige.jadb.JadbException;
@@ -42,6 +40,13 @@ public class GeneralDeviceTest {
         device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'取消')]")).click();
     }
 
+    @Test
+    public void testInstallApk() throws IOException, JadbException {
+
+        AndroidUtil.installApk("ZX1G426B3V", "tmp/weixin667android1320.apk");
+
+    }
+
     /**
      *
      * @throws Exception
@@ -69,19 +74,34 @@ public class GeneralDeviceTest {
 
         AndroidDeviceManager.getInstance().detectDevices();
 
-        Thread.sleep(60000);
+        Thread.sleep(0);
 
-        /*AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().forEach(
-                ad -> {
-                    try {
-                        byte[] screen = ad.screenshot();
-                        FileUtil.writeBytesToFile(screen, "tmp/screen/" + ad.udid + ".png");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().forEach(
+            ad -> {
+                try {
+                    byte[] screen = ad.screenshot();
+                    FileUtil.writeBytesToFile(screen, "tmp/screenshots/" + ad.udid + ".png");
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-        );*/
+            }
+        );
 
+
+        /*for(AndroidDevice ad : AndroidDeviceManager.getInstance().deviceTaskMap.keySet()) {
+
+            System.err.println(ad.driver.getCapabilities());
+
+            if(ad.udid.equals("ZX1G426B3V")) {
+
+                ad.driver.navigate().back();
+            }
+            else {
+                ad.touch(720, 720, 1000);
+                byte[] screen = ad.screenshot();
+                FileUtil.writeBytesToFile(screen, "tmp/screenshots/" + ad.udid + ".png");
+            }
+        }*/
 
     }
 }

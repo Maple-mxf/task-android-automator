@@ -116,7 +116,7 @@ public class AndroidDeviceManager {
         // B 加载默认的Adapters
         for (AndroidDevice ad : devices) {
 
-            /*for (String className : DefaultAdapterClassNameList) {
+            for (String className : DefaultAdapterClassNameList) {
 
                 Class<?> clazz = Class.forName(className);
 
@@ -161,10 +161,22 @@ public class AndroidDeviceManager {
 
             // 添加到容器中 并添加队列
             deviceTaskMap.put(ad, new LinkedBlockingQueue<>());
-            logger.info("Add Device:[{}] to device container", ad.udid);*/
+            logger.info("Add Device:[{}] to device container", ad.udid);
+
+            ad.addIdleCallback(AndroidDeviceManager.this::assign);
 
             // 设备INIT
-            executor.submit(() -> {
+            try {
+
+                logger.info("Try to start Device:[{}]", ad.udid);
+
+                ad.start();
+
+            } catch (AndroidException.IllegalStatusException | SQLException | DBInitException e) {
+                logger.error("Unable to start Device:[{}]", ad.udid, e);
+            }
+
+            /*executor.submit(() -> {
                 try {
 
                     logger.info("Try to start Device:[{}]", ad.udid);
@@ -174,10 +186,10 @@ public class AndroidDeviceManager {
                 } catch (AndroidException.IllegalStatusException | SQLException | DBInitException e) {
                     logger.error("Unable to start Device:[{}]", ad.udid, e);
                 }
-            });
+            });*/
 
             // 添加 idle 回掉方法 获取执行任务
-            /*ad.addIdleCallback(AndroidDeviceManager.this::assign);*/
+
         }
     }
 
