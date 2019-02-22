@@ -247,6 +247,27 @@ public class RedissonTest {
         return udids;
     }
 
+
+    // ZX1G423DMM-3  ZX1G426B3V-2
+    // ZX1G423DMM-41 ZX1G426B3V-13
+    @Test
+    public void test0() {
+        RedissonClient redisClient = RedissonAdapter.redisson;
+        RQueue<String> queue1 = redisClient.getQueue("ZX1G423DMM-3");
+        RQueue<String> queue2 = redisClient.getQueue("ZX1G426B3V-2");
+
+        queue1.clear();
+        queue2.clear();
+
+        RQueue<String> queue13 = redisClient.getQueue("ZX1G423DMM-41");
+        RQueue<String> queue23 = redisClient.getQueue("ZX1G426B3V-13");
+
+
+        queue1.addAll(queue13);
+        queue2.addAll(queue23);
+
+
+    }
 }
 
 

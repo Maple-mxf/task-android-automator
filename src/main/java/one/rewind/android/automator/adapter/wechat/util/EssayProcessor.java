@@ -380,6 +380,7 @@ public class EssayProcessor implements Runnable {
         return f_id;
     }
 
+
     /**
      * 解析文章内容
      *
@@ -848,11 +849,16 @@ public class EssayProcessor implements Runnable {
 
             addNextTaskGenerator((t, nts) -> {
 
-                String f_id = ep.parseFid(t.getResponse().getText(), nts, t.getStringFromVars("cover"));
+                String source = t.getResponse().getText();
 
-                Essay essay = parseContent(t.getResponse().getText(), f_id, t.getStringFromVars("cover"));
 
-                Author author = parseAuthor(t.getResponse().getText());
+                String f_id = ep.parseFid(source, nts, t.getStringFromVars("cover"));
+
+                Essay essay = parseContent(source, f_id, t.getStringFromVars("cover"));
+
+                System.err.println(essay);
+
+                Author author = parseAuthor(source);
 
                 if (essay != null) {
 
@@ -882,9 +888,7 @@ public class EssayProcessor implements Runnable {
 
         static {
 
-            /**
-             * 注册 获取文章统计信息 任务
-             */
+            // 注册 获取文章统计信息 任务
             Map<String, String> paramTypes1 = Maps.newHashMap();
             paramTypes1.put("uin", "String"); // ?
             paramTypes1.put("key", "String"); // ?
@@ -936,12 +940,13 @@ public class EssayProcessor implements Runnable {
 
                 Essay essay = Model.getById(Essay.class, getStringFromVars("essay_id"));
                 if (essay != null) {
-                    ep.parseStat(essay, t.getResponse().getText());
+
+                    parseStat(essay, t.getResponse().getText());
                     essay.update();
 
                     if (essay.author_id != null && essay.author_id.length() > 0) {
                         Author author = Model.getById(Author.class, essay.author_id);
-                        ep.parseAvatar(author, t.getResponse().getText());
+                        parseAvatar(author, t.getResponse().getText());
                         author.update();
                     }
 
@@ -962,9 +967,7 @@ public class EssayProcessor implements Runnable {
 
         static {
 
-            /**
-             * 注册 获取文章评论 任务
-             */
+            // 注册 获取文章评论 任务
             Map<String, String> paramTypes2 = Maps.newHashMap();
             paramTypes2.put("biz_e1", "String");
             paramTypes2.put("appmsgid", "String");
@@ -1007,7 +1010,7 @@ public class EssayProcessor implements Runnable {
 
                 /*System.out.println(t.getResponse().getText());*/
 
-                ep.parseComments(Comment.FType.Essay, getStringFromVars("essay_id"), t.getResponse().getText())
+                parseComments(Comment.FType.Essay, getStringFromVars("essay_id"), t.getResponse().getText())
                         .forEach(comment -> {
                             try {
                                 logger.info(comment.toJSON());

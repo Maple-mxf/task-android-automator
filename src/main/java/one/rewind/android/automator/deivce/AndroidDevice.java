@@ -297,7 +297,7 @@ public class AndroidDevice extends ModelL {
 
         try {
             adapter.start();
-//            adapter.checkAccount();
+//            adapter.checkAccount();  TODO   是否有必要检查账号？
             logger.info("[{}] started", adapter.getInfo());
 
         } catch (AccountException.Broken broken) {
@@ -338,6 +338,7 @@ public class AndroidDevice extends ModelL {
                 logger.info("[{}] INIT done", udid);
                 // 执行状态回调函数
                 runCallbacks(idleCallbacks);
+                logger.info("idleCallbacks size[{}] ", idleCallbacks.size());
                 return initSuccess;
             } else {
                 status = Status.Failed;
@@ -553,7 +554,15 @@ public class AndroidDevice extends ModelL {
      * @param task
      * @throws AndroidException.IllegalStatusException
      */
-    public synchronized void submit(Task task) throws AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
+    public void submit(Task task) throws
+            AndroidException.IllegalStatusException,
+            DBInitException,
+            SQLException,
+            AndroidException.NoSuitableAdapter,
+            InterruptedException,
+            AndroidException.NoAvailableDevice,
+            TaskException.IllegalParameters,
+            AccountException.AccountNotLoad {
 
         if (!(status == Status.Idle)) {
             throw new AndroidException.IllegalStatusException();
@@ -790,6 +799,7 @@ public class AndroidDevice extends ModelL {
                 }
             }
 
+            // 执行空闲回调
             if (status == Status.Idle) {
                 runCallbacks(idleCallbacks);
             }
@@ -1008,7 +1018,7 @@ public class AndroidDevice extends ModelL {
      * @throws IOException
      */
     public byte[] screenshot() throws IOException {
-
+        logger.info("Device[{}], Driver HashCode[{}], Driver[{}] ", this, this.driver.hashCode(), this.driver.toString());
         return ((TakesScreenshot) this.driver).getScreenshotAs(OutputType.BYTES);
     }
 
@@ -1038,7 +1048,7 @@ public class AndroidDevice extends ModelL {
         // 输入框输入关键词
         driver.findElement(by).sendKeys(input);
 
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         // 点击软键盘搜索
 //		reliableTouch(1350, 2250, 4000L, 0);
@@ -1199,7 +1209,7 @@ public class AndroidDevice extends ModelL {
 
         if (callbacks == null) return;
 
-        ListenableFuture<Boolean> future = AndroidDeviceManager.getInstance().executorService.submit((Callable<Boolean>) () -> {
+        ListenableFuture<Boolean> future = AndroidDeviceManager.getInstance().executorService.submit(() -> {
 
             for (AndroidDeviceCallBack callback : callbacks) {
                 callback.call(this);
@@ -1208,6 +1218,7 @@ public class AndroidDevice extends ModelL {
             return true;
         });
 
+        /*Callbacks run failed, one.rewind.android.automator.exception.AndroidException$IllegalStatusException: null*/
         Futures.addCallback(future, new FutureCallback<Boolean>() {
 
             public void onSuccess(Boolean result) {

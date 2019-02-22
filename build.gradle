@@ -57,7 +57,7 @@ dependencies {
 
     compile 'com.github.vidstige:jadb:v1.0.1'
 
-    compile 'one.rewind:raw-data:1.0.67-SNAPSHOT'
+    compile 'one.rewind:raw-data:1.1.2-SNAPSHOT'
 
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.12.0'
 

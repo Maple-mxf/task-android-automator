@@ -39,7 +39,7 @@ public class TaskFactory {
      * @param holder
      * @return
      */
-    public Task generateTask(TaskHolder holder) {
+    public synchronized Task generateTask(TaskHolder holder) {
 
         Task task = null;
 
@@ -50,7 +50,7 @@ public class TaskFactory {
 
             // A2 检验设备是否存在
             if (StringUtils.isNotBlank(holder.udid)) {
-                
+
                 List<String> udids = AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().map(t -> t.udid).collect(Collectors.toList());
 
                 if (!udids.contains(holder.udid)) return null;

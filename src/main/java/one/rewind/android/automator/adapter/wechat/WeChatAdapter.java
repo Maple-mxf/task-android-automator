@@ -25,6 +25,7 @@ import one.rewind.data.raw.model.Platform;
 import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.txt.NumberFormatUtil;
+import one.rewind.util.FileUtil;
 import org.openqa.selenium.*;
 import org.openqa.selenium.NoSuchElementException;
 
@@ -101,7 +102,7 @@ public class WeChatAdapter extends Adapter {
             AccountException.Broken,
             AdapterException.LoginScriptError {
 
-        Thread.sleep(5000);
+        Thread.sleep(8000);
 
         // 判断是否有更新提示
         try {
@@ -184,6 +185,8 @@ public class WeChatAdapter extends Adapter {
 
         try {
 
+            Thread.sleep(5000);
+
             device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'微信')]")).click();
 
             return true;
@@ -241,7 +244,14 @@ public class WeChatAdapter extends Adapter {
         if (this.status != Status.Home)
             throw new AdapterException.IllegalStateException(this);
 
-        // 从首页点搜索按钮
+        try {
+            FileUtil.writeBytesToFile(device.screenshot(), "tmp/" + device.udid + ".png");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 从首页点搜索按钮 TODO 多个Device可能在公用了一个Driver
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@content-desc,'搜索')]")).click();
         Thread.sleep(2000);
         this.status = Status.Search;
@@ -260,7 +270,7 @@ public class WeChatAdapter extends Adapter {
         // 在搜索页点公众号
         device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'公众号')]")).click();
 
-        Thread.sleep(5000);
+        Thread.sleep(8000);
 
         this.status = Status.SearchPublicAccount;
     }
@@ -532,8 +542,9 @@ public class WeChatAdapter extends Adapter {
         }
 
         // 返回到公众号主页
-        device.goBack();
-        Thread.sleep(1000);
+        device.driver.findElement(By.xpath("//android.widget.ImageButton[contains(@content-desc,'聊天信息')]")).click();
+
+        Thread.sleep(2000);
 
         this.status = Status.PublicAccount_Home;
     }
@@ -1548,43 +1559,6 @@ public class WeChatAdapter extends Adapter {
             }
         } else {
             throw new AccountException.NoAvailableAccount();
-        }
-    }
-
-    /**
-     * 判断首页是否存在更新提示    Adapter的Home状态回调函数
-     *
-     * @throws IOException
-     * @throws InterruptedException
-     * @throws SearchPublicAccountFrozenException
-     * @throws GetPublicAccountEssayListFrozenException
-     * @throws AdapterException.NoResponseException
-     * @throws AdapterException.IllegalStateException
-     */
-    public void handUpdateTip() throws IOException, InterruptedException, AdapterException.IllegalStateException {
-
-        if (this.status != Status.Home) throw new AdapterException.IllegalStateException(this);
-
-        boolean hasUpdateTipWindow = false;
-
-        OCRParser.TouchableTextArea cellButtonArea = null;
-
-        List<OCRParser.TouchableTextArea> textAreaList = OCRClient.getInstance().getTextBlockArea(device.screenshot(), 0, 0, 1056, 2550);
-
-        for (OCRParser.TouchableTextArea area : textAreaList) {
-            if (area.content.contains("下载安装")) {
-                hasUpdateTipWindow = true;
-            }
-            if (hasUpdateTipWindow) {
-                if (area.content.contains("取消")) {
-                    cellButtonArea = area;
-                }
-            }
-        }
-
-        // B 点击取消
-        if (cellButtonArea != null) {
-            device.touch(cellButtonArea.left, cellButtonArea.top, 500);
         }
     }
 }

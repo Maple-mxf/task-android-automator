@@ -142,6 +142,7 @@ public class AndroidDeviceManager {
 
                     if (account != null) {
 
+                        // 在new的时候就已经把自身添加到AndroidDevice中了
                         cons.newInstance(ad, account);
                     }
                     // 找不到账号，对应设备无法启动
@@ -165,15 +166,18 @@ public class AndroidDeviceManager {
             // 设备INIT
             executor.submit(() -> {
                 try {
+
                     logger.info("Try to start Device:[{}]", ad.udid);
+
                     ad.start();
+
                 } catch (AndroidException.IllegalStatusException | SQLException | DBInitException e) {
                     logger.error("Unable to start Device:[{}]", ad.udid, e);
                 }
             });
 
             // 添加 idle 回掉方法 获取执行任务
-            ad.addIdleCallback(this::assign);
+            ad.addIdleCallback(AndroidDeviceManager.this::assign);
         }
     }
 
@@ -184,7 +188,15 @@ public class AndroidDeviceManager {
      * @throws InterruptedException
      * @throws AndroidException.IllegalStatusException
      */
-    private void assign(AndroidDevice ad) throws InterruptedException, AndroidException.IllegalStatusException, DBInitException, SQLException, AndroidException.NoSuitableAdapter, AccountException.AccountNotLoad, TaskException.IllegalParameters, AndroidException.NoAvailableDevice {
+    private void assign(AndroidDevice ad) throws
+            InterruptedException,
+            AndroidException.IllegalStatusException,
+            DBInitException,
+            SQLException,
+            AndroidException.NoSuitableAdapter,
+            AccountException.AccountNotLoad,
+            TaskException.IllegalParameters,
+            AndroidException.NoAvailableDevice {
 
         AndroidDevice device = deviceTaskMap.keySet().stream().filter(d -> d.udid.equals(ad.udid)).findFirst().orElse(null);
 
@@ -236,7 +248,8 @@ public class AndroidDeviceManager {
                     .collect(Collectors.toList())
                     .get(0);
 
-            if (device != null && !device.adapters.containsKey(adapterClassName)) device = null;
+            if (device != null && !device.adapters.containsKey(adapterClassName))
+                device = null;
 
             if (device == null) throw new AndroidException.NoAvailableDevice();
         }

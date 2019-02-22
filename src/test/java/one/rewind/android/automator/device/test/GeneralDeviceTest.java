@@ -52,6 +52,6 @@ public class GeneralDeviceTest {
      * @throws JadbException
      */
     public static void main(String[] args) throws IOException, JadbException {
-        testRemoveWifiProxy("");
+        testRemoveWifiProxy("ZX1G426B3V");
     }
 }

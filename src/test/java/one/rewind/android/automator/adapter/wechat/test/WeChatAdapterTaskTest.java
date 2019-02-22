@@ -6,10 +6,8 @@ import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
-import one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask;
-import one.rewind.android.automator.adapter.wechat.task.GetSelfSubscribeMediaTask;
-import one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask;
-import one.rewind.android.automator.adapter.wechat.task.UnsubscribeMediaTask;
+import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
+import one.rewind.android.automator.adapter.wechat.task.*;
 import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AccountException;
@@ -23,12 +21,12 @@ import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.Model;
 import one.rewind.txt.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-import org.redisson.api.RList;
 import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 
@@ -103,15 +101,13 @@ public class WeChatAdapterTaskTest {
     @Test
     public void testSubscribeAndGetEssays() throws InterruptedException, AndroidException.NoAvailableDevice, TaskException.IllegalParameters, AccountException.AccountNotLoad {
 
-        TaskHolder holder = new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList("雷帝触网"));
-
-        Task task = TaskFactory.getInstance().generateTask(holder);
-
-        //AndroidDeviceManager.getInstance().submit(task);
-
         AndroidDeviceManager.getInstance().submit(
                 TaskFactory.getInstance().generateTask(
-                        new TaskHolder(StringUtil.uuid(), WeChatAdapter.class.getName(), GetMediaEssaysTask.class.getName(), Arrays.asList("雷帝触网"))));
+                        new TaskHolder(StringUtil.uuid(),
+                                WeChatAdapter.class.getName(),
+                                GetMediaEssaysTask1.class.getName(),
+                                Arrays.asList("寒飞论债"))
+                ));
 
         Thread.sleep(10000000);
     }
@@ -123,7 +119,12 @@ public class WeChatAdapterTaskTest {
     @Test
     public void testMultiSubscribeMedia() throws InterruptedException, DBInitException, SQLException {
 
-        String[] udids = AndroidDeviceManager.getAvailableDeviceUdids();
+        List<String> udids = AndroidDeviceManager.getInstance().deviceTaskMap
+                .keySet()
+                .stream()
+                .filter(d -> d.status != AndroidDevice.Status.Failed)
+                .map(d -> d.udid)
+                .collect(Collectors.toList());
 
         ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(100));
 
@@ -222,7 +223,7 @@ public class WeChatAdapterTaskTest {
             while (iterator.hasNext()) {
 
                 // 生成任务    <指定设备>  <指定账号>
-                TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), accountId, Arrays.asList(mediaQueue.poll()));
+                TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), accountId, Arrays.asList("黄生看金融"));
                 Task task = TaskFactory.getInstance().generateTask(holder);
 
                 // 任务提交
@@ -232,7 +233,7 @@ public class WeChatAdapterTaskTest {
 
                     count++;
 
-                    if (count == 20) {
+                    if (count == 1) {
                         return;
                     }
                 } catch (Exception e) {
@@ -242,6 +243,88 @@ public class WeChatAdapterTaskTest {
         }
     }
 
+
+    @Test
+    public void testGetEssaysTask() throws InterruptedException, DBInitException, SQLException {
+
+        AndroidDeviceManager deviceManager = AndroidDeviceManager.getInstance();
+
+        Dao<WechatAccountMediaSubscribe, String> accountMediaDao = Daos.get(WechatAccountMediaSubscribe.class);
+
+        List<AndroidDevice> devices = deviceManager.deviceTaskMap.keySet().stream().filter(d -> d.status != AndroidDevice.Status.Failed).collect(Collectors.toList());
+
+        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(devices.size() + 1));
+
+        for (AndroidDevice d : devices) {
+
+            Adapter adapter = d.adapters.get(WeChatAdapter.class.getName());
+
+            // 当前设备登录微信账号对应的公众号名称
+            List<WechatAccountMediaSubscribe> mediaList = accountMediaDao.queryBuilder()
+                    .where()
+                    .eq("account_id", adapter.account.id)
+                    .query();
+
+            ListenableFuture<Void> future = service.submit(new GetEssays(mediaList, d.udid, adapter.account.id));
+
+            Futures.addCallback(future, new FutureCallback<Void>() {
+                @Override
+                public void onSuccess(@Nullable Void result) {
+                    logger.info("Success submit task is success !");
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    logger.error("Error submit task is failure !, ", t);
+                }
+            }, service);
+        }
+
+        Thread.sleep(10000000);
+    }
+
+    /**
+     * 提交文章采集任务
+     */
+    class GetEssays implements Callable<Void> {
+
+        private List<WechatAccountMediaSubscribe> mediaList;
+
+        private String udid;
+
+        private int account_id;
+
+        GetEssays(List<WechatAccountMediaSubscribe> mediaList, String udid, int account_id) {
+
+            if (mediaList == null || StringUtils.isBlank(udid)) throw new NullPointerException();
+
+            this.mediaList = mediaList;
+
+            this.account_id = account_id;
+            this.udid = udid;
+        }
+
+        @Override
+        public Void call() throws Exception {
+
+            AndroidDeviceManager deviceManager = AndroidDeviceManager.getInstance();
+
+            for (WechatAccountMediaSubscribe var : mediaList) {
+
+                // 提交任务
+                deviceManager.submit(
+                        TaskFactory.getInstance().generateTask(
+                                new TaskHolder(StringUtil.uuid(),
+                                        udid,
+                                        WeChatAdapter.class.getName(),
+                                        GetMediaEssaysTask1.class.getName(),
+                                        account_id,
+                                        Arrays.asList(var.media_nick))
+                        ));
+            }
+            return null;
+        }
+    }
 
 }
 
