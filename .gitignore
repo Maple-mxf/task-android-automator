@@ -19,3 +19,12 @@ contacts.txt
 将删除 data/
 将删除 screen/
 将删除 src/test/resources/
+log/appium.log
+out/
+src/main/dist/
+src/test/resources/
+tmp/1.png
+tmp/ZX1G22MMSQ.png
+tmp/ZX1G426B3V.png
+tmp/media.txt
+tmp/wx/

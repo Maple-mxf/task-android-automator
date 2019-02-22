@@ -956,7 +956,7 @@ public class AndroidDevice extends ModelL {
 
         capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, udid);
 
-        // TODO 是否可以自动获取url?
+        /*// TODO 是否可以自动获取url?
         driver = new AndroidDriver(new URL("http://127.0.0.1:" + appiumPort + "/wd/hub"), capabilities);
         // driver.setLogLevel(Level.WARNING);
         Thread.sleep(15000);
@@ -965,7 +965,7 @@ public class AndroidDevice extends ModelL {
 
         // 设置宽高
         this.width = getWidth();
-        this.height = getHeight();
+        this.height = getHeight();*/
     }
 
     /**

@@ -2,6 +2,7 @@ package one.rewind.android.automator.ocr.test;
 
 import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.OCRParser;
+import com.google.common.io.Files;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.json.JSON;
 import one.rewind.util.FileUtil;
@@ -11,7 +12,6 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -39,6 +39,7 @@ public class OCRTest {
 		textAreas = Adapter.mergeForTitle(textAreas, 70);
 
 		System.err.println(JSON.toPrettyJson(textAreas));
+
 	}
 
 	public static void main(String[] args) throws IOException {

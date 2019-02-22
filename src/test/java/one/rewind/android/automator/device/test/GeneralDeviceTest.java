@@ -1,12 +1,19 @@
 package one.rewind.android.automator.device.test;
 
+import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.deivce.AndroidDevice;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.deivce.AndroidUtil;
+import one.rewind.db.exception.DBInitException;
+import one.rewind.db.model.Model;
+import one.rewind.util.FileUtil;
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.openqa.selenium.By;
 import se.vidstige.jadb.JadbException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * @author scisaga@gmail.com
@@ -35,23 +42,46 @@ public class GeneralDeviceTest {
         device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'取消')]")).click();
     }
 
-
-    public static void testRemoveWifiProxy(String udid) throws IOException, JadbException {
-        AndroidUtil.execShell(udid, "settings", "delete", "global", "http_proxy");
-        AndroidUtil.execShell(udid, "settings", "delete", "global", "global_http_proxy_host");
-        AndroidUtil.execShell(udid, "settings", "delete", "global", "global_http_proxy_port");
-        AndroidUtil.execShell(udid, "settings", "delete", "global", "https_proxy");
-        AndroidUtil.execShell(udid, "settings", "delete", "global", "global_https_proxy_host");
-        AndroidUtil.execShell(udid, "settings", "delete", "global", "global_https_proxy_port");
-    }
-
     /**
-     * 移除Wifi
-     * @param args
-     * @throws IOException
-     * @throws JadbException
+     *
+     * @throws Exception
      */
-    public static void main(String[] args) throws IOException, JadbException {
-        testRemoveWifiProxy("ZX1G426B3V");
+    @Test
+    public void multiDeviceTest() throws Exception {
+
+        Account.getAll(Account.class).forEach(a -> {
+            a.occupied = false;
+            try {
+                a.update();
+            } catch (DBInitException | SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        AndroidDevice.getAll(AndroidDevice.class).forEach(ad -> {
+            ad.status = AndroidDevice.Status.New;
+            try {
+                ad.update();
+            } catch (DBInitException | SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        AndroidDeviceManager.getInstance().detectDevices();
+
+        Thread.sleep(60000);
+
+        /*AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().forEach(
+                ad -> {
+                    try {
+                        byte[] screen = ad.screenshot();
+                        FileUtil.writeBytesToFile(screen, "tmp/screen/" + ad.udid + ".png");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+        );*/
+
+
     }
 }
