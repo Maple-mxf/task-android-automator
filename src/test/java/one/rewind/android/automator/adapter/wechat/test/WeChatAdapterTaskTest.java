@@ -23,7 +23,6 @@ import one.rewind.db.Daos;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.txt.StringUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -33,10 +32,7 @@ import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -127,18 +123,18 @@ public class WeChatAdapterTaskTest {
     }
 
     @Test
-    public void testMultiSubscribeMedia2() throws InterruptedException, DBInitException, SQLException, AccountException.AccountNotLoad, AndroidException.NoAvailableDevice, TaskException.IllegalParameters {
+    public void testMultiSubscribeMedia2() throws InterruptedException, AccountException.AccountNotLoad, AndroidException.NoAvailableDevice, TaskException.IllegalParameters {
 
-    	List<String> udids = Arrays.asList("ZX1G426B3V", "ZX1G22MMSQ", "ZX1G227PZ7");
+        List<String> udids = Arrays.asList("ZX1G426B3V", "ZX1G22MMSQ", "ZX1G227PZ7");
 
-		List<String> pa_nicks = Arrays.asList("黄生看金融");
+        List<String> pa_nicks = Arrays.asList("黄生看金融");
 
-		for(String udid : udids) {
-			for(String nick : pa_nicks) {
-				TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList(nick));
-				AndroidDeviceManager.getInstance().submit(TaskFactory.getInstance().generateTask(holder));
-			}
-		}
+        for (String udid : udids) {
+            for (String nick : pa_nicks) {
+                TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), Arrays.asList(nick));
+                AndroidDeviceManager.getInstance().submit(TaskFactory.getInstance().generateTask(holder));
+            }
+        }
 
         Thread.sleep(1000000000);
     }
@@ -148,20 +144,16 @@ public class WeChatAdapterTaskTest {
      * 测试订阅多个media
      */
     @Test
-    public void testMultiSubscribeMedia() throws InterruptedException, DBInitException, SQLException {
+    public void testMultiSubscribeMedia() throws InterruptedException {
+        Set<AndroidDevice> devices = AndroidDeviceManager.getInstance().deviceTaskMap.keySet();
 
-        List<String> udids = AndroidDeviceManager.getInstance().deviceTaskMap
-                .keySet()
-                .stream()
-                .filter(d -> d.status != AndroidDevice.Status.Failed)
-                .map(d -> d.udid)
-                .collect(Collectors.toList());
+        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10));
 
-        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(100));
+        for (AndroidDevice ad : devices) {
 
-        for (String udid : udids) {
+            Adapter adapter = ad.adapters.get(WeChatAdapter.class.getName());
 
-            ListenableFuture<Void> explosion = service.submit(new Subscriber(udid));
+            ListenableFuture<Void> explosion = service.submit(new Subscriber(ad.udid, adapter.account.id));
 
             Futures.addCallback(explosion,
                     new FutureCallback() {
@@ -192,58 +184,27 @@ public class WeChatAdapterTaskTest {
 
         private String udid;
 
-        public Subscriber(String udid) {
+        private int accountId;
+
+        public Subscriber(String udid, int accountId) {
             this.udid = udid;
+            this.accountId = accountId;
         }
 
         @Override
-        public Void call() throws Exception {
-
-            execute(this.udid);
-
+        public Void call() {
+            execute();
             return null;
         }
 
+        void execute() {
 
-        public void execute(String udid) throws DBInitException, SQLException {
+            String mediaQueueName = this.udid + "-" + this.accountId;
 
-            Dao<Account, String> accountDao = Daos.get(Account.class);
-
-            // 查询登录在当前设备的所有的账号ID
-            List<Integer> accountIds = accountDao.queryBuilder().where().eq("udid", udid).query().stream().map(t -> t.id).collect(Collectors.toList());
-
-            // 存储集合名称
-            List<String> collectionNames = Lists.newArrayList();
-
-            // 获取当前设备和账号对应的集合（存储需要订阅公众号）的名称
-            accountIds.forEach(id -> Optional.ofNullable(id).ifPresent(i -> collectionNames.add(udid + "-" + i)));
-
-            // 一次执行其中的每个任务
-            for (String m : collectionNames) {
-
-                // 获取账号ID  用于指定账号
-                int accountId = Integer.parseInt(m.replace(udid + "-", ""));
-
-                // 获取对应的Device
-                AndroidDevice d = AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().filter(t -> t.udid.equals(udid)).findFirst().orElse(null);
-                if (d == null) break;
-
-                // 获取对应的Adapter
-                Adapter adapter = d.adapters.get(WeChatAdapter.class.getName());
-                if (adapter.account.id != accountId) {
-                    break;
-                }
-
-                // 任务提交
-                submit(m, accountId);
-            }
-        }
-
-        private void submit(String m, int accountId) {
             RedissonClient redisClient = RedissonAdapter.redisson;
 
             // 获取当前对应的media队列
-            RQueue<String> mediaQueue = redisClient.getQueue(m);
+            RQueue<String> mediaQueue = redisClient.getQueue(mediaQueueName);
 
             // 迭代器遍历
             Iterator<String> iterator = mediaQueue.iterator();
@@ -254,17 +215,15 @@ public class WeChatAdapterTaskTest {
             while (iterator.hasNext()) {
 
                 // 生成任务    <指定设备>  <指定账号>
-                TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), accountId, Arrays.asList("黄生看金融"));
+                TaskHolder holder = new TaskHolder(StringUtil.uuid(), udid, WeChatAdapter.class.getName(), SubscribeMediaTask.class.getName(), accountId, Arrays.asList(mediaQueue.poll()));
                 Task task = TaskFactory.getInstance().generateTask(holder);
 
                 // 任务提交
                 try {
                     // 当前任务提交失败
                     AndroidDeviceManager.getInstance().submit(task);
-
                     count++;
-
-                    if (count == 1) {
+                    if (count == 30) {
                         return;
                     }
                 } catch (Exception e) {
@@ -272,6 +231,7 @@ public class WeChatAdapterTaskTest {
                 }
             }
         }
+
     }
 
 
@@ -284,8 +244,6 @@ public class WeChatAdapterTaskTest {
 
         List<AndroidDevice> devices = deviceManager.deviceTaskMap.keySet().stream().filter(d -> d.status != AndroidDevice.Status.Failed).collect(Collectors.toList());
 
-        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(devices.size() + 1));
-
         for (AndroidDevice d : devices) {
 
             Adapter adapter = d.adapters.get(WeChatAdapter.class.getName());
@@ -295,68 +253,24 @@ public class WeChatAdapterTaskTest {
                     .where()
                     .eq("account_id", adapter.account.id)
                     .query();
-
-            ListenableFuture<Void> future = service.submit(new GetEssays(mediaList, d.udid, adapter.account.id));
-
-            Futures.addCallback(future, new FutureCallback<Void>() {
-                @Override
-                public void onSuccess(@Nullable Void result) {
-                    logger.info("Success submit task is success !");
+            for (WechatAccountMediaSubscribe var : mediaList) {
+                try {
+                    // 提交任务
+                    deviceManager.submit(
+                            TaskFactory.getInstance().generateTask(
+                                    new TaskHolder(StringUtil.uuid(),
+                                            d.udid,
+                                            WeChatAdapter.class.getName(),
+                                            GetMediaEssaysTask1.class.getName(),
+                                            Arrays.asList(var.media_nick))
+                            ));
+                } catch (Exception e) {
+                    logger.error("Error submit task failure!");
                 }
-
-                @Override
-                public void onFailure(Throwable t) {
-                    logger.error("Error submit task is failure !, ", t);
-                }
-            }, service);
+            }
         }
-
         Thread.sleep(10000000);
     }
-
-    /**
-     * 提交文章采集任务
-     */
-    class GetEssays implements Callable<Void> {
-
-        private List<WechatAccountMediaSubscribe> mediaList;
-
-        private String udid;
-
-        private int account_id;
-
-        GetEssays(List<WechatAccountMediaSubscribe> mediaList, String udid, int account_id) {
-
-            if (mediaList == null || StringUtils.isBlank(udid)) throw new NullPointerException();
-
-            this.mediaList = mediaList;
-
-            this.account_id = account_id;
-            this.udid = udid;
-        }
-
-        @Override
-        public Void call() throws Exception {
-
-            AndroidDeviceManager deviceManager = AndroidDeviceManager.getInstance();
-
-            for (WechatAccountMediaSubscribe var : mediaList) {
-
-                // 提交任务
-                deviceManager.submit(
-                        TaskFactory.getInstance().generateTask(
-                                new TaskHolder(StringUtil.uuid(),
-                                        udid,
-                                        WeChatAdapter.class.getName(),
-                                        GetMediaEssaysTask1.class.getName(),
-                                        account_id,
-                                        Arrays.asList(var.media_nick))
-                        ));
-            }
-            return null;
-        }
-    }
-
 }
 
 

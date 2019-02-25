@@ -5,6 +5,7 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
 import one.rewind.android.automator.test.db.biz.UserInterface;
 import one.rewind.android.automator.test.db.biz.UserInterfaceImpl;
 import one.rewind.android.automator.util.Tab;
@@ -77,6 +78,8 @@ public class RedissonTest {
         System.in.read();
     }
 
+
+
     // publish
     @Test
     public void redissonPublish() {
@@ -103,16 +106,9 @@ public class RedissonTest {
     }
 
     public static void main(String[] args) {
-        BlockingQueue<String> queue = Queues.newLinkedBlockingQueue();
-        new Thread(() -> {
-            try {
-                queue.take();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
-        Spark.port(8080);
-        Spark.get("/hello", (req, resp) -> "hello world");
+        RedissonClient redisson = RedissonAdapter.redisson;
+
+        RQueue<Object> h = redisson.getQueue("h");
     }
 
     @Test
@@ -248,25 +244,44 @@ public class RedissonTest {
     }
 
 
-    // ZX1G423DMM-3  ZX1G426B3V-2
-    // ZX1G423DMM-41 ZX1G426B3V-13
+    // ZX1G22B42S-24
+    // ZX1G22MMSQ-9
     @Test
-    public void test0() {
+    public void test0() throws DBInitException, SQLException {
         RedissonClient redisClient = RedissonAdapter.redisson;
-        RQueue<String> queue1 = redisClient.getQueue("ZX1G423DMM-3");
-        RQueue<String> queue2 = redisClient.getQueue("ZX1G426B3V-2");
+        //
+        RQueue<String> queue1 = redisClient.getQueue("ZX1G22PQLH-10");
 
         queue1.clear();
-        queue2.clear();
 
-        RQueue<String> queue13 = redisClient.getQueue("ZX1G423DMM-41");
-        RQueue<String> queue23 = redisClient.getQueue("ZX1G426B3V-13");
+        RQueue<String> queue13 = redisClient.getQueue("ZX1G22B42S-35");
 
 
-        queue1.addAll(queue13);
-        queue2.addAll(queue23);
+        Dao<WechatAccountMediaSubscribe, String> subscribeDao = Daos.get(WechatAccountMediaSubscribe.class);
 
 
+        queue13.forEach(m -> {
+            try {
+                WechatAccountMediaSubscribe var = subscribeDao.queryBuilder().where().eq("media_nick", m).queryForFirst();
+
+                if (var == null) {
+                    queue1.add(m);
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+
+    @Test
+    public void testRegex(){
+        String content = "2019年2月22日(原创";
+
+        if (content.contains("年") && content.contains("月") && content.contains("日")){
+            System.out.println(content);
+        }
     }
 }
 

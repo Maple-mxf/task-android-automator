@@ -1,6 +1,7 @@
 package one.rewind.android.automator.adapter.wechat;
 
 import com.dw.ocr.client.OCRClient;
+import com.dw.ocr.parser.BaiduOCRParser;
 import com.dw.ocr.parser.OCRParser;
 import com.j256.ormlite.dao.Dao;
 import io.appium.java_client.MobileElement;
@@ -24,8 +25,10 @@ import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
+import one.rewind.json.JSON;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.util.FileUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.NoSuchElementException;
 
@@ -527,8 +530,8 @@ public class WeChatAdapter extends Adapter {
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
         try {
-            // TODO  为何点击不了？
-            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+//            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+            device.driver.findElement(By.xpath("//android.widget.TextView[starts-with(@text, '关注')]")).click();
 
             Thread.sleep(5000);
 
@@ -1559,6 +1562,35 @@ public class WeChatAdapter extends Adapter {
             }
         } else {
             throw new AccountException.NoAvailableAccount();
+        }
+    }
+
+
+    public void enterFirstEssay() {
+        try {
+            List<OCRParser.TouchableTextArea> blockArea = BaiduOCRParser.getInstance().getTextBlockArea(device.screenshot());
+
+            for (OCRParser.TouchableTextArea textArea : blockArea) {
+
+                String content = textArea.content;
+
+                if (StringUtils.isNotBlank(content) && content.contains("年") && content.contains("月") && content.contains("日")) {
+                    device.touch(textArea.left + 30, textArea.top + 30, 5000);
+                    return;
+                }
+
+                Date pubDate = textArea.date;
+                if (pubDate != null) {
+                    device.touch(textArea.left + 30, textArea.top + 30, 5000);
+                    return;
+                }
+
+            }
+
+        } catch (IOException e) {
+            logger.error("Error screenshot failure, {}", e);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

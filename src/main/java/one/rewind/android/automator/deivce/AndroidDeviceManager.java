@@ -235,7 +235,6 @@ public class AndroidDeviceManager {
 
         String adapterClassName = task.h.adapter_class_name;
         if (StringUtils.isBlank(adapterClassName)) throw new TaskException.IllegalParameters();
-
         AndroidDevice device;
 
         // A 指定 account_id

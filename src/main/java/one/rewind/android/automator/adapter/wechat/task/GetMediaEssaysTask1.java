@@ -1,5 +1,7 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
+import com.dw.ocr.parser.BaiduOCRParser;
+import com.dw.ocr.parser.OCRParser;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -85,7 +87,7 @@ public class GetMediaEssaysTask1 extends Task {
      */
     private Map<String, ReqObj> responseInfo = new HashMap<>();
 
-    private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
+    private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10));
 
     /**
      * @param holder
@@ -192,9 +194,9 @@ public class GetMediaEssaysTask1 extends Task {
             RC("进入历史文章数据列表页");
             adapter.goToPublicAccountEssayList();
 
+
             RC("点击第一篇文章");
-            this.adapter.device.touch(209, 1611, 8000);
-            Thread.sleep(2000);
+            this.adapter.enterFirstEssay();
 
             RC("返回历史页面");
             this.adapter.device.goBack();
@@ -208,8 +210,6 @@ public class GetMediaEssaysTask1 extends Task {
 
             try {
 
-                logger.info(JSON.toJson(responseInfo));
-
                 ReqObj reqObj0 = responseInfo.get("EssayList-0");
                 ReqObj reqObj1 = responseInfo.get("EssayList-1");
                 ReqObj reqObj2 = responseInfo.get("EssayContent-0");
@@ -219,7 +219,7 @@ public class GetMediaEssaysTask1 extends Task {
                     return false;
                 }
 
-                EssayProcessor ep = new EssayProcessor("火山财富", reqObj0, reqObj1, reqObj2);
+                EssayProcessor ep = new EssayProcessor(media_nick, reqObj0, reqObj1, reqObj2);
 
                 RC("提交数据采集任务");
                 ListenableFuture<?> future = service.submit(ep);
