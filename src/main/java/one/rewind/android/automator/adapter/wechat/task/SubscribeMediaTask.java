@@ -15,7 +15,10 @@ import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.data.raw.model.Media;
+import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
+import org.redisson.api.RQueue;
+import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -104,10 +107,9 @@ public class SubscribeMediaTask extends Task {
             }
 
             RC("任务完成");
-
             success();
 
-            return false;
+            return true;
         }
         // 搜索公众号接口限流
         catch (SearchPublicAccountFrozenException e) {
@@ -119,7 +121,7 @@ public class SubscribeMediaTask extends Task {
             this.adapter.account.update();
 
             // 需要重试
-            return true;
+            return false;
 
         }
         // 搜索到的第一个公众号名称 与 搜索词不一致
@@ -136,7 +138,18 @@ public class SubscribeMediaTask extends Task {
         } catch (MediaException.NotFound e) {
             failure(e, e.media_nick + " not found");
             return false;
+        } catch (Exception e) {
+            failure(e, "Unknown exception");
+            return false;
         }
+    }
+
+    public void removeMedia() {
+        RedissonClient redissonClient = RedissonAdapter.redisson;
+
+        RQueue<Object> queue = redissonClient.getQueue(this.adapter.device.udid + "-" + this.adapter.account.id);
+
+        queue.remove(this.media_nick);
     }
 
 

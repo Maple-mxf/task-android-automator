@@ -530,18 +530,31 @@ public class WeChatAdapter extends Adapter {
         if (this.status != Status.PublicAccount_Home) throw new AdapterException.IllegalStateException(this);
 
         try {
+            Thread.sleep(2000);
+
 //            device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
-            device.driver.findElement(By.xpath("//android.widget.TextView[starts-with(@text, '关注')]")).click();
+
+//            device.driver.findElement(By.xpath("//android.widget.TextView[starts-with(@text, '关注') and string-length(@text()) < 6]")).click();
+
+            List<AndroidElement> els = device.driver.findElementsByClassName("android.widget.TextView");
+            for (AndroidElement el : els) {
+                if (el.getText().equals("关注") || el.getText().equals("关注公众号")) {
+                    el.click();
+                    break;
+                }
+            }
 
             Thread.sleep(5000);
-
-//            device.touch(702, 1277, 3000);
 
             this.status = Status.PublicAccount_Conversation;
         }
         // TODO 可能已经关注了
         catch (NoSuchElementException e) {
+            try {
+                device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'关注公众号')]")).click();
+            } catch (NoSuchElementException e1) {
 
+            }
         }
 
         // 返回到公众号主页

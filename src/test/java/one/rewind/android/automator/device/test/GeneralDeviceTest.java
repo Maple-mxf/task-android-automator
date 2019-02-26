@@ -19,7 +19,7 @@ import java.sql.SQLException;
  */
 public class GeneralDeviceTest {
 
-    AndroidDevice device = new AndroidDevice("ZX1G22PQLH");
+    AndroidDevice device = new AndroidDevice("ZX1G423DMM");
 
     @Test
     public void testSetWifiProxy() throws IOException, JadbException {

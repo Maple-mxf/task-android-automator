@@ -146,6 +146,9 @@ public class GetMediaEssaysTask1 extends Task {
         // 任务执行
         try {
 
+            /*RC("判断账号是否正确");
+            adapter.checkAccount();*/
+
             RC("判断帐号状态");
             checkAccountStatus(adapter); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
 
@@ -224,8 +227,11 @@ public class GetMediaEssaysTask1 extends Task {
                 RC("提交数据采集任务");
                 ListenableFuture<?> future = service.submit(ep);
 
+                future.addListener(() -> logger.info("Success EssayProcessor[{}] finish fetch task! ", media_nick), service);
+
                 // 阻塞等待任务执行
                 future.get();
+
 
             } catch (Exception e) {
                 e.printStackTrace();

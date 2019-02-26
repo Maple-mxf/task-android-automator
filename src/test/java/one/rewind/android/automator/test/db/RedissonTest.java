@@ -79,7 +79,6 @@ public class RedissonTest {
     }
 
 
-
     // publish
     @Test
     public void redissonPublish() {
@@ -249,20 +248,27 @@ public class RedissonTest {
     @Test
     public void test0() throws DBInitException, SQLException {
         RedissonClient redisClient = RedissonAdapter.redisson;
+
+        String udid = "ZX1G22B42S";
         //
-        RQueue<String> queue1 = redisClient.getQueue("ZX1G22PQLH-10");
+        RQueue<String> queue1 = redisClient.getQueue(udid + "-24");
 
         queue1.clear();
 
-        RQueue<String> queue13 = redisClient.getQueue("ZX1G22B42S-35");
+        RQueue<String> queue12 = redisClient.getQueue(udid + "-35");
 
 
         Dao<WechatAccountMediaSubscribe, String> subscribeDao = Daos.get(WechatAccountMediaSubscribe.class);
 
 
-        queue13.forEach(m -> {
+        queue12.forEach(m -> {
             try {
-                WechatAccountMediaSubscribe var = subscribeDao.queryBuilder().where().eq("media_nick", m).queryForFirst();
+                WechatAccountMediaSubscribe var =
+                        subscribeDao.queryBuilder().where()
+                                .eq("media_nick", m)
+                                .and()
+                                .eq("account_id", 24)
+                                .queryForFirst();
 
                 if (var == null) {
                     queue1.add(m);
@@ -276,10 +282,10 @@ public class RedissonTest {
 
 
     @Test
-    public void testRegex(){
+    public void testRegex() {
         String content = "2019年2月22日(原创";
 
-        if (content.contains("年") && content.contains("月") && content.contains("日")){
+        if (content.contains("年") && content.contains("月") && content.contains("日")) {
             System.out.println(content);
         }
     }
