@@ -1637,7 +1637,7 @@ public class WeChatAdapter extends Adapter {
             throw new AdapterException.IllegalStateException(this);
 
         // 包含公众号昵称  发布时间  文章标题
-        List<AndroidElement> els = device.driver.findElements(By.xpath("//ListView/LinearLayout/LinearLayout"));
+        List<AndroidElement> els = device.driver.findElements(By.xpath("ListView"));
 
         String regex = "(?<=\\[)\\d条(?=\\])";
         Pattern pattern = Pattern.compile(regex);
