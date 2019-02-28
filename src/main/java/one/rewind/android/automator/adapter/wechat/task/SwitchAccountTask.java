@@ -18,8 +18,6 @@ import java.sql.SQLException;
  */
 public class SwitchAccountTask extends Task {
 
-    // 当前要切换的账号ID
-    public Account account;
 
     public WeChatAdapter adapter;
 
@@ -39,9 +37,8 @@ public class SwitchAccountTask extends Task {
         int accountId = Integer.valueOf(params[0]);
         try {
             Dao<Account, String> accountDao = Daos.get(Account.class);
-            account = accountDao.queryBuilder().where().eq("id", accountId).queryForFirst();
-            if (account == null) throw new IllegalParamsException(params[0]);
-            this.adapter.account = account;
+            adapter.account = accountDao.queryBuilder().where().eq("id", accountId).queryForFirst();
+            if (adapter.account == null) throw new IllegalParamsException(params[0]);
 
         } catch (DBInitException | SQLException e) {
             logger.error("Error DB Init failure, e", e);
@@ -76,13 +73,13 @@ public class SwitchAccountTask extends Task {
             success();
         } catch (AccountException.Broken broken) {
 
-            logger.error("Error Account[{}] state is broken, ", this.account.id, broken);
+            logger.error("Error Account[{}] state is broken, ", this.adapter.account.id, broken);
 
             failure(broken);
             return false;
         } catch (AdapterException.LoginScriptError loginScriptError) {
-            logger.error("Error Account[{}] state is broken, ", this.account.id, loginScriptError);
-            
+            logger.error("Error Account[{}] state is broken, ", this.adapter.account.id, loginScriptError);
+
             failure(loginScriptError);
             return false;
         }

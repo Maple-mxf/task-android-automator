@@ -54,16 +54,14 @@ public class APIServer {
             // 提交任务
             post("/submit", submit);
 
-            // 查看某一个设备的执行情况 operator
-            post("/operator", null);
-
+            // 查看某一个设备的执行情况
+            post("/operator", operator);
 
             // 获取指定Adapter登录的账号
             post("/getLoginAccountInfo", getLoginAccountInfo);
 
             // 切换账号
             post("/switchAccount", switchAccount);
-
         });
 
         logger.info("API Server started!");

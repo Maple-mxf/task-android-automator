@@ -3,6 +3,7 @@ package one.rewind.android.automator.adapter.wechat;
 import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.BaiduOCRParser;
 import com.dw.ocr.parser.OCRParser;
+import com.google.common.collect.Maps;
 import com.j256.ormlite.dao.Dao;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
@@ -25,16 +26,16 @@ import one.rewind.android.automator.exception.AndroidException;
 import one.rewind.data.raw.model.Platform;
 import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
-import one.rewind.json.JSON;
 import one.rewind.txt.NumberFormatUtil;
 import one.rewind.util.FileUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.*;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.*;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -66,6 +67,7 @@ public class WeChatAdapter extends Adapter {
         SearchPublicAccount,                   // 首页点进去的搜索之后在点击公众号到达的页面
         PublicAccount_Search_Result,           // 公众号搜索结果
         PublicAccount_Home,                    // 公众号首页
+        SubscribeHomePage,                     // 订阅号消息主页
         PublicAccount_MoreInfo,                // 公众号更多资料
         Address_List,                          // 通讯录
         Subscribe_PublicAccount_List,          // 我订阅的公众号列表
@@ -1579,6 +1581,113 @@ public class WeChatAdapter extends Adapter {
     }
 
 
+    /**
+     * 进入订阅号主页
+     * <p>
+     * 订阅号消息在微信中是一个消息的形式展示  如果将当前消息删除   那么就会造成以下方法找不到订阅号消息页
+     * <p>
+     * 如果人为不干预操作 进入的订阅号的消息页面的几率达100%
+     */
+    public void goToSubscribeHomePage() throws AdapterException.IllegalStateException, InterruptedException {
+
+        if (this.status != Status.Home)
+            throw new AdapterException.IllegalStateException(this);
+
+        List<AndroidElement> els = device.driver.findElementsByClassName("android.view.View");
+
+        // 设定阈值避免死循环
+        int count = 0;
+
+        while (true) {
+
+            count++;
+
+            Optional<AndroidElement> op = els.stream().filter(e -> "订阅号".equals(e.getText())).findFirst();
+            if (op.isPresent()) {
+                op.get().click();
+
+                // 进入订阅号的消息主页
+                this.status = Status.SubscribeHomePage;
+                break;
+            }
+
+            // 向下滑动
+            device.slideToPoint(1181, 2176, 1181, 865, 2000);
+
+            // 重新赋值
+            els = device.driver.findElementsByClassName("android.view.View");
+
+            // 预知设为20
+            if (count == 20) {
+                throw new NoSuchElementException("Error No subscribe message block");
+            }
+        }
+    }
+
+    /**
+     * 通过当前页面的XML提取出最新发布的消息
+     * <p>
+     * class ：android.widget.ListView 当前页面只会存在一个ListView的元素（有且仅有一个）
+     * ListView中包含了若干的android.widget.LinearLayout
+     * 而 android.widget.LinearLayout 中包含了要提取的文字元素
+     */
+    public Map<String, Integer> getRealTimeMessage() throws AdapterException.IllegalStateException, InterruptedException, IOException {
+
+        if (this.status != Status.SubscribeHomePage)
+            throw new AdapterException.IllegalStateException(this);
+
+        // 包含公众号昵称  发布时间  文章标题
+        List<AndroidElement> els = device.driver.findElements(By.xpath("//ListView/LinearLayout/LinearLayout"));
+
+        String regex = "(?<=\\[)\\d条(?=\\])";
+        Pattern pattern = Pattern.compile(regex);
+
+        Map<String, Integer> data = Maps.newHashMap();
+
+        boolean canContinue = true;
+
+        byte[] preImgByte;
+
+        int count = 0;
+
+        while (true) {
+
+            count++;
+
+            for (AndroidElement el : els) {
+
+                List<MobileElement> nickAndMsgBlock = el.findElements(By.xpath("LinearLayout//LinearLayout//LinearLayout//View"));
+
+                // 截取当前页面的图片
+//                preImgByte = device.screenshot();
+
+                String title = nickAndMsgBlock.get(1).getText();
+
+                // 满足条件说明当前公众号更新了文章
+                if (title != null && pattern.matcher(title).find()) {
+
+                    // 解析当前公众号昵称 并且解析出更新的文章数量
+                    String mediaNick = nickAndMsgBlock.get(0).getText();
+
+                    // 解析更新的文章数量
+                    Integer number = Integer.valueOf(pattern.matcher(title).group().toString().replaceAll("条", ""));
+                    data.put(mediaNick, number);
+                }
+            }
+
+            // 向下滑动
+            device.slideToPoint(1181, 2176, 1181, 865, 2000);
+
+            // 重新赋值
+            els = device.driver.findElementsByClassName("//ListView/LinearLayout/LinearLayout");
+            if (count == 5) break;
+        }
+        return data;
+    }
+
+
+    // TODO
+    @Deprecated
     public void enterFirstEssay() {
         try {
             List<OCRParser.TouchableTextArea> blockArea = BaiduOCRParser.getInstance().getTextBlockArea(device.screenshot());
@@ -1606,4 +1715,6 @@ public class WeChatAdapter extends Adapter {
             e.printStackTrace();
         }
     }
+
+
 }

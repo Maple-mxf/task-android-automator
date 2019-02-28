@@ -194,11 +194,6 @@ public class ImageUtil {
 	 */
 	public static void compareImage(String imgPath1, String imgPath2) throws IOException {
 		String[] images = {imgPath1, imgPath2};
-
-		if (images.length == 0) {
-			System.out.println("Usage >java BMPLoader ImageFile.bmp");
-			System.exit(0);
-		}
 		// 分析图片相似度 begin
 		String[][] list1 = getPX(images[0]);
 		String[][] list2 = getPX(images[1]);

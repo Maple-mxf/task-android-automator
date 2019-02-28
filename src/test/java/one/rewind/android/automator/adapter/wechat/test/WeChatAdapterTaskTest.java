@@ -6,10 +6,7 @@ import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.model.WechatAccountMediaSubscribe;
-import one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask1;
-import one.rewind.android.automator.adapter.wechat.task.GetSelfSubscribeMediaTask;
-import one.rewind.android.automator.adapter.wechat.task.SubscribeMediaTask;
-import one.rewind.android.automator.adapter.wechat.task.UnsubscribeMediaTask;
+import one.rewind.android.automator.adapter.wechat.task.*;
 import one.rewind.android.automator.deivce.AndroidDevice;
 import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.exception.AccountException;
@@ -288,6 +285,21 @@ public class WeChatAdapterTaskTest {
                                 Arrays.asList("地产邦"))
                 ));
 
+        Thread.sleep(10000000);
+    }
+
+
+    @Test
+    public void testMonitorRealTimeTask() throws InterruptedException, TaskException.IllegalParameters, AndroidException.NoAvailableDevice, AccountException.AccountNotLoad {
+
+        AndroidDeviceManager.getInstance().submit(
+                TaskFactory.getInstance().generateTask(
+                        new TaskHolder(StringUtil.uuid(),
+                                WeChatAdapter.class.getName(),
+                                MonitorRealTimeTask.class.getName(),
+                                Arrays.asList())
+                ));
+        
         Thread.sleep(10000000);
     }
 

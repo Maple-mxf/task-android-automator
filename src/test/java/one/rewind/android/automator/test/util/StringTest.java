@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -90,11 +92,29 @@ public class StringTest {
     }
 
     @Test
-    public void testStringUtils(){
+    public void testStringUtils() {
         String udid = null;
-        if (StringUtils.isNotBlank(udid)){
+        if (StringUtils.isNotBlank(udid)) {
             System.out.println("Hello world");
         }
+    }
+
+    @Test
+    public void testRegex() {
+
+
+        String regex = "(?<=\\[)\\d条(?=\\])";
+
+        String var = "[1条] [图片]";
+
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(var);
+
+        if (matcher.find()) {
+            System.out.println(matcher.group().replace("条", ""));
+        }
+
+        if (var.matches(regex)) System.out.println("hello world111");
     }
 
 }
