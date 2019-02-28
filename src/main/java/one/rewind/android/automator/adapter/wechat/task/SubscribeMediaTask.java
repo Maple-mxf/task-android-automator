@@ -1,8 +1,5 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.Immutable;
 import one.rewind.android.automator.account.Account;
 import one.rewind.android.automator.adapter.Adapter;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
@@ -23,7 +20,6 @@ import org.redisson.api.RedissonClient;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -108,6 +104,9 @@ public class SubscribeMediaTask extends Task {
 
             RC("任务完成");
             success();
+
+            RC("移除media");
+            removeMedia();
 
             return true;
         }

@@ -556,7 +556,7 @@ public class EssayProcessor implements Runnable {
 
         Author author = new Author();
         author.platform_id = WeChatAdapter.platform.id;
-        author.platform = WeChatAdapter.platform.short_name;
+//        author.platform = WeChatAdapter.platform.short_name;
         author.src_id = src_id;
         author.name = name;
         author.id = Generator.genAuthorId(src_id, name);

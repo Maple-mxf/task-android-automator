@@ -47,6 +47,9 @@ public class TaskFactory {
         try {
             // A1 检验task_class_name   指定任务类型
             if (StringUtils.isBlank(holder.class_name)) return null;
+            else {
+
+            }
 
             // A2 检验设备是否存在
             if (StringUtils.isNotBlank(holder.udid)) {

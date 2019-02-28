@@ -43,7 +43,7 @@ public class GeneralDeviceTest {
     @Test
     public void testInstallApk() throws IOException, JadbException {
 
-        AndroidUtil.installApk("ZX1G426B3V", "tmp/weixin667android1320.apk");
+        AndroidUtil.installApk("ZX1G42C3M7", "tmp/weixin667android1320.apk");
 
     }
 

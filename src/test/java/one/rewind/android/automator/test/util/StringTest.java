@@ -9,6 +9,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * @author maxuefeng [m17793873123@163.com]
@@ -74,11 +75,26 @@ public class StringTest {
 
         packages.forEach(System.out::println);
     }
+
     @Test
     public void testSplit2() {
         String[] result = "ZX1G22MMSQ-9".split("-");
         System.out.println(result[0]);
         System.out.println(result[1]);
+    }
+
+    @Test
+    public void testStringJoiner() {
+        StringJoiner joiner = new StringJoiner("hello").add("asdasd").add("asdsad");
+        System.out.println(joiner.toString());
+    }
+
+    @Test
+    public void testStringUtils(){
+        String udid = null;
+        if (StringUtils.isNotBlank(udid)){
+            System.out.println("Hello world");
+        }
     }
 
 }

@@ -249,13 +249,16 @@ public class RedissonTest {
     public void test0() throws DBInitException, SQLException {
         RedissonClient redisClient = RedissonAdapter.redisson;
 
-        String udid = "ZX1G22B42S";
+        String udid = "ZX1G22PQLH";
+
+        int accountId = 4;
+
         //
-        RQueue<String> queue1 = redisClient.getQueue(udid + "-24");
+        RQueue<String> queue1 = redisClient.getQueue(udid + "-" + accountId);
 
         queue1.clear();
 
-        RQueue<String> queue12 = redisClient.getQueue(udid + "-35");
+        RQueue<String> queue12 = redisClient.getQueue(udid + "-" + 40);
 
 
         Dao<WechatAccountMediaSubscribe, String> subscribeDao = Daos.get(WechatAccountMediaSubscribe.class);
@@ -267,7 +270,7 @@ public class RedissonTest {
                         subscribeDao.queryBuilder().where()
                                 .eq("media_nick", m)
                                 .and()
-                                .eq("account_id", 24)
+                                .eq("account_id", 4)
                                 .queryForFirst();
 
                 if (var == null) {
@@ -281,13 +284,34 @@ public class RedissonTest {
     }
 
 
+    // ZX1G227PZ7-28
     @Test
-    public void testRegex() {
-        String content = "2019年2月22日(原创";
+    public void test1() throws DBInitException, SQLException {
+        RedissonClient redisClient = RedissonAdapter.redisson;
 
-        if (content.contains("年") && content.contains("月") && content.contains("日")) {
-            System.out.println(content);
-        }
+        String udid = "ZX1G22PQLH";
+        int account_id = 4;
+        //
+        RQueue<String> queue1 = redisClient.getQueue(udid + "-" + account_id);
+        Dao<WechatAccountMediaSubscribe, String> subscribeDao = Daos.get(WechatAccountMediaSubscribe.class);
+
+        queue1.forEach(m -> {
+            try {
+                WechatAccountMediaSubscribe var =
+                        subscribeDao.queryBuilder().where()
+                                .eq("media_nick", m)
+                                .and()
+                                .eq("account_id", account_id)
+                                .queryForFirst();
+
+                if (var != null) {
+                    queue1.remove(m);
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }
 

@@ -1,8 +1,5 @@
 package one.rewind.android.automator.adapter.wechat.test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.*;
 import com.j256.ormlite.dao.Dao;
 import one.rewind.android.automator.account.Account;
@@ -25,7 +22,6 @@ import one.rewind.db.Daos;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.txt.StringUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -35,9 +31,10 @@ import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -151,13 +148,14 @@ public class WeChatAdapterTaskTest {
     public void testMultiSubscribeMedia() throws InterruptedException {
         Set<AndroidDevice> devices = AndroidDeviceManager.getInstance().deviceTaskMap.keySet();
 
-        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10));
+        ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(30));
 
         for (AndroidDevice ad : devices) {
 
             Adapter adapter = ad.adapters.get(WeChatAdapter.class.getName());
+            System.err.println(adapter.account);
 
-            ListenableFuture<Void> explosion = service.submit(new Subscriber(ad.udid, adapter.account.id, 40));
+            ListenableFuture<Void> explosion = service.submit(new Subscriber(ad.udid, adapter.account.id, 45));
 
             Futures.addCallback(explosion,
                     new FutureCallback() {

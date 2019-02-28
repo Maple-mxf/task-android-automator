@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,8 @@ import java.util.stream.Collectors;
 public class AndroidDeviceManager {
 
     private static final Logger logger = LogManager.getLogger(AndroidDeviceManager.class.getName());
+
+    public static LocalDateTime startTime = LocalDateTime.now();
 
     /**
      * 单例
