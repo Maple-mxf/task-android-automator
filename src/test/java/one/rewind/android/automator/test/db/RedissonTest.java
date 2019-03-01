@@ -12,12 +12,12 @@ import one.rewind.android.automator.util.Tab;
 import one.rewind.db.Daos;
 import one.rewind.db.RedissonAdapter;
 import one.rewind.db.exception.DBInitException;
-import one.rewind.util.FileUtil;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.redisson.Redisson;
 import org.redisson.api.*;
+import org.redisson.api.map.event.EntryCreatedListener;
+import org.redisson.api.map.event.EntryUpdatedListener;
 import org.redisson.client.RedisClient;
 import org.redisson.client.RedisClientConfig;
 import org.redisson.client.RedisPubSubConnection;
@@ -25,7 +25,6 @@ import org.redisson.client.RedisPubSubListener;
 import org.redisson.client.codec.StringCodec;
 import org.redisson.client.protocol.pubsub.PubSubType;
 import org.redisson.config.Config;
-import spark.Spark;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +33,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
@@ -312,6 +310,42 @@ public class RedissonTest {
                 e.printStackTrace();
             }
         });
+    }
+
+    @Test
+    public void testListenMap() throws InterruptedException {
+
+        RedissonClient client = RedissonAdapter.redisson;
+
+        RMapCache<Object, Object> realTimeMsg = client.getMapCache("realTimeMessage");
+
+        realTimeMsg.addListener((EntryUpdatedListener<String, String>) event -> {
+
+            System.out.println("key: " + event.getKey());
+
+            System.out.println("value: " + event.getValue());
+
+            System.out.println("oldValue");
+        });
+
+        realTimeMsg.addListener((EntryCreatedListener<String, String>) event -> {
+
+            System.out.println("key: " + event.getKey());
+
+            System.out.println("value: " + event.getValue());
+
+        });
+
+        Thread.sleep(10000000);
+    }
+
+    @Test
+    public void testAddData2Map() {
+        RedissonClient client = RedissonAdapter.redisson;
+
+        RMapCache<Object, Object> realTimeMsg = client.getMapCache("realTimeMessage");
+
+        realTimeMsg.put("kkk", "asdasdsa");
     }
 }
 

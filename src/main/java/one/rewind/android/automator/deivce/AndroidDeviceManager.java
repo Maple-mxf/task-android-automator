@@ -80,8 +80,6 @@ public class AndroidDeviceManager {
                 .setNameFormat("ADM-%d").build());
 
         executorService = MoreExecutors.listeningDecorator(executor);
-
-        // TODO 需要先执行 adb
     }
 
     /**
