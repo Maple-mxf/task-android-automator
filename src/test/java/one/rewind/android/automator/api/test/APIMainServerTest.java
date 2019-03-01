@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import okhttp3.*;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
 import one.rewind.android.automator.adapter.wechat.task.GetMediaEssaysTask1;
+import one.rewind.android.automator.adapter.wechat.task.SwitchAccountTask;
 import one.rewind.json.JSON;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,11 +25,11 @@ public class APIMainServerTest {
 
     public static Logger logger = LogManager.getLogger(APIMainServerTest.class.getName());
 
-    private static OkHttpClient client = new OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build();
+    private static OkHttpClient client = new OkHttpClient.Builder().connectTimeout(1000, TimeUnit.SECONDS).build();
 
 
     public static Request getRequest(String urlSuffix, String json) {
-        String baseUrl = "http://127.0.0.1:40500/entrance";
+        String baseUrl = "http://127.0.0.1:4567/android_automator";
         StringJoiner joiner = new StringJoiner("/").add(baseUrl).add(urlSuffix);
         return new Request.Builder().url(joiner.toString()).post(RequestBody.create(MediaType.parse("application/json"), json)).build();
     }
@@ -38,7 +39,34 @@ public class APIMainServerTest {
      * 测试切换账号
      */
     @Test
-    public void testSwitchAccountAPI() {
+    public void testSwitchAccountAPI() throws IOException {
+
+        String udid = "ZX1G22MMSQ";
+
+        String accountId = String.valueOf(9);
+
+        String className = SwitchAccountTask.class.getName();
+
+        String json = JSON.toJson(ImmutableMap.of("udid", udid, "accountId", accountId, "className", className));
+
+        Response response = client.newCall(getRequest("switchAccount", json)).execute();
+
+        if (response.isSuccessful()) {
+
+            ResponseBody responseBody = response.body();
+
+            Optional.ofNullable(responseBody).ifPresent(t -> {
+
+                try {
+
+                    logger.info("Success device[{}] Login Info [{}] ", udid, t.string());
+
+                } catch (IOException e) {
+
+                    e.printStackTrace();
+                }
+            });
+        }
     }
 
 
@@ -76,7 +104,7 @@ public class APIMainServerTest {
      */
     @Test
     public void testFetchEssaysTaskAPI() throws IOException {
-        String mediaNick = "北京商报";
+        String mediaNick = "YangtzeBond";
         ImmutableMap<String, Object> params = ImmutableMap.of(
                 "params", ImmutableList.of(mediaNick),
                 "adapter_class_name", WeChatAdapter.class.getName(),

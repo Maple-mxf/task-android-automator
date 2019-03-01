@@ -155,8 +155,8 @@ public class Routes {
         if (bodyJsonMap != null && StringUtils.isNotBlank((accountId = bodyJsonMap.get("accountId"))) && StringUtils.isNotBlank(udid = bodyJsonMap.get("udid")) && StringUtils.isNotBlank(className = bodyJsonMap.get("className"))) {
 
             String taskId = StringUtil.uuid();
-            //
-            Task task = TaskFactory.getInstance().generateTask(new TaskHolder(taskId, udid, className, Arrays.asList(accountId)));
+            
+            Task task = TaskFactory.getInstance().generateTask(new TaskHolder(taskId, udid, null, className, 0, Arrays.asList(accountId)));
 
             AndroidDeviceManager.getInstance().submit(task);
 

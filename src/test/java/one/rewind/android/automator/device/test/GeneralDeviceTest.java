@@ -78,12 +78,8 @@ public class GeneralDeviceTest {
 
         AndroidDeviceManager.getInstance().deviceTaskMap.keySet().stream().forEach(
             ad -> {
-                try {
-                    byte[] screen = ad.screenshot();
-                    FileUtil.writeBytesToFile(screen, "tmp/screenshots/" + ad.udid + ".png");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                byte[] screen = ad.screenshot();
+                FileUtil.writeBytesToFile(screen, "tmp/screenshots/" + ad.udid + ".png");
             }
         );
 

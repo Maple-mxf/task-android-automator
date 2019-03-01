@@ -1,14 +1,16 @@
 package one.rewind.android.automator.task;
 
 import com.j256.ormlite.dao.Dao;
-import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.android.automator.account.Account;
+import one.rewind.android.automator.adapter.Adapter;
+import one.rewind.android.automator.deivce.AndroidDeviceManager;
 import one.rewind.db.Daos;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,6 +80,12 @@ public class TaskFactory {
                 params = holder.params.toArray(new String[holder.params.size()]);
 
             task = (Task) cons.newInstance(holder, params);
+
+            Arrays.stream(task.getClass().getFields()).filter(
+                    f -> f.getType().getSuperclass().equals(Adapter.class)).
+                    findFirst().ifPresent(
+                    t -> holder.adapter_class_name = t.getType().getName());
+
 
         } catch (Exception e) {
             logger.error("Error new instance of Task error, ", e);

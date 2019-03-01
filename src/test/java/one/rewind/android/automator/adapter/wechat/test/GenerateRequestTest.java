@@ -134,7 +134,7 @@ public class GenerateRequestTest {
 
         EssayProcessor ep = new EssayProcessor("火山财富", reqObj0, reqObj1, reqObj2);
 
-        ep.run();
+        ep.call();
 
         Thread.sleep(100000000);
     }

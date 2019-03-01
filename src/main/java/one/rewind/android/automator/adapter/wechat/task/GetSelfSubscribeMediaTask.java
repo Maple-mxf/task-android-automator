@@ -68,6 +68,8 @@ public class GetSelfSubscribeMediaTask extends Task {
 			DBInitException
     {
 
+
+
 		RC("读取已经保存的数据库记录");
 		try {
 			accountSubscribedMediaNicks = WechatAccountMediaSubscribe.getSubscribeMediaIds(adapter.account.id);
@@ -77,6 +79,12 @@ public class GetSelfSubscribeMediaTask extends Task {
 
 		RC("判断帐号状态");
 		checkAccountStatus(adapter);
+
+		RC("启动APP");
+		adapter.restart();
+
+		RC("检查加载的当前账号是否与登录的一直");
+		adapter.checkAccount();
 
 		RC("启动APP");
 		adapter.restart();

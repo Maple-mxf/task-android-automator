@@ -21,6 +21,8 @@ public class SwitchAccountTask extends Task {
 
     public WeChatAdapter adapter;
 
+    public Account account;
+
     /**
      * 构造方法
      *
@@ -37,8 +39,8 @@ public class SwitchAccountTask extends Task {
         int accountId = Integer.valueOf(params[0]);
         try {
             Dao<Account, String> accountDao = Daos.get(Account.class);
-            adapter.account = accountDao.queryBuilder().where().eq("id", accountId).queryForFirst();
-            if (adapter.account == null) throw new IllegalParamsException(params[0]);
+            account = accountDao.queryBuilder().where().eq("id", accountId).queryForFirst();
+            if (account == null) throw new IllegalParamsException("Error Account is null");
 
         } catch (DBInitException | SQLException e) {
             logger.error("Error DB Init failure, e", e);
@@ -63,8 +65,17 @@ public class SwitchAccountTask extends Task {
             RC("启动微信");
             adapter.restart();
 
+            RC("检查加载的账号是否与登录的账号是否一致");
+            adapter.checkAccount();
+
+            RC("启动微信");
+            adapter.restart();
+
             RC("退出微信");
             adapter.logout();
+
+//            RC("为Adapter.Account赋值");  // logout
+            adapter.account = this.account;
 
             RC("登录微信");
             this.adapter.login();
@@ -75,11 +86,13 @@ public class SwitchAccountTask extends Task {
 
             logger.error("Error Account[{}] state is broken, ", this.adapter.account.id, broken);
 
+            RC("任务失败!");
             failure(broken);
             return false;
         } catch (AdapterException.LoginScriptError loginScriptError) {
             logger.error("Error Account[{}] state is broken, ", this.adapter.account.id, loginScriptError);
 
+            RC("任务失败!");
             failure(loginScriptError);
             return false;
         }

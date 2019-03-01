@@ -1019,7 +1019,7 @@ public class AndroidDevice extends ModelL {
      * @return
      * @throws IOException
      */
-    public byte[] screenshot() throws IOException {
+    public byte[] screenshot() {
         logger.info("Device[{}], Driver HashCode[{}], Driver[{}] ", this, this.driver.hashCode(), this.driver.toString());
         return driver.getScreenshotAs(OutputType.BYTES);
     }

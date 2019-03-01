@@ -69,8 +69,17 @@ public class SubscribeMediaTask extends Task {
             DBInitException {
         try {
 
+            RC("检查加载的当前账号是否与登录的一直");
+            adapter.checkAccount();
+
             RC("确认帐号状态");
             checkAccountStatus(adapter);
+
+            RC("启动微信");
+            adapter.restart();
+
+            RC("检查加载的当前账号是否与登录的一直");
+            adapter.checkAccount();
 
             RC("启动微信");
             adapter.restart();

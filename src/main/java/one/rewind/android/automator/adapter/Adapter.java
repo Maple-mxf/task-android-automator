@@ -72,7 +72,7 @@ public abstract class Adapter {
     /**
      * 启动应用
      */
-    public abstract void checkAccount() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken;
+    public abstract void checkAccount() throws InterruptedException, AdapterException.LoginScriptError, AccountException.Broken, DBInitException, SQLException;
 
     /**
      *

@@ -59,8 +59,15 @@ public class UnsubscribeMediaTask extends Task {
             DBInitException {
         try {
 
-           /* RC("确认帐号状态");
-            checkAccountStatus(adapter);*/
+
+            RC("确认帐号状态");
+            checkAccountStatus(adapter);
+
+            RC("启动微信");
+            adapter.restart();
+
+            RC("检查加载的当前账号是否与登录的一直");
+            adapter.checkAccount();
 
             RC("启动微信");
             adapter.restart();
@@ -98,7 +105,7 @@ public class UnsubscribeMediaTask extends Task {
 
             failure(e, e.media_nick + " illegal");
             return false;
-        } */catch (MediaException.NotSubscribe e) {
+        } */ catch (MediaException.NotSubscribe e) {
 
             failure(e, media_nick + " not subscribe");
             return false;

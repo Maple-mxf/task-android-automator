@@ -28,6 +28,7 @@ import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,7 +40,7 @@ import static java.util.stream.Collectors.toList;
  * @author scisaga@gmail.com
  * @date 2019/2/14
  */
-public class EssayProcessor implements Runnable {
+public class EssayProcessor implements Callable<Boolean> {
 
     public static final Logger logger = LogManager.getLogger(EssayProcessor.class.getName());
 
@@ -129,8 +130,8 @@ public class EssayProcessor implements Runnable {
 
     }
 
-    public void run() {
-
+    @Override
+    public Boolean call() {
         try {
             List<TaskHolder> nths = new ArrayList<>();
             getEssayTH(list0.res, media_nick, nths);
@@ -143,7 +144,9 @@ public class EssayProcessor implements Runnable {
 
         } catch (Exception e) {
             logger.error("Error, ", e);
+            return Boolean.FALSE;
         }
+        return Boolean.TRUE;
     }
 
 

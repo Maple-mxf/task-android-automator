@@ -1,7 +1,5 @@
 package one.rewind.android.automator.adapter.wechat.task;
 
-import com.dw.ocr.parser.BaiduOCRParser;
-import com.dw.ocr.parser.OCRParser;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -27,7 +25,6 @@ import one.rewind.data.raw.model.Source;
 import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.Model;
-import one.rewind.json.JSON;
 import one.rewind.txt.DateFormatUtil;
 
 import java.io.IOException;
@@ -36,7 +33,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -87,7 +83,7 @@ public class GetMediaEssaysTask1 extends Task {
      */
     private Map<String, ReqObj> responseInfo = new HashMap<>();
 
-    private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10));
+    private ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
 
     /**
      * @param holder
@@ -146,9 +142,6 @@ public class GetMediaEssaysTask1 extends Task {
         // 任务执行
         try {
 
-            /*RC("判断账号是否正确");
-            adapter.checkAccount();*/
-
             RC("判断帐号状态");
             checkAccountStatus(adapter); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
 
@@ -157,6 +150,12 @@ public class GetMediaEssaysTask1 extends Task {
 
             RC("重置微信进入首页");
             adapter.restart(); // 由于 checkAccountStatus步骤选择了有效账号，该步骤应该不会抛出Broken异常
+
+            RC("检查加载的当前账号是否与登录的一直");
+            adapter.checkAccount();
+
+            RC("重置微信进入首页");
+            adapter.restart();
 
             logger.info("Adapter[{}] ", this.adapter);
 

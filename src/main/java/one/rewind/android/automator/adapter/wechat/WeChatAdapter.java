@@ -3,6 +3,8 @@ package one.rewind.android.automator.adapter.wechat;
 import com.dw.ocr.client.OCRClient;
 import com.dw.ocr.parser.BaiduOCRParser;
 import com.dw.ocr.parser.OCRParser;
+import com.dw.ocr.util.ImageUtil;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.j256.ormlite.dao.Dao;
 import io.appium.java_client.MobileElement;
@@ -32,6 +34,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.*;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
@@ -136,13 +140,9 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
-     * @throws InterruptedException
-     * @throws AccountException.Broken
      * @throws AdapterException.LoginScriptError
      */
     public void checkAccount() throws
-            InterruptedException,
-            AccountException.Broken,
             AdapterException.LoginScriptError {
 
         // B11 验证当前微信用户 与 account 相对应
@@ -158,12 +158,25 @@ public class WeChatAdapter extends Adapter {
         if (userInfo == null) throw new AdapterException.LoginScriptError(this, account);
 
         // 微信昵称 与 微信号 有一个不对应
-        Account temp = this.account;
 
         if (!userInfo.name.equals(account.username) || !userInfo.id.equals(account.src_id)) {
-            logout();
-            this.account = temp;
-            login();
+            try {
+                Dao<Account, String> accountDao = Daos.get(Account.class);
+                Account tempAcc = accountDao.queryBuilder()
+                        .where()
+                        .eq("src_id", userInfo.id)
+                        .and()
+                        .eq("username", userInfo.name)
+                        .queryForFirst();
+
+                if (tempAcc == null) throw new RuntimeException("Error Not found account !");
+                this.account = tempAcc;
+
+                logger.info("Account[{}] ", this.account.username);
+
+            } catch (DBInitException | SQLException e) {
+                logger.error("Error  DB init error");
+            }
         }
     }
 
@@ -1625,64 +1638,83 @@ public class WeChatAdapter extends Adapter {
     }
 
     /**
+     * redis RMap 添加监听器： https://github.com/redisson/redisson/wiki/7.-distributed-collections
      * 通过当前页面的XML提取出最新发布的消息
      * <p>
      * class ：android.widget.ListView 当前页面只会存在一个ListView的元素（有且仅有一个）
      * ListView中包含了若干的android.widget.LinearLayout
      * 而 android.widget.LinearLayout 中包含了要提取的文字元素
      */
-    public Map<String, Integer> getRealTimeMessage() throws AdapterException.IllegalStateException, InterruptedException, IOException {
+    public List<Map<String, String>> getRealTimeMessage() throws AdapterException.IllegalStateException, InterruptedException, IOException {
 
         if (this.status != Status.SubscribeHomePage)
             throw new AdapterException.IllegalStateException(this);
-
-        // 包含公众号昵称  发布时间  文章标题
-        List<AndroidElement> els = device.driver.findElements(By.xpath("ListView"));
-
-        String regex = "(?<=\\[)\\d条(?=\\])";
-        Pattern pattern = Pattern.compile(regex);
-
-        Map<String, Integer> data = Maps.newHashMap();
-
-        boolean canContinue = true;
 
         byte[] preImgByte;
 
         int count = 0;
 
+        List<Map<String, String>> tempData = Lists.newArrayList();
+
+        List<AndroidElement> vEls = device.driver.findElementsByClassName("android.view.View");
+
+        preImgByte = device.screenshot();
+
         while (true) {
 
             count++;
 
-            for (AndroidElement el : els) {
+            Iterator<AndroidElement> it = vEls.iterator();
 
-                List<MobileElement> nickAndMsgBlock = el.findElements(By.xpath("LinearLayout//LinearLayout//LinearLayout//View"));
+            while (it.hasNext()) {
 
-                // 截取当前页面的图片
-//                preImgByte = device.screenshot();
+                String pubStr = null;
 
-                String title = nickAndMsgBlock.get(1).getText();
+                Map<String, String> inD = Maps.newHashMap();
 
-                // 满足条件说明当前公众号更新了文章
-                if (title != null && pattern.matcher(title).find()) {
+                // 每个块中包含三个View元素   第一个View元素是mediaNick  第二个View元素是更新时间  第三个View元素是更新的文章标题
+                for (int i = 0; i < 3; i++) {
 
-                    // 解析当前公众号昵称 并且解析出更新的文章数量
-                    String mediaNick = nickAndMsgBlock.get(0).getText();
+                    if (i == 0) {
 
-                    // 解析更新的文章数量
-                    Integer number = Integer.valueOf(pattern.matcher(title).group().toString().replaceAll("条", ""));
-                    data.put(mediaNick, number);
+                        // 存入公众号昵称
+                        inD.put("mediaNick", it.next().getText());
+                    } else if (i == 1) {
+
+                        // 存入文章更新时间
+                        pubStr = it.next().getText();
+                        inD.put("pubStr", pubStr);
+                    } else {
+
+                        it.next();
+                    }
+                }
+                //  只获取今天更新的信息
+                if (pubStr != null && (pubStr.contains("上午") || pubStr.contains("中午") || pubStr.contains("下午"))) {
+                    tempData.add(inD);
                 }
             }
-
-            // 向下滑动
+            // 向下滑动一页
             device.slideToPoint(1181, 2176, 1181, 865, 2000);
 
+            // 获取滑动之后的截图
+            byte[] currentPage = device.screenshot();
+
+
+            // 如果当前页面上上一页相同退出循环
+            boolean same = ImageUtil.isSame(ImageIO.read(new ByteArrayInputStream(preImgByte)), ImageIO.read(new ByteArrayInputStream(currentPage)));
+            if (same) break;
+
+            // 为上一页面重新赋值
+            preImgByte = currentPage;
+
             // 重新赋值
-            els = device.driver.findElementsByClassName("//ListView/LinearLayout/LinearLayout");
-            if (count == 5) break;
+            vEls = device.driver.findElementsByClassName("android.view.View");
+
+            // 如果一直没有break  需要循环一定次数后退出循环
+            if (count == 20) break;
         }
-        return data;
+        return tempData;
     }
 
 
@@ -1714,6 +1746,28 @@ public class WeChatAdapter extends Adapter {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    /**
+     * redis RMap 添加监听器： https://github.com/redisson/redisson/wiki/7.-distributed-collections
+     * 通过当前页面的XML提取出最新发布的消息
+     * <p>
+     * class ：android.widget.ListView 当前页面只会存在一个ListView的元素（有且仅有一个）
+     * ListView中包含了若干的android.widget.LinearLayout
+     * 而 android.widget.LinearLayout 中包含了要提取的文字元素
+     */
+    public Map<String, Date> getRealTimeMessage1() throws AdapterException.IllegalStateException, InterruptedException {
+
+        if (this.status != Status.SubscribeHomePage)
+            throw new AdapterException.IllegalStateException(this);
+
+        AndroidElement listViewEl = device.driver.findElementById("com.tencent.mm:id/b_s");
+
+        String regex = "(?<=\\[)\\d条(?=\\])";
+        Pattern pattern = Pattern.compile(regex);
+
+        return null;
     }
 
 
