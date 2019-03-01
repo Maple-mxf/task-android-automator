@@ -7,7 +7,6 @@ import one.rewind.android.automator.exception.AdapterException;
 import one.rewind.android.automator.task.Task;
 import one.rewind.android.automator.task.TaskHolder;
 import one.rewind.db.RedissonAdapter;
-import one.rewind.json.JSON;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
@@ -49,7 +48,7 @@ public class MonitorRealTimeTask extends Task {
     @Override
     public Boolean call() throws InterruptedException, AccountException.Broken, AdapterException.LoginScriptError, AdapterException.IllegalStateException, IOException {
 
-        RC("检查加载的当前账号是否与登录的一直");
+        RC("检查加载的当前账号是否与登录的一致");
         adapter.checkAccount();
 
         RedissonClient client = RedissonAdapter.redisson;
@@ -57,11 +56,11 @@ public class MonitorRealTimeTask extends Task {
         RC("启动微信");
         adapter.restart();
 
-        /*RC("检查加载的当前账号是否与登录的一直");
+        RC("检查加载的当前账号是否与登录的一直");
         adapter.checkAccount();
 
         RC("启动微信");
-        adapter.restart();*/
+        adapter.restart();
 
         RC("进入订阅号");
         adapter.goToSubscribeHomePage();
@@ -69,14 +68,14 @@ public class MonitorRealTimeTask extends Task {
         RC("识别公众号最新发布的消息");
         List<Map<String, String>> realTimeMessage = adapter.getRealTimeMessage();
         RMap<String, String> var = client.getMap("realTimeMessage");
-        
-        RC("向redis发布任务");
-        realTimeMessage.forEach(m -> {
-            var.put("mediaNick", m.get("mediaNick"));
-            var.put("pubStr", m.get("pubStr"));
-        });
 
-        System.out.println(JSON.toJson(var));
+
+        RC("向redis发布最新更新任务");
+        realTimeMessage.forEach(m -> {
+            String mediaNick = m.get("mediaNick");
+            String pubStr = m.get("pubStr");
+            if (mediaNick != null && pubStr != null) var.put(mediaNick, pubStr);
+        });
 
         RC("任务执行完成！");
         success();

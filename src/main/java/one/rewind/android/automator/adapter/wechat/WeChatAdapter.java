@@ -1676,30 +1676,31 @@ public class WeChatAdapter extends Adapter {
                 for (int i = 0; i < 3; i++) {
 
                     if (i == 0) {
-
                         // 存入公众号昵称
                         inD.put("mediaNick", it.next().getText());
+
                     } else if (i == 1) {
 
                         // 存入文章更新时间
-                        pubStr = it.next().getText();
-                        inD.put("pubStr", pubStr);
+                        if (it.hasNext()) {
+                            pubStr = it.next().getText();
+                            inD.put("pubStr", pubStr);
+                        }
                     } else {
 
-                        it.next();
+                        if (it.hasNext()) it.next();
                     }
                 }
                 //  只获取今天更新的信息
-                if (pubStr != null && (pubStr.contains("上午") || pubStr.contains("中午") || pubStr.contains("下午"))) {
+                if (pubStr != null && (pubStr.contains("早上") || pubStr.contains("中午") || pubStr.contains("下午") || pubStr.contains("晚上") || pubStr.contains("凌晨"))) {
                     tempData.add(inD);
                 }
             }
             // 向下滑动一页
-            device.slideToPoint(1181, 2176, 1181, 865, 2000);
+            device.slideToPoint(1181, 2176, 1181, 1200, 2000);
 
             // 获取滑动之后的截图
             byte[] currentPage = device.screenshot();
-
 
             // 如果当前页面上上一页相同退出循环
             boolean same = ImageUtil.isSame(ImageIO.read(new ByteArrayInputStream(preImgByte)), ImageIO.read(new ByteArrayInputStream(currentPage)));
