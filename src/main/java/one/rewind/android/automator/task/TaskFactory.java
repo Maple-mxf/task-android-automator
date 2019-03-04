@@ -82,17 +82,13 @@ public class TaskFactory {
 
             task = (Task) cons.newInstance(holder, params);
 
-            /*Arrays.stream(task.getClass().getFields()).filter(
-                    f -> f.getType().getSuperclass().equals(Adapter.class)).
-                    findAny().ifPresent(
-                    t -> holder.adapter_class_name = t.getType().getName());
-*/
 
             Field[] fields = task.getClass().getFields();
 
             for (Field field : fields) {
                 if (Adapter.class.equals(field.getType().getSuperclass())) {
                     holder.adapter_class_name = field.getType().getName();
+                    break;
                 }
             }
 

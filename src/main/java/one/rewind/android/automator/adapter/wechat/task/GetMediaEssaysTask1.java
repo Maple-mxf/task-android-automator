@@ -51,7 +51,7 @@ import static java.util.stream.Collectors.toList;
  */
 public class GetMediaEssaysTask1 extends Task {
 
-    public static Map<String, Lock> deviceLocks = new HashedMap();
+//    public static Map<String, Lock> deviceLocks = new HashedMap();
 
     public String media_nick;
 
@@ -147,13 +147,14 @@ public class GetMediaEssaysTask1 extends Task {
         // 任务执行
         try {
 
-            Lock lock = deviceLocks.get(adapter.device.name);
-            if(lock == null) {
+           /* Lock lock = deviceLocks.get(adapter.device.name);
+
+            if (lock == null) {
                 lock = new ReentrantLock();
                 deviceLocks.put(adapter.device.name, lock);
             }
-
             lock.lock();
+            System.err.println("lock: ==============   " + lock);*/
 
             RC("判断帐号状态");
             checkAccountStatus(adapter); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
@@ -234,7 +235,7 @@ public class GetMediaEssaysTask1 extends Task {
                     return false;
                 }
 
-                EssayProcessor ep = new EssayProcessor(adapter.device.name, media_nick, reqObj0, reqObj1, reqObj2, lock);
+                EssayProcessor ep = new EssayProcessor(adapter.device.name, media_nick, reqObj0, reqObj1, reqObj2);
 
                 RC("提交数据采集任务");
                 ListenableFuture<?> future = service.submit(ep);

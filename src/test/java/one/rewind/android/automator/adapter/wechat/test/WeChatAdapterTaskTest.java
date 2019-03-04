@@ -273,7 +273,7 @@ public class WeChatAdapterTaskTest {
                                 "ZX1G22PQLH",
                                 null,
                                 GetMediaEssaysTask1.class.getName(),
-                                Arrays.asList("华夏时报"))
+                                Arrays.asList("华夏能源网"))
                 ));
 
         AndroidDeviceManager.getInstance().submit(
@@ -282,7 +282,7 @@ public class WeChatAdapterTaskTest {
                                 "ZX1G22PQLH",
                                 null,
                                 GetMediaEssaysTask1.class.getName(),
-                                Arrays.asList("主力君说股"))
+                                Arrays.asList("兀峰金融研究"))
                 ));
 
         Thread.sleep(10000000);
