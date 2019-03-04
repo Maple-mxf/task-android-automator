@@ -257,6 +257,10 @@ public class GetMediaEssaysTask1 extends Task {
         } catch (MediaException.Illegal e) {
             failure(e, e.media_nick + " illegal");
             return false;
+        } catch (RuntimeException e) {
+
+            failure(e, e.getMessage());
+            return true;
         }
     }
 

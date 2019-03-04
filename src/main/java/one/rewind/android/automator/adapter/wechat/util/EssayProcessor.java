@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import one.rewind.android.automator.adapter.wechat.WeChatAdapter;
+import one.rewind.android.automator.util.Tab;
 import one.rewind.data.raw.model.Author;
 import one.rewind.data.raw.model.Comment;
 import one.rewind.data.raw.model.Essay;
@@ -16,6 +17,7 @@ import one.rewind.io.requester.chrome.ChromeTask;
 import one.rewind.io.requester.task.Task;
 import one.rewind.io.requester.task.TaskHolder;
 import one.rewind.txt.*;
+import one.rewind.util.FileUtil;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -878,8 +880,14 @@ public class EssayProcessor implements Callable<Boolean> {
 
                     if (t.getResponse().getCookies() != null)
                         ep.cookieStore.add(t.getResponse().getCookies());
-                }
+                } else {
 
+                    logger.warn("Warn Essay content is null !");
+
+                    // 文章解析为空需要保存网页源码分析tmp/wx/source
+                    FileUtil.writeBytesToFile(source.getBytes(), "tmp/wx/source" + Tab.ai.getAndIncrement() + ".html");
+
+                }
             });
         }
     }

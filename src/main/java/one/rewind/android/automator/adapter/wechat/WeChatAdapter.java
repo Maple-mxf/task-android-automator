@@ -117,6 +117,12 @@ public class WeChatAdapter extends Adapter {
         try {
             if (device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'更新')]")) != null) {
                 device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'取消')]")).click();
+
+                // 确认不更新
+                if (device.driver.findElement(By.xpath("//android.widget.TextView[contains(@text,'是否取消安装？')]")) != null) {
+                    device.driver.findElement(By.xpath("//android.widget.Button[contains(@text,'是')]")).click();
+                }
+
             }
         } catch (Exception e) {
             logger.info("Home Page No update tip" + e);
@@ -169,7 +175,10 @@ public class WeChatAdapter extends Adapter {
                         .eq("username", userInfo.name)
                         .queryForFirst();
 
-                if (tempAcc == null) throw new RuntimeException("Error Not found account !");
+                if (tempAcc == null) {
+                    logger.error("Error Not found account [{}]   [{}]", userInfo.id, userInfo.name);
+                    throw new RuntimeException();
+                }
                 this.account = tempAcc;
 
                 logger.info("Account[{}] ", this.account.username);

@@ -32,6 +32,8 @@ public class Tab {
 
 	public static AtomicInteger localProxyPort = new AtomicInteger(42000);
 
+	public static AtomicInteger ai = new AtomicInteger(0);
+
 	static {
 		try {
 			subscribeDao = Daos.get(WechatAccountMediaSubscribe.class);
