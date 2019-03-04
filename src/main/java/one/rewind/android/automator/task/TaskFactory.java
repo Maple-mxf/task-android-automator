@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -81,11 +82,19 @@ public class TaskFactory {
 
             task = (Task) cons.newInstance(holder, params);
 
-            Arrays.stream(task.getClass().getFields()).filter(
+            /*Arrays.stream(task.getClass().getFields()).filter(
                     f -> f.getType().getSuperclass().equals(Adapter.class)).
-                    findFirst().ifPresent(
+                    findAny().ifPresent(
                     t -> holder.adapter_class_name = t.getType().getName());
+*/
 
+            Field[] fields = task.getClass().getFields();
+
+            for (Field field : fields) {
+                if (Adapter.class.equals(field.getType().getSuperclass())) {
+                    holder.adapter_class_name = field.getType().getName();
+                }
+            }
 
         } catch (Exception e) {
             logger.error("Error new instance of Task error, ", e);

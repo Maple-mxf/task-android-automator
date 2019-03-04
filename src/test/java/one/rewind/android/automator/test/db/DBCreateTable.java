@@ -1,7 +1,7 @@
 package one.rewind.android.automator.test.db;
 
-import one.rewind.data.raw.model.Author;
 import one.rewind.db.util.Refactor;
+import one.rewind.io.requester.task.TaskHolder;
 import org.junit.Test;
 
 /**
@@ -15,7 +15,7 @@ public class DBCreateTable {
 
         //DBUtil.initDB(false);
 
-        Refactor.createTable(Author.class);
+        Refactor.createTable(TaskHolder.class);
         //Refactor.createTable(SysLog.class);
     }
 

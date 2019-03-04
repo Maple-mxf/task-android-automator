@@ -32,6 +32,10 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -50,6 +54,8 @@ public class EssayProcessor implements Callable<Boolean> {
      * EssayProcessor 所有生成的任务对应的 url --> 关联 EssayProcessor 对象
      */
     public static ConcurrentHashMap<String, EssayProcessor> holderProcessorMap = new ConcurrentHashMap<>();
+
+    public String deviceName;
 
     public String media_nick;
 
@@ -94,6 +100,10 @@ public class EssayProcessor implements Callable<Boolean> {
 
     public String appmsg_token;
 
+    private Phaser phaser;
+
+    private Lock lock;
+
     /**
      * 构造方法
      *
@@ -101,7 +111,11 @@ public class EssayProcessor implements Callable<Boolean> {
      * @param list1 微信公众号历史文章页面的第一个翻页请求
      * @throws Exception
      */
-    public EssayProcessor(String media_nick, ReqObj list0, ReqObj list1, ReqObj content1) throws Exception {
+    public EssayProcessor(String deviceName, String media_nick, ReqObj list0, ReqObj list1, ReqObj content1, Lock lock) throws Exception {
+
+        this.lock = lock;
+
+        this.deviceName = deviceName;
 
         this.media_nick = media_nick;
 
@@ -134,21 +148,42 @@ public class EssayProcessor implements Callable<Boolean> {
 
     @Override
     public Boolean call() {
+        
+        boolean returnValue = true;
+
         try {
+
             List<TaskHolder> nths = new ArrayList<>();
             getEssayTH(list0.res, media_nick, nths);
             getEssayTH(list1.res, media_nick, nths);
             getNextPageTH(list1.url, list1.res, nths);
 
+            this.phaser = new Phaser(1);
+
+            BasicDistributor.getInstance(deviceName).addBeforeSubmitHook((th) -> {
+                this.phaser.register();
+            }).addSuccessCallback((th) -> {
+                this.phaser.arriveAndDeregister();
+            }).addFailureCallback((th) -> {
+                this.phaser.arriveAndDeregister();
+            });
+
             for (TaskHolder th : nths) {
-                BasicDistributor.getInstance().submit(th);
+                BasicDistributor.getInstance(deviceName).submit(th);
             }
+
+            phaser.arriveAndAwaitAdvance();
 
         } catch (Exception e) {
             logger.error("Error, ", e);
-            return Boolean.FALSE;
+            returnValue = false;
         }
-        return Boolean.TRUE;
+
+        if (lock != null) {
+            lock.unlock();
+        }
+
+        return returnValue;
     }
 
 

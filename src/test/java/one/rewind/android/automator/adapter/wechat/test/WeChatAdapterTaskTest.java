@@ -271,18 +271,18 @@ public class WeChatAdapterTaskTest {
                 TaskFactory.getInstance().generateTask(
                         new TaskHolder(StringUtil.uuid(),
                                 "ZX1G22PQLH",
-                                WeChatAdapter.class.getName(),
+                                null,
                                 GetMediaEssaysTask1.class.getName(),
-                                Arrays.asList("交易门"))
+                                Arrays.asList("华夏时报"))
                 ));
 
         AndroidDeviceManager.getInstance().submit(
                 TaskFactory.getInstance().generateTask(
                         new TaskHolder(StringUtil.uuid(),
-                                "ZX1G42BX4R",
-                                WeChatAdapter.class.getName(),
+                                "ZX1G22PQLH",
+                                null,
                                 GetMediaEssaysTask1.class.getName(),
-                                Arrays.asList("地产邦"))
+                                Arrays.asList("主力君说股"))
                 ));
 
         Thread.sleep(10000000);
@@ -299,7 +299,7 @@ public class WeChatAdapterTaskTest {
                                 MonitorRealTimeTask.class.getName(),
                                 Arrays.asList())
                 ));
-        
+
         Thread.sleep(10000000);
     }
 

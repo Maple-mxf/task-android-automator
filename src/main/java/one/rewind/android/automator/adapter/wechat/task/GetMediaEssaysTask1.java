@@ -26,6 +26,7 @@ import one.rewind.db.Daos;
 import one.rewind.db.exception.DBInitException;
 import one.rewind.db.model.Model;
 import one.rewind.txt.DateFormatUtil;
+import org.apache.commons.collections.map.HashedMap;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -33,6 +34,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -47,6 +50,8 @@ import static java.util.stream.Collectors.toList;
  * @date 2019/1/14
  */
 public class GetMediaEssaysTask1 extends Task {
+
+    public static Map<String, Lock> deviceLocks = new HashedMap();
 
     public String media_nick;
 
@@ -142,6 +147,14 @@ public class GetMediaEssaysTask1 extends Task {
         // 任务执行
         try {
 
+            Lock lock = deviceLocks.get(adapter.device.name);
+            if(lock == null) {
+                lock = new ReentrantLock();
+                deviceLocks.put(adapter.device.name, lock);
+            }
+
+            lock.lock();
+
             RC("判断帐号状态");
             checkAccountStatus(adapter); // 有可能找不到符合条件的账号加载 并抛出NoAvailableAccount异常
 
@@ -221,21 +234,16 @@ public class GetMediaEssaysTask1 extends Task {
                     return false;
                 }
 
-                EssayProcessor ep = new EssayProcessor(media_nick, reqObj0, reqObj1, reqObj2);
+                EssayProcessor ep = new EssayProcessor(adapter.device.name, media_nick, reqObj0, reqObj1, reqObj2, lock);
 
                 RC("提交数据采集任务");
                 ListenableFuture<?> future = service.submit(ep);
-
                 future.addListener(() -> logger.info("Success EssayProcessor[{}] finish fetch task! ", media_nick), service);
-
-                // 阻塞等待任务执行
-                future.get();
-
+                // future.get();
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
 
             RC("任务完成");
             success();

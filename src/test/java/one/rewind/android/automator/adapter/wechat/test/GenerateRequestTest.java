@@ -95,7 +95,7 @@ public class GenerateRequestTest {
         ReqObj reqObj1 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html"), ReqObj.class);
         ReqObj reqObj2 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayContent-0.html"), ReqObj.class);
 
-        EssayProcessor ep = new EssayProcessor("拍拍贷", reqObj0, reqObj1, reqObj2);
+        EssayProcessor ep = new EssayProcessor("","拍拍贷", reqObj0, reqObj1, reqObj2,null);
 
         List<TaskHolder> nths = new ArrayList<>();
         ep.getEssayTH(reqObj0.res, "拍拍贷", nths);
@@ -132,7 +132,7 @@ public class GenerateRequestTest {
         ReqObj reqObj1 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayList-1.html"), ReqObj.class);
         ReqObj reqObj2 = JSON.fromJson(FileUtil.readFileByLines("tmp/wx/res/EssayContent-0.html"), ReqObj.class);
 
-        EssayProcessor ep = new EssayProcessor("火山财富", reqObj0, reqObj1, reqObj2);
+        EssayProcessor ep = new EssayProcessor("","火山财富", reqObj0, reqObj1, reqObj2,null);
 
         ep.call();
 
