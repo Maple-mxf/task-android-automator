@@ -34,29 +34,29 @@ The framework follows a layered architecture to ensure modularity and extensibil
 
 ```mermaid
 graph TD
-    A[External System] --> B[RESTful API Server (Spark)];
+    A[External System] --> B[RESTful API Server];
     B --> C{AndroidDeviceManager};
     C --> D[AndroidDevice 1];
     C --> E[AndroidDevice 2];
-    D --> D1[Adapter A (e.g., WeChatAdapter)];
-    D --> D2[Adapter B (e.g., ContactsAdapter)];
+    D --> D1["Adapter A (e.g., WeChatAdapter)"];
+    D --> D2["Adapter B (e.g., ContactsAdapter)"];
     E --> E1[Adapter C];
     D1 --> F{Task Queue};
     E1 --> G{Task Queue};
-    F --> H[Task 1 (e.g., GetMediaEssaysTask)];
+    F --> H["Task 1 (e.g., GetMediaEssaysTask)"];
     G --> I[Task 2];
     H --> J[Appium Driver];
     I --> K[Appium Driver];
     J --> L[Android Device UI/App];
     K --> M[Android Device UI/App];
-    L --> N[Data Captured (Screenshot, Network)];
+    L --> N["Data Captured (Screenshot, Network)"];
     N --> O[OCR Client];
     N --> P[BrowserMob Proxy];
-    O --> Q[Database (MySQL)];
+    O --> Q["Database (MySQL)"];
     P --> Q;
     H --> Q;
     I --> Q;
     Q --> R[ORMlite];
-    C --> S[Redis (Redisson)];
+    C --> S["Redis (Redisson)"];
     S --> T[Task Distribution / Pub-Sub];
 ```
