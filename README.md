@@ -51,7 +51,7 @@ graph TD
     I --> K[Appium 驱动];
     J --> L[Android 设备 UI/应用];
     K --> M[Android 设备 UI/应用];
-    L --> N[捕获数据 (截图, 网络)];
+    L --> N["捕获数据 (截图, 网络)"];
     N --> O[OCR 客户端];
     N --> P[BrowserMob 代理];
     O --> Q["数据库 (MySQL)"];
